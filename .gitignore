@@ -1,0 +1,64 @@
+# ============================================================================
+# S.P.I.D.E.R. — privacy-first .gitignore
+# The repo ships the SYSTEM (prompts, templates, reference). It must NEVER ship
+# anyone's personal career data or generated outputs. Everything personal lives
+# under workspace/ and is ignored. When in doubt, it does not get committed.
+# ============================================================================
+
+# --- Personal workspaces & all generated output (the #1 rule) ----------------
+workspace/*
+!workspace/.gitkeep
+!workspace/README.md
+
+# --- The author's own private career system (never publish) -------------------
+koushik-docs/
+../koushik-docs/
+*koushik-docs*
+
+# --- Anyone's source documents (resumes, LinkedIn exports, cover letters) -----
+*.resume.*
+*-resume.md
+*-resume.pdf
+*-resume.docx
+*resume*.pdf
+*resume*.docx
+*CV*.pdf
+linkedin-data/
+linkedin_extracted/
+Basic_LinkedIn_Data*/
+Complete_LinkedIn_Data*/
+*.linkedin.zip
+Connections.csv
+messages.csv
+Invitations.csv
+Email Addresses.csv
+Profile.csv
+Positions.csv
+Skills.csv
+Endorsement*.csv
+
+# --- Generated personal artifacts anywhere in the tree ------------------------
+**/master-resume.md
+**/signal.md
+**/*-resume-*.pdf
+**/*-signal-*.pdf
+**/application-log.md
+**/linkedin-analysis.html
+**/start-here.html
+# (Templates and examples are committed explicitly via the !allow rules below.)
+!templates/**
+!examples/**
+!reference/**
+!prompts/**
+
+# --- OS / editor / tooling cruft ----------------------------------------------
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*~
+.claude/settings.local.json
+node_modules/
+__pycache__/
+*.log

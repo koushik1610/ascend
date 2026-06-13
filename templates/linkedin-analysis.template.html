@@ -1,0 +1,192 @@
+<!doctype html>
+<!--
+  S.P.I.D.E.R. — LinkedIn Analysis dashboard TEMPLATE.
+  HOW TO USE (Phase 1): fill the `DATA` object below with the user's real numbers computed from their
+  LinkedIn export, then write the result to workspace/<name>/linkedin-analysis.html. The page renders
+  entirely from DATA via vanilla JS + inline SVG — no network, no build, opens offline in any browser.
+  Keep it self-contained. Every number must trace to the export or be labelled an estimate.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LinkedIn Analysis — <!--NAME--></title>
+<style>
+  :root{
+    --bg:#0b0f14; --panel:#121822; --panel2:#0f141c; --line:#1f2937;
+    --txt:#e6edf3; --muted:#8b97a7; --accent:#5b9dff; --good:#36d399; --warn:#fbbf24; --bad:#f87171;
+    --r:14px; --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+    --sans:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box} html,body{margin:0}
+  body{background:var(--bg);color:var(--txt);font-family:var(--sans);line-height:1.55;
+       -webkit-font-smoothing:antialiased}
+  .wrap{max-width:1080px;margin:0 auto;padding:32px 20px 80px}
+  h1{font-size:30px;margin:0 0 4px;letter-spacing:-.02em}
+  h2{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);
+     margin:40px 0 14px;font-weight:600}
+  .sub{color:var(--muted);font-size:14px}
+  a{color:var(--accent)}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:22px}
+  .grid{display:grid;gap:16px}
+  .cards{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+  .stat{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:16px}
+  .stat .v{font-size:28px;font-weight:700;font-family:var(--mono)}
+  .stat .l{color:var(--muted);font-size:12px;margin-top:4px}
+  /* hero score gauge */
+  .hero{display:flex;gap:28px;align-items:center;flex-wrap:wrap}
+  .gauge{--p:0;width:148px;height:148px;border-radius:50%;flex:0 0 auto;
+    background:conic-gradient(var(--accent) calc(var(--p)*1%), #1b2330 0);
+    display:grid;place-items:center;position:relative}
+  .gauge::after{content:"";position:absolute;inset:14px;background:var(--panel);border-radius:50%}
+  .gauge b{position:relative;font-size:40px;font-family:var(--mono)}
+  .bar{height:10px;background:#1b2330;border-radius:6px;overflow:hidden}
+  .bar>span{display:block;height:100%;background:var(--accent)}
+  .row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 0;
+       border-bottom:1px solid var(--line)}
+  .row:last-child{border-bottom:0}
+  .pill{font-size:11px;font-family:var(--mono);padding:2px 9px;border-radius:999px;border:1px solid var(--line)}
+  .ok{color:var(--good);border-color:#1f3d33} .miss{color:var(--bad);border-color:#3d2230}
+  .gap{color:var(--warn);border-color:#3d3420}
+  .kw{display:flex;flex-wrap:wrap;gap:8px}
+  .kw span{font-family:var(--mono);font-size:12px;padding:4px 10px;border-radius:8px;border:1px solid var(--line);background:var(--panel2)}
+  ol.steps{list-style:none;counter-reset:s;padding:0;margin:0;display:grid;gap:12px}
+  ol.steps li{counter-increment:s;background:var(--panel2);border:1px solid var(--line);border-radius:12px;
+    padding:16px 18px 16px 56px;position:relative}
+  ol.steps li::before{content:counter(s);position:absolute;left:16px;top:16px;width:28px;height:28px;
+    display:grid;place-items:center;border-radius:8px;background:var(--accent);color:#04101f;font-weight:700;font-family:var(--mono)}
+  ol.steps .t{font-weight:600;margin-bottom:4px}
+  ol.steps .why{color:var(--muted);font-size:13px}
+  ol.steps .meta{font-family:var(--mono);font-size:11px;color:var(--accent);margin-top:8px}
+  .barlist .row span:first-child{flex:0 0 38%}
+  .note{color:var(--muted);font-size:12px;margin-top:8px}
+  svg text{fill:var(--muted);font-size:10px;font-family:var(--mono)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1 id="hName"></h1>
+  <div class="sub" id="hSub"></div>
+
+  <!-- HERO: findability score -->
+  <h2>Recruiter-Findability Score</h2>
+  <div class="panel hero">
+    <div class="gauge" id="gauge"><b id="scoreNum">0</b></div>
+    <div style="flex:1;min-width:240px">
+      <div id="verdict" style="font-size:18px;font-weight:600;margin-bottom:10px"></div>
+      <div id="subscores" class="grid" style="gap:10px"></div>
+    </div>
+  </div>
+
+  <!-- PROFILE COMPLETENESS -->
+  <h2>Profile Completeness</h2>
+  <div class="panel" id="completeness"></div>
+
+  <!-- KEYWORD GAP -->
+  <h2>Keyword Coverage vs. Target Roles</h2>
+  <div class="panel">
+    <div style="margin-bottom:14px"><b>Present</b><div class="kw" id="kwHave"></div></div>
+    <div style="margin-bottom:14px"><b>Missing — but you can claim these</b><div class="kw" id="kwClaim"></div></div>
+    <div><b>True gaps</b> (handle honestly, don't bluff)<div class="kw" id="kwGap"></div></div>
+  </div>
+
+  <!-- NETWORK -->
+  <h2>Network</h2>
+  <div class="grid cards" id="netStats"></div>
+  <div class="panel barlist" style="margin-top:16px">
+    <div class="sub" style="margin-bottom:10px">Top companies in your network</div>
+    <div id="netCompanies"></div>
+  </div>
+
+  <!-- ACTIVITY -->
+  <h2>Activity & Reach</h2>
+  <div class="panel">
+    <div id="activity"></div>
+    <svg id="activitySvg" width="100%" height="120" viewBox="0 0 600 120" preserveAspectRatio="none" style="margin-top:10px"></svg>
+  </div>
+
+  <!-- THE 10 NEXT STEPS -->
+  <h2>Your 10 Next Steps — ranked by leverage</h2>
+  <ol class="steps" id="steps"></ol>
+
+  <div class="note" id="howComputed"></div>
+</div>
+
+<script>
+/* ============================================================================
+   DATA — Phase 1 fills this from the user's LinkedIn export. Everything below
+   renders from it. Replace all placeholder values with real, traceable numbers.
+   ============================================================================ */
+const DATA = {
+  name: "<Full Name>",
+  asOf: "<YYYY-MM-DD>",
+  targetRoles: "<e.g., Staff Security Engineer>",
+  score: 0,                       // 0–100 overall findability
+  verdict: "<one-line verdict>",
+  subscores: [                    // shown next to the gauge
+    {label:"Headline title-match", v:0},
+    {label:"Endorsed skills", v:0},
+    {label:"Activity signal", v:0},
+    {label:"About / Featured", v:0}
+  ],
+  completeness: [                 // each: label, state ok|gap|miss, note
+    {label:"Headline carries searched title + domains", state:"gap", note:"<…>"},
+    {label:"About has a hook + keywords", state:"miss", note:"<…>"},
+    {label:"Featured section populated", state:"miss", note:"<…>"},
+    {label:"Custom URL", state:"ok", note:""},
+    {label:"Skills ordered for target role", state:"gap", note:"<…>"}
+  ],
+  keywords: { have:["<kw>"], claim:["<kw>"], gap:["<kw>"] },
+  network: {
+    connections:0, inbound:0, outbound:0, atTargets:0,
+    companies:[ {name:"<Company>", n:0} ]   // top companies, sorted desc
+  },
+  activity: { posts:0, lastPostDays:null, cadence:"<dormant / sporadic / weekly>",
+              timeline:[0,0,0,0,0,0]  /* posts per recent period, oldest→newest */ },
+  steps: [   // EXACTLY 10, ordered lowest-activation-energy / highest-compound first
+    {t:"<action>", why:"<why it matters — tie to a finding>", time:"<~20 min>"}
+    /* …10 total… */
+  ],
+  howComputed: "Scores computed from your LinkedIn data export (<files used>). Estimates are labelled."
+};
+
+/* ---- render ---- */
+const $=s=>document.querySelector(s), el=(t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e};
+$("#hName").textContent = `LinkedIn Analysis — ${DATA.name}`;
+$("#hSub").textContent = `Target: ${DATA.targetRoles}  ·  as of ${DATA.asOf}`;
+$("#scoreNum").textContent = DATA.score;
+$("#gauge").style.setProperty("--p", DATA.score);
+$("#verdict").textContent = DATA.verdict;
+DATA.subscores.forEach(s=>{
+  const d=el("div"); d.innerHTML=`<div class="row" style="border:0;padding:4px 0">
+    <span class="sub">${s.label}</span><span class="pill">${s.v}/100</span></div>
+    <div class="bar"><span style="width:${s.v}%"></span></div>`;
+  $("#subscores").appendChild(d);
+});
+DATA.completeness.forEach(c=>{
+  const cls={ok:"ok",gap:"gap",miss:"miss"}[c.state]||"gap";
+  const label={ok:"good",gap:"improve",miss:"missing"}[c.state];
+  $("#completeness").appendChild(el("div","row",
+    `<span>${c.label}${c.note?` <span class="sub">— ${c.note}</span>`:""}</span><span class="pill ${cls}">${label}</span>`));
+});
+const kw=(id,arr)=>arr.forEach(k=>$(id).appendChild(el("span",null,k)));
+kw("#kwHave",DATA.keywords.have); kw("#kwClaim",DATA.keywords.claim); kw("#kwGap",DATA.keywords.gap);
+[["Connections",DATA.network.connections],["Inbound invites",DATA.network.inbound],
+ ["Outbound invites",DATA.network.outbound],["At target companies",DATA.network.atTargets]]
+ .forEach(([l,v])=>$("#netStats").appendChild(el("div","stat",`<div class="v">${v}</div><div class="l">${l}</div>`)));
+const maxC=Math.max(1,...DATA.network.companies.map(c=>c.n));
+DATA.network.companies.forEach(c=>$("#netCompanies").appendChild(el("div","row",
+  `<span>${c.name}</span><span style="flex:1" class="bar"><span style="width:${c.n/maxC*100}%"></span></span><span class="pill">${c.n}</span>`)));
+$("#activity").innerHTML=`<div class="row"><span>Posts</span><span class="pill">${DATA.activity.posts}</span></div>
+  <div class="row"><span>Cadence</span><span class="pill">${DATA.activity.cadence}</span></div>
+  <div class="row"><span>Last post</span><span class="pill">${DATA.activity.lastPostDays==null?"—":DATA.activity.lastPostDays+" days ago"}</span></div>`;
+(function(){const t=DATA.activity.timeline,m=Math.max(1,...t),w=600/Math.max(1,t.length),svg=$("#activitySvg");
+  t.forEach((v,i)=>{const h=v/m*90;svg.insertAdjacentHTML("beforeend",
+    `<rect x="${i*w+4}" y="${110-h}" width="${w-8}" height="${h}" rx="3" fill="var(--accent)" opacity="0.85"></rect>`);});})();
+DATA.steps.slice(0,10).forEach(s=>$("#steps").appendChild(el("li",null,
+  `<div class="t">${s.t}</div><div class="why">${s.why}</div><div class="meta">${s.time||""}</div>`)));
+$("#howComputed").textContent=DATA.howComputed;
+</script>
+</body>
+</html>

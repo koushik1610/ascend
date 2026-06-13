@@ -1,0 +1,153 @@
+<!doctype html>
+<!--
+  S.P.I.D.E.R. — START-HERE navigator TEMPLATE (the front door to the whole job search).
+  HOW TO USE (Phase 7): fill the `DATA` object with the user's real pipeline + jobs, then write the
+  result to workspace/<name>/start-here.html. Relative links resolve from that folder. Self-contained,
+  offline, vanilla JS. To refresh job status later, edit DATA.jobs[*].status and re-open — or re-run
+  Phase 7. Status values: not-started | referral | applied | screening | onsite | offer | rejected.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Job Search HQ — <!--NAME--></title>
+<style>
+  :root{
+    --bg:#0b0f14;--panel:#121822;--panel2:#0f141c;--line:#1f2937;--txt:#e6edf3;--muted:#8b97a7;
+    --accent:#5b9dff;--good:#36d399;--warn:#fbbf24;--bad:#f87171;--purple:#a78bfa;
+    --mono:ui-monospace,Menlo,monospace;--sans:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}html,body{margin:0}
+  body{background:var(--bg);color:var(--txt);font-family:var(--sans);line-height:1.55}
+  .wrap{max-width:1120px;margin:0 auto;padding:32px 20px 80px}
+  h1{font-size:30px;margin:0;letter-spacing:-.02em}
+  .sub{color:var(--muted);font-size:14px}
+  h2{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:38px 0 14px;font-weight:600}
+  a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px}
+  .grid{display:grid;gap:14px}
+  .cards{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
+  .stat{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:16px;text-align:center}
+  .stat .v{font-size:30px;font-weight:700;font-family:var(--mono)} .stat .l{color:var(--muted);font-size:12px;margin-top:4px}
+  .phases{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+  .phase{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:14px}
+  .phase .n{font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .phase .t{font-weight:600;margin:4px 0 8px;font-size:14px}
+  .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+  .done{background:var(--good)} .todo{background:var(--muted)}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+  tr:hover td{background:var(--panel2)}
+  .st{font-family:var(--mono);font-size:11px;padding:3px 9px;border-radius:999px;border:1px solid var(--line);white-space:nowrap}
+  .st-not-started{color:var(--muted)} .st-referral{color:var(--purple);border-color:#332a52}
+  .st-applied{color:var(--accent);border-color:#23344d} .st-screening{color:var(--warn);border-color:#3d3420}
+  .st-onsite{color:#f0abfc;border-color:#3d2440} .st-offer{color:var(--good);border-color:#1f3d33}
+  .st-rejected{color:var(--bad);border-color:#3d2230}
+  .funnel{display:flex;gap:8px;flex-wrap:wrap}
+  .funnel .step{flex:1;min-width:110px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center}
+  .funnel .step .v{font-size:22px;font-weight:700;font-family:var(--mono)}
+  .funnel .step .l{font-size:11px;color:var(--muted)}
+  ul.todo{list-style:none;padding:0;margin:0;display:grid;gap:8px}
+  ul.todo li{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+  ul.todo .rank{font-family:var(--mono);color:var(--accent);margin-right:8px}
+  .links a{display:inline-block;margin-right:14px}
+  .note{color:var(--muted);font-size:12px;margin-top:8px}
+  .blockers li{border-left:3px solid var(--warn)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1 id="hName"></h1>
+  <div class="sub" id="hSub"></div>
+
+  <h2>This Week — do these first</h2>
+  <ul class="todo" id="thisWeek"></ul>
+
+  <h2>Funnel</h2>
+  <div class="funnel" id="funnel"></div>
+
+  <h2>Pipeline</h2>
+  <div class="phases" id="phases"></div>
+
+  <h2>Before You Apply (blockers)</h2>
+  <ul class="todo blockers" id="blockers"></ul>
+
+  <h2>The Job Board</h2>
+  <div class="panel" style="padding:0;overflow:auto">
+    <table>
+      <thead><tr><th>#</th><th>Company / Role</th><th>Location</th><th>Comp</th><th>ATS</th><th>Status</th><th>Files</th></tr></thead>
+      <tbody id="jobs"></tbody>
+    </table>
+  </div>
+
+  <h2>Interview Packet</h2>
+  <div class="panel links" id="packet"></div>
+
+  <h2>How to use this</h2>
+  <div class="panel">
+    <div id="howto"></div>
+    <div class="note">To refresh job status: edit <code>DATA.jobs[*].status</code> in this file and re-open, or re-run Phase 7. This file and everything it links to live in your private workspace and are never committed to git.</div>
+  </div>
+</div>
+
+<script>
+/* ============================================================================
+   DATA — Phase 7 fills this. Links are relative to workspace/<name>/.
+   ============================================================================ */
+const DATA = {
+  name:"<Full Name>", role:"<target role(s)>", positioning:"<one-line positioning>", asOf:"<YYYY-MM-DD>",
+  thisWeek:[ {t:"<highest-leverage action>", note:"<why>"} /* 3–5 */ ],
+  phases:[
+    {n:"Phase 1",t:"LinkedIn Analysis",done:true,link:"./linkedin-analysis.html"},
+    {n:"Phase 2",t:"Resume Audit",done:true,link:"./resume-audit.md"},
+    {n:"Phase 3",t:"Master Resume",done:true,link:"./master-resume.md"},
+    {n:"Phase 4",t:"Job Queue",done:true,link:"./job-queue.md"},
+    {n:"Phase 5",t:"Job Folders",done:true,link:"./jobs/"},
+    {n:"Phase 6",t:"Interview Packet",done:true,link:"./interview-packet/"},
+    {n:"Phase 7",t:"This Navigator",done:true,link:"#"}
+  ],
+  blockers:[ {t:"<pre-application blocker>", note:"<why it outranks applying>"} ],
+  jobs:[
+    { rank:1, company:"<Company>", role:"<Title>", loc:"<Remote / metro>", comp:"<$…>", ats:"<Greenhouse>",
+      status:"not-started", folder:"./jobs/01-company-role/" }
+    /* …all 15+… status: not-started|referral|applied|screening|onsite|offer|rejected */
+  ],
+  packet:[
+    {t:"STAR stories", link:"./interview-packet/star-stories.md"},
+    {t:"Project deep-dives", link:"./interview-packet/project-deep-dives.md"},
+    {t:"Metrics cheat-sheet", link:"./interview-packet/metrics-cheatsheet.md"},
+    {t:"Intro scripts", link:"./interview-packet/intro-scripts.md"},
+    {t:"Questions to ask", link:"./interview-packet/questions-to-ask.md"},
+    {t:"Company positioning", link:"./interview-packet/company-positioning.md"}
+  ],
+  howto:"Open the #1 job folder, clear the blockers above, run the referral sweep, then apply. Prep with that folder's interview-prep.md and prep-doc.md. Re-run Phase 4 weekly for fresh postings; update each job's application-log.md as you go (status here reflects those)."
+};
+
+const $=s=>document.querySelector(s), el=(t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e};
+$("#hName").textContent=`${DATA.name} — Job Search HQ`;
+$("#hSub").textContent=`${DATA.role}  ·  ${DATA.positioning}  ·  as of ${DATA.asOf}`;
+DATA.thisWeek.forEach((a,i)=>$("#thisWeek").appendChild(el("li",null,`<span class="rank">${i+1}.</span><b>${a.t}</b> <span class="sub">— ${a.note||""}</span>`)));
+DATA.phases.forEach(p=>$("#phases").appendChild(el("div","phase",
+  `<div class="n">${p.n}</div><div class="t">${p.t}</div><a href="${p.link}"><span class="dot ${p.done?'done':'todo'}"></span>${p.done?'open':'pending'}</a>`)));
+DATA.blockers.forEach(b=>$("#blockers").appendChild(el("li",null,`<b>${b.t}</b> <span class="sub">— ${b.note||""}</span>`)));
+const f={total:DATA.jobs.length,
+  applied:DATA.jobs.filter(j=>["applied","screening","onsite","offer","rejected"].includes(j.status)).length,
+  screening:DATA.jobs.filter(j=>["screening","onsite","offer"].includes(j.status)).length,
+  onsite:DATA.jobs.filter(j=>["onsite","offer"].includes(j.status)).length,
+  offer:DATA.jobs.filter(j=>j.status==="offer").length};
+[["Identified",f.total],["Applied",f.applied],["Screening",f.screening],["Onsite",f.onsite],["Offers",f.offer]]
+  .forEach(([l,v])=>$("#funnel").appendChild(el("div","step",`<div class="v">${v}</div><div class="l">${l}</div>`)));
+DATA.jobs.forEach(j=>{
+  const tr=el("tr"); const label=j.status.replace("-"," ");
+  tr.innerHTML=`<td>${j.rank}</td><td><a href="${j.folder}"><b>${j.company}</b></a><div class="sub">${j.role}</div></td>
+    <td>${j.loc}</td><td>${j.comp}</td><td>${j.ats}</td>
+    <td><span class="st st-${j.status}">${label}</span></td>
+    <td class="links"><a href="${j.folder}resume.md">resume</a><a href="${j.folder}prep-doc.md">prep</a><a href="${j.folder}application-log.md">log</a></td>`;
+  $("#jobs").appendChild(tr);
+});
+DATA.packet.forEach(p=>$("#packet").appendChild(el("a",null,p.t)).setAttribute("href",p.link));
+$("#howto").textContent=DATA.howto;
+</script>
+</body>
+</html>
