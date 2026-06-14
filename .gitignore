@@ -38,18 +38,31 @@ Skills.csv
 Endorsement*.csv
 
 # --- Generated personal artifacts anywhere in the tree ------------------------
+# These are unanchored so they apply in EVERY directory — including examples/,
+# templates/, reference/, prompts/. The system's own files are named differently
+# (master-resume-TEMPLATE.md, linkedin-analysis.TEMPLATE.html, 00-orchestrator.md,
+# …) so they are never matched by these patterns and stay committed. Do NOT add a
+# broad `!templates/**`-style re-include here — that re-opens the leak these close.
 **/master-resume.md
 **/signal.md
+**/cover-letter.md
+**/*-cover-letter.md
+**/*-resume.md
+**/*-resume.pdf
+**/*-resume.docx
 **/*-resume-*.pdf
 **/*-signal-*.pdf
 **/application-log.md
+**/job-queue.md
+**/intake.md
+**/resume-audit.md
 **/linkedin-analysis.html
 **/start-here.html
-# (Templates and examples are committed explicitly via the !allow rules below.)
-!templates/**
-!examples/**
-!reference/**
-!prompts/**
+**/.spider-state.json
+# Belt-and-suspenders: never commit anything a user drops into examples/ inputs.
+examples/**/inputs/
+examples/**/jobs/
+examples/**/interview-packet/
 
 # --- OS / editor / tooling cruft ----------------------------------------------
 .DS_Store
