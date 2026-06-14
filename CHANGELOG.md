@@ -4,6 +4,9 @@ All notable changes to S.P.I.D.E.R. Format loosely follows [Keep a Changelog](ht
 versioning is [SemVer](https://semver.org/).
 
 ## [Unreleased]
+- Console gets a subtle spider-web backdrop (`images/spider_unsplash2.jpg`, Unsplash-licensed) served
+  via a new `/images/` route. Added a licensed-art policy: `images/` is gitignored by default and
+  cleared files are allow-listed, so stock/copyrighted art can't be committed by accident.
 
 ## [0.4.0] — 2026-06-14
 A graphical front end so starting SPIDER is point-and-click, not typing.

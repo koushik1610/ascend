@@ -172,7 +172,9 @@ class Handler(BaseHTTPRequestHandler):
             slug = parse_qs(u.query).get("slug", [""])[0]
             return self._send(200, read_status(slugify(slug)))
         if u.path.startswith("/workspace/"):
-            return self._serve_workspace(u.path)
+            return self._serve_dir(WORKSPACE, "/workspace/", u.path)
+        if u.path.startswith("/images/"):
+            return self._serve_dir(REPO / "images", "/images/", u.path)
         return self._send(404, {"error": "not found"})
 
     def do_POST(self):
@@ -191,15 +193,16 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, {"ok": True})
         return self._send(404, {"error": "not found"})
 
-    def _serve_workspace(self, path):
-        # Serve the user's generated dashboard files over http (so relative links work). Path-traversal guarded.
-        rel = path[len("/workspace/"):]
-        target = (WORKSPACE / rel).resolve()
-        if not str(target).startswith(str(WORKSPACE.resolve())) or not target.is_file():
+    def _serve_dir(self, base, prefix, path):
+        # Serve static files from `base` (dashboards from workspace/, art from images/). Traversal-guarded.
+        target = (base / path[len(prefix):]).resolve()
+        if not str(target).startswith(str(base.resolve())) or not target.is_file():
             return self._send(404, {"error": "not found"})
         ctype = {"html": "text/html; charset=utf-8", "md": "text/plain; charset=utf-8",
                  "json": "application/json", "css": "text/css", "js": "text/javascript",
-                 "svg": "image/svg+xml"}.get(target.suffix.lstrip("."), "application/octet-stream")
+                 "svg": "image/svg+xml", "jpg": "image/jpeg", "jpeg": "image/jpeg",
+                 "png": "image/png", "webp": "image/webp", "gif": "image/gif"}.get(
+                     target.suffix.lstrip("."), "application/octet-stream")
         return self._send(200, target.read_bytes(), ctype)
 
 
