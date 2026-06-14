@@ -1,16 +1,52 @@
 # S.P.I.D.E.R. — Roadmap
 
-Where the project is going, and why. Built from a 5-surface market-research council (June 2026) on how
-people actually use Claude/AI for job hunting — Reddit & forums, LinkedIn/X creators, Medium/Substack
-guides, GitHub OSS tools, and commercial products. Items are scored for **impact × feasibility × fit
-with the honesty/local model**. Everything here stays inside that model: **no fabrication, no auto-apply,
-no scraping, no real-time interview copilots.**
+Where the project has been, where it's going, and why. The forward-looking backlog is built from a
+5-surface market-research council on how people actually use Claude/AI for job hunting — Reddit &
+forums, LinkedIn/X creators, Medium/Substack guides, GitHub OSS tools, and commercial products. Items
+are scored for **impact × feasibility × fit with the honesty/local model**. Everything stays inside that
+model: **no fabrication, no auto-apply, no scraping, no real-time interview copilots.**
 
-> **Status legend:** 🟢 shipped · 🔵 in progress (this cut) · ⚪ planned
+> **Status legend:** 🟢 shipped (version noted) · ⚪ planned
 
 ---
 
-## The 6 signals (every panel, independently)
+## Version lineage — what shipped when
+
+| Version | Theme | What it added |
+|---|---|---|
+| **0.1.0** | The pipeline | Intake → LinkedIn analysis (HTML + 10 next steps) → master résumé → 15+ job search → per-job folders → interview packet → `start-here.html` navigator; on-demand export/maintenance/deep-prep; resumability (`.spider-state.json`); privacy model; a fictional worked example; honest verified/unverified job-link framing. |
+| **0.2.0** | Simpler + outcome-targeted | **Tiered job folders** (CORE apply pack now, deep prep on demand) so a first run is ~25–30 files, not ~100; résumé audit folded into the master résumé; default order 1→3→4→6→5→7. Navigator **weekly action loop + funnel scoreboard**, **referral-first hard gate**, mock-interview drill. Modern README + hand-authored SVG banner. |
+| **0.3.0** | P1 first cut (research-driven) | **Explainable Fit Score 0–100** (P1 #3), **Warm-Network Mapper** from your `Connections.csv` (#1), **Application Answer Sheet** (#8), **Daily Briefing + ghost-detector follow-ups** (#9 + #12). `docs/ROADMAP.md` itself. |
+| **0.4.0** | Graphical console | **`/spiderui`** — a local Jarvis-style browser wizard (Python-stdlib server, native folder picker, live progress, optional daily-brief cron that auto-detects claude/gemini/codex). |
+| **Unreleased** | v1.0 hardening | Server **CSRF / DNS-rebinding hardening** (verified live); **beta labels + Known Limitations** honesty pass; dead-link fix; **smoke-test harness + CI**. (See *Path to v1.0*.) |
+
+---
+
+## Path to v1.0
+
+**Definition of Done (gate the 1.0 tag on all):** ① one real end-to-end run on real LinkedIn data,
+archived as proof, honesty gates verified · ② each shipped on-demand op run once or labeled beta ·
+③ `/spiderui` security-hardened + run end-to-end once, or beta · ④ smoke harness + CI green · ⑤ no dead
+links, phase list consistent · ⑥ README/CHANGELOG represent maturity honestly · ⑦ tag `v1.0.0`.
+
+**Blockers (from the v1.0 readiness council):**
+
+| # | Blocker | Status |
+|---|---|---|
+| 1 | Local-server CSRF / DNS-rebinding hardening | 🟢 done (Unreleased) — Host allowlist + per-session token + Origin check, verified live |
+| 4 | Dead `resume-audit.md` link + stale prompt refs | 🟢 done (Unreleased) |
+| 6 | Honest maturity labels (beta surfaces, Known Limitations) | 🟢 done (Unreleased) |
+| 5 | Smoke-test harness + CI | 🟢 done (Unreleased) — `tests/smoke.py`; CI workflow added, push needs the `workflow` OAuth scope |
+| 2 | **One real end-to-end run on real data** | ⬜ **pending — the remaining gate** (needs a real LinkedIn export) |
+
+**Should-fix before 1.0 (not hard gates):** mostly done in the hardening pass (ready-flag clears on
+pickup, `read_status` surfaces errors, traversal guard uses `relative_to`, console error handling).
+Remaining: single-source the triplicated phase list; surface a folder-picker fallback message on Linux
+without `zenity`; verify the headless daily-brief on at least one CLI.
+
+---
+
+## The 6 signals behind the backlog (every research panel, independently)
 
 1. **Relationships beat volume.** Referrals convert ~**35×**; warm intros + targeted apps drive 60–80%
    of fills while online-app offers fell 73%→60%. The clearest gap: SPIDER drafts referral messages but
@@ -36,27 +72,32 @@ privacy model are all confirmed correct. The whitespace is the **relationship + 
 
 ---
 
-## P1 — top 15 (highest impact × honest fit)
+## P1 — top 15 (highest impact × honest fit) — *5 shipped (v0.3.0), 10 pending*
 
 | # | Feature | What it is | Why (signal) | Effort | Status |
 |---|---|---|---|---|---|
-| 1 | **Warm-Network Mapper + Contact Finder** | From the `Connections.csv` in the LinkedIn export, surface warm contacts at each target company; identify likely recruiter/HM; rank by referral reachability | Referrals 35×; "Insider Connections" is Jobright's marquee paid feature; all 5 panels | M | 🔵 |
+| 1 | **Warm-Network Mapper + Contact Finder** | From the `Connections.csv` in the LinkedIn export, surface warm contacts at each target company; identify likely recruiter/HM; rank by referral reachability | Referrals 35×; "Insider Connections" is Jobright's marquee paid feature; all 5 panels | M | 🟢 v0.3.0 |
 | 2 | **Networking CRM** | Track contacts, last-touch, coffee-chat status, dormant-thread nudges, thank-yous | Relationships rank #1; "dormant referral conversations" | M | ⚪ |
-| 3 | **Explainable Job Match Score (0–100)** | Transparent composite per JD (skills/seniority/comp/keyword/excitement) **with reasoning** | Table stakes (Jobright, OphyAI, Resume-Matcher) | S–M | 🔵 |
+| 3 | **Explainable Job Match Score (0–100)** | Transparent composite per JD (skills/seniority/comp/keyword/excitement) **with reasoning** | Table stakes (Jobright, OphyAI, Resume-Matcher) | S–M | 🟢 v0.3.0 |
 | 4 | **Achievement-Mining Interview** | Conversational, one-question-at-a-time intake that extracts quantified wins into the bullet DB | Highest-value technique across blogs | M | ⚪ |
 | 5 | **Interactive "Interview Me" Drill** | Live text drill: ask → wait → score → swap stories → ratchet difficulty | Recurs everywhere; current drill is static | M | ⚪ |
 | 6 | **De-Genericizer / "Sounds-Human" Gate** | Score any résumé/cover/outreach for AI-tells; rewrite in the user's real voice before sending | #1 recruiter complaint; 80% of HMs view obvious AI letters negatively | M | ⚪ |
 | 7 | **Salary Negotiation Studio** | Comp → leveling band (P25/50/75, base vs equity) → counter scripts + objection drills | Discrete high-ROI step others monetize | S | ⚪ |
-| 8 | **Application Answer Sheet** | Reusable **varied** honest answers to common app questions (why-us, EEO, work-auth, salary, screeners) to copy-paste | The honest substitute for paywalled autofill; identical answers are a top tell | S | 🔵 |
-| 9 | **Daily Briefing Mode** | ~20-min daily scan + rank + 3 actions, alongside weekly maintenance | Aakash OS signature; market cadence | S | 🔵 |
+| 8 | **Application Answer Sheet** | Reusable **varied** honest answers to common app questions (why-us, EEO, work-auth, salary, screeners) to copy-paste | The honest substitute for paywalled autofill; identical answers are a top tell | S | 🟢 v0.3.0 |
+| 9 | **Daily Briefing Mode** | ~20-min daily scan + rank + 3 actions, alongside weekly maintenance | Aakash OS signature; market cadence | S | 🟢 v0.3.0 |
 | 10 | **Standing Job-Match Feed** | Scheduled re-search → ranked, deduped, **verified + fit-scored** feed | #1 stickiness driver (Jobright/Sorce) | M | ⚪ |
 | 11 | **Coffee-Chat / Info-Interview Kit** | Sub-400-char request scripts referencing the person's real content, 20-min ask, 70/30 agenda, 24h thank-you | Pre-engagement lifts acceptance to 40–50%; <400 chars = 22% reply lift | S | ⚪ |
-| 12 | **Ghost-Detector + Follow-Up Engine** | Per-app aging timers → "follow up vs move on" nudges with drafted, spaced messages | Ghosting at a 3-year high | S | 🔵 |
+| 12 | **Ghost-Detector + Follow-Up Engine** | Per-app aging timers → "follow up vs move on" nudges with drafted, spaced messages | Ghosting at a 3-year high | S | 🟢 v0.3.0 |
 | 13 | **JD → Résumé Diff View** | Side-by-side "what the JD asks vs what your résumé shows," exact missing phrases highlighted | Concrete; recurs in guides | S | ⚪ |
 | 14 | **Résumé PDF Parser Intake** | Extract structured fields from an existing résumé PDF to seed the master résumé | Smooths onboarding; #1 bug class in OSS tools | M | ⚪ |
 | 15 | **Personal-Brand Content Engine** | Honest post drafts mined from the bullet DB (wins/learnings/build-in-public), 80/20, 3–5/wk | Active brands get 47% more inbound, 8× engagement | M | ⚪ |
 
-## P2 — next 15
+**Up next (post-1.0):** the highest-leverage pending P1 items cluster in the **relationship + interactivity**
+layers the research ranked first — #2 Networking CRM, #4 Achievement-Mining Interview, #5 interactive
+"Interview Me" drill, #6 De-Genericizer, #7 Salary Negotiation Studio. These come *after* the v1.0 gate
+(one real run); the project freezes scope for 1.0 rather than adding surface.
+
+## P2 — next 15 (planned)
 
 | # | Feature | One-liner | Effort |
 |---|---|---|---|

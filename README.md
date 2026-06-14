@@ -26,9 +26,10 @@ Works for any field: engineering, design, product, marketing, ops.
 
 ---
 
-> **Project status — v0.4, pre-1.0.** The text pipeline (`/spider`) is the stable path. The graphical
-> console (`/spiderui`), the scheduled daily brief, and the newer on-demand ops are **beta** — built and
-> code-checked, but not yet proven end-to-end on real data. See **[Known limitations](#known-limitations)**.
+> **Status — pre-1.0.** The text pipeline (`/spider`) is the stable path. The graphical console
+> (`/spiderui`), the scheduled daily brief, and the newer on-demand ops are **beta** — built and
+> code-checked, but not yet proven end-to-end on real data. See **[Known limitations](#known-limitations)**;
+> version history and what's next live in **[`docs/ROADMAP.md`](docs/ROADMAP.md)**.
 
 ## Quickstart
 
@@ -218,13 +219,14 @@ spider/
 ├── .claude/commands/                the /spider + /spiderui slash commands
 ├── ui/                              the graphical console: server.py, index.html, run-daily-brief.sh
 ├── assets/spider-banner.svg         the brand banner (+ a slot for a demo.gif)
-├── docs/SETUP.md                    non-technical, step-by-step first-run guide
-├── prompts/                         00-orchestrator + phases 01–07, 08-export, 09-maintenance, 10-deep-prep
+├── docs/                            SETUP.md (first-run guide) · ROADMAP.md (versions + what's next)
+├── prompts/                         00-orchestrator + phases 01–07; on-demand 08–13
+│                                    (export, maintenance, deep-prep, network-map, answer-sheet, daily-briefing)
 ├── templates/                       job-folder (tiered spec), master-resume, signal, job-queue,
-│                                    interview-packet, resume-print, linkedin-analysis.template.html,
-│                                    start-here.template.html
+│                                    interview-packet, resume-print, linkedin-analysis + start-here (HTML)
 ├── reference/                       binding rules: ATS/keywords, résumé writing, numbers/honesty,
 │                                    interview-prep framework
+├── tests/smoke.py                   stdlib smoke tests (server, dashboards, gitignore, cross-refs)
 ├── examples/sample-run/             a fictional end-to-end example (open its start-here.html)
 └── workspace/                       YOUR private output lands here (gitignored)
 ```
