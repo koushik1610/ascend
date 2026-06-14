@@ -5,7 +5,7 @@ dashboard that links to everything and shows live status at a glance. This is th
 every day.
 
 **Read first:** everything produced so far in `workspace/<name>/` (linkedin-analysis.html,
-resume-audit.md, master-resume.md, job-queue.md, jobs/*, interview-packet/*) and
+master-resume.md, job-queue.md, jobs/*, interview-packet/*) and
 `../templates/start-here.template.html`.
 
 ---

@@ -9,7 +9,7 @@ bottom. **Re-open every link before applying — postings rot fast.**
 ---
 
 ## ⚠ Do these BEFORE applying to anything
-1. <e.g., fix the resume's top ATS issue from resume-audit.md>
+1. <e.g., fix the resume's top ATS issue (from the master résumé's "gaps & fixes" section)>
 2. <e.g., apply the LinkedIn next-steps from linkedin-analysis.html>
 3. <Referral sweep — message any existing connection at the target company before applying cold>
 4. <Ship/update any portfolio artifact the JDs reward>

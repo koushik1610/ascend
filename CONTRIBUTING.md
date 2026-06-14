@@ -36,9 +36,10 @@ If you change `.gitignore`, prove it still ignores personal data AND still track
 
 ## Workflow
 1. Fork, branch, make the change.
-2. If you touched a dashboard template, verify it: extract the JSON block and `JSON.parse` it; extract
-   the render `<script>` and `node --check` it.
-3. Update `CHANGELOG.md` under "Unreleased."
+2. **Run the smoke tests:** `python3 tests/smoke.py` (no installs — stdlib + git). They cover the server
+   security, dashboard JSON, the gitignore privacy matrix, and repo cross-references; CI runs the same.
+3. If you touched a dashboard template, also `node --check` its render `<script>`.
+4. Update `CHANGELOG.md` under "Unreleased."
 4. Open a PR describing what changed and which principle(s) it touches. Use the PR template.
 
 ## Reporting issues

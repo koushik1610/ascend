@@ -5,6 +5,7 @@
 **Strategic Profile Intelligence & Direct Employment Routing**
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-5b9dff?style=flat-square)
+&nbsp;![CI](https://github.com/koushik1610/spider/actions/workflows/ci.yml/badge.svg)
 &nbsp;![Built for Claude Code](https://img.shields.io/badge/built%20for-Claude%20Code-5b9dff?style=flat-square)
 &nbsp;![Version](https://img.shields.io/badge/version-v0.4.0-8b97a7?style=flat-square)
 &nbsp;![PRs welcome](https://img.shields.io/badge/PRs-welcome-36d399?style=flat-square)
@@ -24,6 +25,10 @@ Works for any field: engineering, design, product, marketing, ops.
      Until then, the fictional examples/sample-run/start-here.html is the "see it" link above. -->
 
 ---
+
+> **Project status — v0.4, pre-1.0.** The text pipeline (`/spider`) is the stable path. The graphical
+> console (`/spiderui`), the scheduled daily brief, and the newer on-demand ops are **beta** — built and
+> code-checked, but not yet proven end-to-end on real data. See **[Known limitations](#known-limitations)**.
 
 ## Quickstart
 
@@ -108,7 +113,7 @@ SPIDER resume"* later.
 
 | Say this | What it does |
 |---|---|
-| `/spiderui` | **Graphical console** — browser intake wizard + live progress + daily-brief scheduling |
+| `/spiderui` *(beta)* | **Graphical console** — browser intake wizard + live progress + daily-brief scheduling |
 | `/spider` / "Run SPIDER" | Full run from the intake interview (text) |
 | "Run SPIDER Phase 1" | Just the LinkedIn analysis (cheap first taste) |
 | "Run SPIDER resume" | Resume an interrupted run where it stopped |
@@ -178,6 +183,29 @@ split (*N candidates, M link-verified*) and you re-open every link before applyi
 session). Nothing is committed to git; nothing is published.
 
 **Can I customize it?** Yes — edit anything in `prompts/`, `templates/`, or `reference/`.
+</details>
+
+<a id="known-limitations"></a>
+<details>
+<summary><b>Known limitations</b></summary>
+
+Honest about what's proven vs. still beta (and the path to 1.0 is tracked in [`docs/ROADMAP.md`](docs/ROADMAP.md)):
+
+- **Beta surfaces** — `/spiderui`, the scheduled daily brief, and the newer on-demand ops (`network`,
+  `answers`, `today`, `prep`) are built and code-checked but **not yet verified end-to-end on real
+  data**. The text `/spider` pipeline is the stable path.
+- **Scheduled daily brief** — the cron runs your agent CLI headlessly, which may need it configured for
+  non-interactive use (permissions/flags). If a scheduled run doesn't complete, just say **"Run SPIDER
+  today"** in Claude Code for the same briefing. Detecting a CLI (`claude`/`gemini`/`codex`) does not
+  guarantee it completes a multi-file run unattended.
+- **Platform** — the daily-brief scheduler uses cron (**macOS/Linux**); **native Windows is not
+  supported** for scheduling (use WSL/Git Bash, or run the brief manually). The Linux folder picker
+  needs `zenity`/`kdialog`, otherwise paste the path.
+- **Free tier** — a free *web-chat* tier can't read local files; you need a local agent CLI (a free
+  *CLI* tier like Gemini CLI is the closest free path).
+- **Job links** — fetched and marked verified/unverified; postings rot, so re-open each before applying.
+- **Tests** — a smoke-test harness + CI cover the server, dashboards, gitignore, and prompt cross-refs;
+  there is no full end-to-end test (that requires a real run).
 </details>
 
 <details>

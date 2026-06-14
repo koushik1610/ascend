@@ -20,6 +20,12 @@ real work the browser can't: native folder/file pickers, writing your `intake.md
 daily-brief schedule, reporting pipeline progress, and serving your dashboard. Nothing leaves your
 machine; everything it writes is under `workspace/<you>/`, which is gitignored.
 
+**Why it's safe even though a localhost port is technically reachable by other tabs:** the server
+defends against CSRF and DNS-rebinding — it only answers requests whose `Host` is `127.0.0.1`/`localhost`
+(so a rebound hostname is rejected), and every `/api/*` call requires a per-session token injected into
+the console page (a random website can't read that token, so it can't drive the API). It sends no CORS
+headers, so other origins can't read your `workspace` files either.
+
 ```
 /spiderui ──► Claude Code starts ui/server.py (localhost) ──► browser opens the console
    console wizard ──► server writes workspace/<you>/intake.md + a "ready" flag

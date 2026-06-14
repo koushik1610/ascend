@@ -3,10 +3,19 @@
 All notable changes to S.P.I.D.E.R. Format loosely follows [Keep a Changelog](https://keepachangelog.com/);
 versioning is [SemVer](https://semver.org/).
 
-## [Unreleased]
+## [Unreleased] — v1.0 hardening
+Working through the v1.0 readiness review (`docs/ROADMAP.md` "Path to v1.0").
+- **Security:** hardened the `/spiderui` local server against CSRF + DNS-rebinding (Host allowlist,
+  per-session token on `/api/*`, Origin check on POST, stricter path-traversal guard). Verified live.
+- **Honesty:** added a **Project status** + **Known limitations** section and marked beta the surfaces
+  that haven't been run end-to-end on real data (`/spiderui`, the cron daily-brief, and the newer
+  on-demand ops). Softened "validated JSON" wording (the generator checks it parses; there's no
+  separate validator).
+- **Fixes:** removed a dead `resume-audit.md` link from the default dashboard and stale prompt refs
+  (the résumé audit is folded into the master résumé); the bridge now clears the `.ui-ready` flag on
+  pickup so a stale flag can't mis-route a run.
 - Console gets a subtle spider-web backdrop (`images/spider_unsplash2.jpg`, Unsplash-licensed) served
-  via a new `/images/` route. Added a licensed-art policy: `images/` is gitignored by default and
-  cleared files are allow-listed, so stock/copyrighted art can't be committed by accident.
+  via a new `/images/` route; `images/` is gitignored with a cleared-file allow-list.
 
 ## [0.4.0] — 2026-06-14
 A graphical front end so starting SPIDER is point-and-click, not typing.
@@ -88,7 +97,7 @@ First public version. A reusable, Claude Code-driven job-search pipeline.
   refresh + diff, outreach cadence, follow-ups/deadlines, comp research, retro-learning digest).
 - **Templates:** job-folder 8-file spec, master-resume, signal, job-queue, interview-packet,
   `resume-print` (ATS-safe print shell), and two self-contained dashboards (linkedin-analysis,
-  start-here) driven by a validated JSON data block.
+  start-here) driven by a JSON data block the generator checks parses.
 - **Reference rules:** ATS/keywords, resume-writing, number-&-honesty policy, interview-prep framework.
 - **Resumability:** `.spider-state.json` run manifest + `resume`, `job add`, `job rebuild`, `score`,
   `export`, `maintenance` operations via the `/spider` command.

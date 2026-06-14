@@ -4,7 +4,7 @@
 reused by every job folder, so a story or metric lives in exactly one place.
 
 **Read first:** `workspace/<name>/intake.md`, `master-resume.md` (esp. the story-bank index + metrics
-bank), `resume-audit.md`, `../templates/interview-packet-template.md`,
+bank), `../templates/interview-packet-template.md`,
 `../reference/interview-prep-framework.md`.
 
 > **Sequencing:** build this right before or alongside Phase 5, since the job folders cite its story

@@ -20,9 +20,11 @@ Then tell the user: *"Your SPIDER console is open in the browser — complete th
 
 ## 2. Wait for the intake (don't ask the questions again in chat)
 The console writes `workspace/<slug>/intake.md` and a `workspace/<slug>/.ui-ready` flag when the user
-finishes the wizard. **Poll** for that flag (e.g., check every ~10–15s with a bounded loop, or use a
-short `until` loop) — do NOT re-interview the user in the terminal; the UI already did it. When a
-`.ui-ready` file appears under any `workspace/*/`, read that folder's `intake.md`.
+finishes the wizard. **Poll** for that flag (e.g., check every ~10–15s with a bounded loop) — do NOT
+re-interview the user in the terminal; the UI already did it. When `.ui-ready` files exist under
+`workspace/*/`, pick the **most recently modified** one (a fresh run must win over a stale flag from a
+previous run), use its parent folder as the slug, then **delete that `.ui-ready` flag** before
+proceeding (so it can never mis-route a later run). Read that folder's `intake.md`.
 
 ## 3. Run the pipeline in UI mode
 With `intake.md` in hand, run the normal default pipeline from `prompts/00-orchestrator.md`
