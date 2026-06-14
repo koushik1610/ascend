@@ -1,16 +1,17 @@
 <!doctype html>
 <!--
-  S.P.I.D.E.R. — START-HERE navigator TEMPLATE (the front door to the whole job search).
-  HOW TO USE (Phase 7): fill the `DATA` object with the user's real pipeline + jobs, then write the
-  result to workspace/<name>/start-here.html. Relative links resolve from that folder. Self-contained,
-  offline, vanilla JS. To refresh job status later, edit DATA.jobs[*].status and re-open — or re-run
-  Phase 7. Status values: not-started | referral | applied | screening | onsite | offer | rejected.
+  🧪 FICTIONAL SAMPLE — every name, number, company, and link is invented.
+  S.P.I.D.E.R. START-HERE navigator (the front door to the whole job search), filled with demonstration
+  data for the fictional persona "Jordan Rivera." No real person, employer, metric, or link. Real runs
+  write this file to workspace/<name>/start-here.html. Relative links resolve from that folder.
+  Self-contained, offline, vanilla JS. Status values: not-started | referral | applied | screening |
+  onsite | offer | rejected.
 -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Job Search HQ — <!--NAME--></title>
+<title>Job Search HQ — Jordan Rivera (FICTIONAL SAMPLE)</title>
 <style>
   :root{
     --bg:#0b0f14;--panel:#121822;--panel2:#0f141c;--line:#1f2937;--txt:#e6edf3;--muted:#8b97a7;
@@ -61,8 +62,8 @@
   <h1 id="hName"></h1>
   <div class="sub" id="hSub"></div>
 
-  <div style="background:#3d2230;border:1px solid #5a2a3a;color:#f5b9c6;border-radius:10px;padding:10px 14px;font-size:12px;margin:16px 0 4px">
-    🔒 <b>Contains your personal data</b> (and links to your resumes, comp, and outreach). Keep it inside <code>workspace/</code> — don't email, upload, or commit it. The <code>.gitignore</code> only protects it there.
+  <div style="background:#3d3420;border:1px solid #5a4a28;color:#fbe6a8;border-radius:10px;padding:10px 14px;font-size:12px;margin:16px 0 4px">
+    🧪 <b>FICTIONAL SAMPLE</b> — every name, number, company, and link on this page is invented for the demonstration persona "Jordan Rivera." Nothing here is real. Real runs render this navigator inside a private <code>workspace/</code> folder that is never committed.
   </div>
 
   <h2>This Week — do these first</h2>
@@ -107,8 +108,13 @@
 -->
 <script type="application/json" id="spider-data">
 {
-  "name":"<Full Name>", "role":"<target role(s)>", "positioning":"<one-line positioning>", "asOf":"<YYYY-MM-DD>",
-  "thisWeek":[ {"t":"<highest-leverage action — 3 to 5>", "note":"<why>"} ],
+  "name":"Jordan Rivera (FICTIONAL SAMPLE)", "role":"Staff / Lead Product Designer", "positioning":"Design systems eng actually adopts · 0→1 product design · research-driven IC multiplier", "asOf":"2026-06-11",
+  "thisWeek":[
+    {"t":"Apply the LinkedIn next-steps (headline + Featured + skills)", "note":"steps 1–3 in linkedin-analysis.html — your profile is under-optimized for Staff/Lead recruiter search"},
+    {"t":"Run the referral sweep on Northwind (9 contacts) and Lumen (6)", "note":"warm intros before cold applications — see each job's outreach.md"},
+    {"t":"Apply to #1 Northwind Health — Staff Product Designer", "note":"best evidence fit and zero location friction; folder is fully built"},
+    {"t":"Rehearse the D1 design-system case study aloud", "note":"every loop in the set opens with a portfolio review; D1 covers most prompts"}
+  ],
   "phases":[
     {"n":"Phase 1","t":"LinkedIn Analysis","done":true,"link":"./linkedin-analysis.html"},
     {"n":"Phase 2","t":"Resume Audit","done":true,"link":"./resume-audit.md"},
@@ -118,20 +124,28 @@
     {"n":"Phase 6","t":"Interview Packet","done":true,"link":"./interview-packet/"},
     {"n":"Phase 7","t":"This Navigator","done":true,"link":"#"}
   ],
-  "blockers":[ {"t":"<pre-application blocker>", "note":"<why it outranks applying>"} ],
+  "blockers":[
+    {"t":"Reconcile the LinkedIn title ('Design Lead') with the resume ('Senior')", "note":"an honesty/consistency flag a recruiter sees before you do — settle on 'Senior Product Designer (IC)' first"},
+    {"t":"Pin the design-system case study to LinkedIn Featured", "note":"your strongest Staff-scope evidence is invisible; fix before recruiters click through"}
+  ],
   "jobs":[
-    { "rank":1, "company":"<Company>", "role":"<Title>", "loc":"<Remote / metro>", "comp":"<$…>", "ats":"<Greenhouse>",
-      "status":"not-started", "folder":"./jobs/01-company-role/", "deadline":null, "nextAction":"" }
+    { "rank":1, "company":"Northwind Health", "role":"Staff Product Designer", "loc":"Remote (US) · Austin HQ", "comp":"$205k–$245k", "ats":"Greenhouse",
+      "status":"not-started", "folder":"./jobs/01-northwind-health-staff-product-designer/", "deadline":null, "nextAction":"referral sweep then apply" },
+    { "rank":2, "company":"Lumen Retail", "role":"Lead Product Designer", "loc":"Hybrid · Austin (3d/wk)", "comp":"$195k–$230k", "ats":"Lever",
+      "status":"not-started", "folder":"./jobs/02-lumen-retail-lead-product-designer/", "deadline":null, "nextAction":"prep take-home, then apply" },
+    { "rank":3, "company":"Atlas Mobility", "role":"Staff Product Designer, Growth", "loc":"Remote (US)", "comp":"$200k–$238k", "ats":"Ashby",
+      "status":"not-started", "folder":"./job-queue.md", "deadline":null, "nextAction":"folder not built in sample — see queue #3" },
+    { "rank":4, "company":"Verdant Labs", "role":"Senior/Staff Product Designer, Platform", "loc":"Remote (US)", "comp":"$190k–$225k", "ats":"Workday",
+      "status":"not-started", "folder":"./job-queue.md", "deadline":null, "nextAction":"folder not built in sample — see queue #4" },
+    { "rank":5, "company":"Beacon Financial", "role":"Lead Product Designer, Consumer", "loc":"Hybrid · Austin", "comp":"$200k–$240k", "ats":"Greenhouse",
+      "status":"not-started", "folder":"./job-queue.md", "deadline":null, "nextAction":"folder not built in sample — see queue #5" }
   ],
   "packet":[
-    {"t":"STAR stories", "link":"./interview-packet/star-stories.md"},
-    {"t":"Project deep-dives", "link":"./interview-packet/project-deep-dives.md"},
-    {"t":"Metrics cheat-sheet", "link":"./interview-packet/metrics-cheatsheet.md"},
-    {"t":"Intro scripts", "link":"./interview-packet/intro-scripts.md"},
-    {"t":"Questions to ask", "link":"./interview-packet/questions-to-ask.md"},
-    {"t":"Company positioning", "link":"./interview-packet/company-positioning.md"}
+    {"t":"STAR stories (S1–S5)", "link":"./interview-packet/star-stories.md"},
+    {"t":"Portfolio deep-dives (D1–D3)", "link":"./interview-packet/project-deep-dives.md"},
+    {"t":"Metrics cheat-sheet", "link":"./interview-packet/metrics-cheatsheet.md"}
   ],
-  "howto":"Open the #1 job folder, clear the blockers above, run the referral sweep, then apply. Prep with that folder's interview-prep.md and prep-doc.md. Re-run Phase 4 weekly for fresh postings; update each job's application-log.md as you go (status here reflects those)."
+  "howto":"🧪 Fictional sample. Open the #1 job folder, clear the blockers above, run the referral sweep, then apply. Prep with that folder's interview-prep.md and prep-doc.md. Folders for jobs #3–#5 aren't built in this light sample — they link to the queue. Re-run Phase 4 weekly for fresh postings; update each job's application-log.md as you go (status here reflects those)."
 }
 </script>
 <script>

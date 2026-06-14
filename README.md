@@ -20,7 +20,7 @@ workspace** for each — then ties it all together in a single navigator you ope
 | **`linkedin-analysis.html`** | A visual audit of your LinkedIn presence (findability score, keyword gaps, network, activity) **+ 10 ranked, actionable next steps** to grow reach and recruiter exposure. |
 | **`resume-audit.md`** | An ATS + 2026-trends gap report on your current resume: what's failing parsers, the 6-second-scan verdict, missing keywords, and sample bullet rewrites. |
 | **`master-resume.md`** | Your superset resume — every achievement, tagged, with a metrics bank. Every per-job resume is *selected* from it, never rewritten. |
-| **`job-queue.md`** | 15+ live, ranked jobs matched to your profile, each with a resume delta, talking points, and gaps. |
+| **`job-queue.md`** | 15+ ranked candidate jobs matched to your profile (each link fetched and marked verified / unverified — postings rot, so you re-open before applying), each with a resume delta, talking points, and gaps. |
 | **`jobs/<NN-company-role>/`** | One folder per job, **8 files each**: tailored resume, prep-doc, interview questions (coding + behavioral), study plan, outreach, company research, a sendable one-pager, and an application log. |
 | **`interview-packet/`** | Cross-job prep reused by every folder: STAR stories, project deep-dives, metrics cheat-sheet, intro scripts, questions to ask, company positioning. |
 | **`start-here.html`** | The front door — a dashboard linking everything, with a live application funnel and your "this week" actions. **Open this first.** |
@@ -38,13 +38,20 @@ All of it lands in `workspace/<your-name>/`, which is **gitignored**.
   Phase 2  Resume audit ............. prompts/02-resume-audit.md       → resume-audit.md
   Phase 3  Master resume ............ prompts/03-master-resume.md      → master-resume.md
   Phase 4  Job search (15+) ......... prompts/04-job-search.md         → job-queue.md
+  Phase 6  Interview packet ......... prompts/06-interview-packet.md   → interview-packet/   (runs before 5)
   Phase 5  Per-job folders .......... prompts/05-job-folders.md        → jobs/*/ (8 files each)
-  Phase 6  Interview packet ......... prompts/06-interview-packet.md   → interview-packet/
   Phase 7  Navigator ................ prompts/07-navigator-html.md     → start-here.html
+
+  On demand:
+  Export   Resume → ATS-safe PDF .... prompts/08-export-pdf.md
+  Maintain Weekly refresh + retro ... prompts/09-maintenance.md
 ```
 
 The **orchestrator** (Phase 0) runs the whole thing: it interviews you, builds your workspace, then
 drives each phase in order, **pausing at a checkpoint after each** so you can review, redirect, or skip.
+(Phase 6 runs just before Phase 5 so the interview stories exist before the job folders cite them.) A
+run manifest (`.spider-state.json`) makes it **resumable** — close your laptop mid-run and say *"Run
+SPIDER resume"* later.
 
 ---
 
@@ -56,6 +63,30 @@ drives each phase in order, **pausing at a checkpoint after each** so you can re
 3. **Your current resume** (PDF, .docx, or .md). Optional — the system can build one from your LinkedIn
    export + the interview if you don't have one.
 4. (Optional) Your portfolio / GitHub / personal-site URLs.
+
+> **New to terminals / not technical?** Read [`docs/SETUP.md`](docs/SETUP.md) first — it walks through
+> installing Claude Code, getting your LinkedIn export, and finding a folder path, step by step.
+
+---
+
+## Costs, runtime & requirements
+
+Be realistic before you start:
+
+- **You need a Claude subscription / API access** — this runs inside Claude Code and uses tokens like
+  any Claude session. A full run is **token-heavy**.
+- **A full run is long:** live web research for 15+ roles + ~100 generated files often means **1–3+
+  hours** of Claude working, across several check-in points. It is not instant.
+- **Sample it first.** You don't have to run everything at once. Start with just Phase 1 ("Run SPIDER
+  Phase 1") to get your LinkedIn analysis, or ask for a **lite pass** ("run SPIDER but only find 3 jobs
+  and build 1 folder") to see the output shape and gauge cost before committing to the full run.
+- **The PDF step is now automated** (Phase export, `prompts/08-export-pdf.md`) — but you still press
+  "Save as PDF" in your browser once and eyeball it before submitting.
+- **Platform:** developed on macOS; works on Linux. On **Windows**, use WSL or Git Bash for the
+  smoothest path (see `docs/SETUP.md`).
+
+Want to see what the output looks like without spending anything? Open the fictional
+[`examples/sample-run/start-here.html`](examples/sample-run/) in your browser.
 
 ---
 
@@ -142,17 +173,30 @@ spider/
 ├── README.md                  ← you are here
 ├── START-HERE.md              ← the 60-second "how do I run this" version
 ├── CLAUDE.md                  ← project instructions Claude Code auto-loads
-├── LICENSE                    ← MIT
+├── CONTRIBUTING.md · CHANGELOG.md · LICENSE (MIT)
 ├── .gitignore                 ← privacy backstop (ignores all personal data + output)
 ├── .claude/commands/spider.md ← the /spider slash command
-├── prompts/                   ← the pipeline (00-orchestrator + 7 phases)
+├── docs/SETUP.md              ← non-technical, step-by-step first-run guide
+├── prompts/                   ← the pipeline: 00-orchestrator + phases 01–07 + 08-export + 09-maintenance
 ├── templates/                 ← job-folder (8-file spec), master-resume, signal, job-queue,
-│                                interview-packet, linkedin-analysis.html, start-here.html
+│                                interview-packet, resume-print, linkedin-analysis.html, start-here.html
 ├── reference/                 ← binding rules: ATS/keywords, resume writing, numbers/honesty,
 │                                interview prep framework
-├── examples/                  ← (no real data — see examples/README.md)
+├── examples/sample-run/       ← a fictional end-to-end example (open its start-here.html)
 └── workspace/                 ← YOUR private output lands here (gitignored)
 ```
+
+### Day-to-day commands (in Claude Code)
+| Say this | What it does |
+|---|---|
+| `/spider` or "Run SPIDER" | Full run from the intake interview |
+| "Run SPIDER Phase 1" | Just the LinkedIn analysis (cheap first taste) |
+| "Run SPIDER resume" | Resume an interrupted run from where it stopped |
+| "SPIDER job add \<url>" | Add + build one job you found yourself |
+| "SPIDER job rebuild 03" | Regenerate one job folder (e.g., JD changed) |
+| "SPIDER score \<paste a JD>" | ATS gap score + missing keywords, no files built |
+| "SPIDER export Acme" | Turn a job's resume into an ATS-safe PDF |
+| "Run SPIDER maintenance" | Weekly: new/closed jobs, follow-ups due, retro patterns |
 
 ---
 
@@ -163,8 +207,16 @@ spider/
 **Will it apply to jobs for me?** No. It finds jobs, builds your materials, and preps you. You review,
 export the PDF, and submit — applying for you would violate most sites' terms and skip your judgment.
 
-**Are the job links real?** Phase 4 does live web research and re-verifies each link. Postings rot, so
-re-verify before applying (the application-log checklist reminds you).
+**Are the job links real?** Phase 4 does live web research and **fetches each link**, marking it
+verified-live, unverified (blocked / JS-gated — may still be good), or dead. It never fabricates req
+IDs. But job boards block automated checks and postings rot within days, so the queue reports an honest
+split (*N candidates, M link-verified*) and **you re-open every link before applying** (the
+application-log checklist enforces it). Treat the queue as a high-quality shortlist to act on, not a
+guarantee every link is live this minute.
+
+**How long does a full run take, and what does it cost?** A complete run does live web research for 15+
+roles and writes ~100 files — it's long (often 1–3+ hours of Claude working) and consumes real tokens
+on your plan. Use a smaller first pass if you want to sample it (see *Costs, runtime & requirements*).
 
 **Can it run without a resume?** Yes — it builds the master resume from your LinkedIn export + intake.
 

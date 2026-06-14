@@ -74,11 +74,15 @@ Create this structure (replace `<name>` with a filesystem-safe slug of their nam
 ```
 workspace/<name>/
 ├── intake.md                    # write the Intake Summary here (the run's source of truth)
+├── .spider-state.json           # the run manifest — what's done (enables resume after a crash)
 ├── inputs/
 │   ├── linkedin-export/         # ask them to copy/point their unzipped export here
 │   └── current-resume.<ext>     # their resume
 ├── (phase outputs created as you go)
 ```
+
+Also create `.spider-state.json` (see **State & resumability** below) and update it after every phase
+and every job folder, so a later session can resume deterministically.
 
 Write `intake.md` with: name, materials paths, targeting, calibration, the honesty/sanitization rule
 for this user, and the date. Every later phase reads `intake.md` first.
@@ -100,10 +104,16 @@ user unless they've told you to run straight through.
 | 6 | `06-interview-packet.md` | `interview-packet/` — cross-job STAR stories, project deep-dives, metrics cheat sheet |
 | 7 | `07-navigator-html.md` | `start-here.html` — the master navigator linking everything |
 
-**Recommended order nuance:** run Phase 6 (interview packet) right before or interleaved with Phase 5,
-because the per-job folders reference the packet's STAR stories by ID. Either build the packet first
-(cleaner references) or build a thin packet, then the folders, then enrich the packet — your call based
-on how much raw material the user has. State which you chose.
+**Ordering rule (not optional):** **Phase 6 runs before Phase 5.** The per-job folders reference the
+interview packet's STAR stories by ID (`S1`, `D2`, …), so those IDs must exist first. Build at least a
+**thin packet** — stable story IDs + one-line themes — before any job folder, then enrich the packet
+after the folders if you like. Phase 5 then verifies every `S#/D#` reference it emits resolves to a
+real packet entry (no dangling IDs). Run order: 1 → 2 → 3 → 4 → **6 → 5** → 7.
+
+**Utility phases (run on demand, not part of the initial sequence):** `08-export-pdf.md` (resume/signal
+→ ATS-safe PDF, run per job at apply time) and `09-maintenance.md` (weekly job refresh + diff, outreach
+cadence, follow-ups, comp research, retro digest). See **Single-job operations** and the maintenance
+loop below.
 
 ---
 
@@ -114,12 +124,48 @@ When all phases are done:
 2. Post a final summary: what was produced, the top 3 things to do first (usually: the LinkedIn
    next-steps, fixing the resume's biggest ATS gap, and the #1-ranked job's referral path).
 3. Remind them: the workspace is gitignored and private; nothing about them was or will be committed.
-4. Offer the maintenance loop: re-run Phase 4 weekly for fresh jobs; update each job's
-   `application-log.md` as they apply and interview.
+4. Offer the maintenance loop (`09-maintenance.md`): re-run the job search weekly for fresh roles;
+   update each job's `application-log.md` as they apply and interview.
+5. Set `.spider-state.json` `phase: "done"`.
+
+---
+
+## State & resumability (`.spider-state.json`)
+
+Runs span multiple sessions and can be interrupted (closed laptop, tool/session limit). The manifest
+makes resuming deterministic — never re-derive progress by guessing from `ls`. Shape:
+
+```json
+{
+  "name": "<slug>", "updated": "<ISO timestamp>", "phase": "5",
+  "phases": { "1":"done","2":"done","3":"done","4":"done","6":"done","5":"in-progress","7":"todo" },
+  "jobs": [
+    { "slug":"01-acme-staff-engineer", "files_done":["resume.md","prep-doc.md"], "complete": false }
+  ]
+}
+```
+Update it **after each phase and after each file within Phase 5**. On resume, read it and **skip
+completed units**; only build what's `todo`/`in-progress`.
+
+### Resume a run — "Run SPIDER resume" / `/spider resume`
+Read `.spider-state.json`, tell the user exactly where it stopped, and continue from the first
+incomplete unit. Make Phase 5 idempotent: skip job folders already marked `complete` (re-verify they
+have all 8 files); only finish partial ones.
+
+### Single-job operations
+- **"Add this job: \<url-or-description>"** / `/spider job add` — fetch/verify the posting, append one
+  entry to `job-queue.md` (with link-status), and build its one folder per `05-job-folders.md`. Don't
+  rebuild the queue.
+- **"Rebuild job NN"** / `/spider job rebuild <NN>` — regenerate only that folder (e.g., after the JD
+  changed or the master resume improved), preserving its `application-log.md` status.
+- **"Score this JD: \<paste>"** — run the master-resume §9 tailoring protocol against a pasted JD and
+  report the 0–100 ATS gap + missing-but-claimable keywords, without building a folder.
 
 ---
 
 ## Guardrails specific to the orchestrator
+- **Update `.spider-state.json` after every phase and every job folder** — this is what makes a crash
+  recoverable.
 - If the LinkedIn export or resume path is missing/unreadable, say so and offer the fallback (build
   from interview answers) — never silently proceed on guesses.
 - Keep the user in control: every phase is skippable; the user's instructions outrank this script.

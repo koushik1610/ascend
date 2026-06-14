@@ -1,16 +1,16 @@
 <!doctype html>
 <!--
-  S.P.I.D.E.R. — LinkedIn Analysis dashboard TEMPLATE.
-  HOW TO USE (Phase 1): fill the `DATA` object below with the user's real numbers computed from their
-  LinkedIn export, then write the result to workspace/<name>/linkedin-analysis.html. The page renders
-  entirely from DATA via vanilla JS + inline SVG — no network, no build, opens offline in any browser.
-  Keep it self-contained. Every number must trace to the export or be labelled an estimate.
+  🧪 FICTIONAL SAMPLE — every name, number, company, and link is invented.
+  This is a S.P.I.D.E.R. LinkedIn-analysis dashboard filled with demonstration data for the fictional
+  persona "Jordan Rivera." No real person, employer, metric, or link. Real runs write this file to
+  workspace/<name>/linkedin-analysis.html. The page renders entirely from the JSON below via vanilla
+  JS + inline SVG — no network, no build, opens offline in any browser.
 -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LinkedIn Analysis — <!--NAME--></title>
+<title>LinkedIn Analysis — Jordan Rivera (FICTIONAL SAMPLE)</title>
 <style>
   :root{
     --bg:#0b0f14; --panel:#121822; --panel2:#0f141c; --line:#1f2937;
@@ -66,8 +66,8 @@
 <body>
 <div class="wrap">
 
-  <div style="background:#3d2230;border:1px solid #5a2a3a;color:#f5b9c6;border-radius:10px;padding:10px 14px;font-size:12px;margin-bottom:18px">
-    🔒 <b>Contains your personal data.</b> Keep this file inside your private workspace — don't email it, upload it, or commit it to git. The repo's <code>.gitignore</code> only protects it while it stays in <code>workspace/</code>.
+  <div style="background:#3d3420;border:1px solid #5a4a28;color:#fbe6a8;border-radius:10px;padding:10px 14px;font-size:12px;margin-bottom:18px">
+    🧪 <b>FICTIONAL SAMPLE</b> — every name, number, company, and link on this page is invented for the demonstration persona "Jordan Rivera." Nothing here is real data. Real runs render this file inside a private <code>workspace/</code> folder.
   </div>
 
   <h1 id="hName"></h1>
@@ -126,34 +126,53 @@
 -->
 <script type="application/json" id="spider-data">
 {
-  "name": "<Full Name>",
-  "asOf": "<YYYY-MM-DD>",
-  "targetRoles": "<e.g., Staff Security Engineer>",
-  "score": 0,
-  "verdict": "<one-line verdict>",
+  "name": "Jordan Rivera (FICTIONAL SAMPLE)",
+  "asOf": "2026-06-11",
+  "targetRoles": "Staff / Lead Product Designer",
+  "score": 58,
+  "verdict": "Strong Senior IC profile, badly under-optimized for Staff/Lead recruiter search.",
   "subscores": [
-    {"label":"Headline title-match", "v":0},
-    {"label":"Endorsed skills", "v":0},
-    {"label":"Activity signal", "v":0},
-    {"label":"About / Featured", "v":0}
+    {"label":"Headline title-match", "v":40},
+    {"label":"Endorsed skills", "v":72},
+    {"label":"Activity signal", "v":28},
+    {"label":"About / Featured", "v":45}
   ],
   "completeness": [
-    {"label":"Headline carries searched title + domains", "state":"gap", "note":"<…>"},
-    {"label":"About has a hook + keywords", "state":"miss", "note":"<…>"},
-    {"label":"Featured section populated", "state":"miss", "note":"<…>"},
+    {"label":"Headline carries searched title + domains", "state":"gap", "note":"says 'Design Lead' — a title Jordan doesn't hold; recruiters search 'Product Designer'"},
+    {"label":"About has a hook + keywords", "state":"gap", "note":"present but buries 'design systems' and '0→1'; no metrics"},
+    {"label":"Featured section populated", "state":"miss", "note":"the design-system case study isn't pinned — the strongest asset is hidden"},
     {"label":"Custom URL", "state":"ok", "note":""},
-    {"label":"Skills ordered for target role", "state":"gap", "note":"<…>"}
+    {"label":"Skills ordered for target role", "state":"gap", "note":"'Adobe XD' and 'branding' rank above 'design systems' and 'accessibility'"}
   ],
-  "keywords": { "have":["<kw>"], "claim":["<kw>"], "gap":["<kw>"] },
-  "network": {
-    "connections":0, "inbound":0, "outbound":0, "atTargets":0,
-    "companies":[ {"name":"<Company>", "n":0} ]
+  "keywords": {
+    "have":["Product Design","Figma","Prototyping","Usability Testing","Interaction Design"],
+    "claim":["Design Systems","Design Tokens","0→1 Product Design","WCAG / Accessibility","Design-Engineering Collaboration","Storybook","Data-Informed Design","Mentoring / IC Leadership"],
+    "gap":["People Management","SQL / Data Science","Front-End Engineering (React)"]
   },
-  "activity": { "posts":0, "lastPostDays":null, "cadence":"<dormant / sporadic / weekly>", "timeline":[0,0,0,0,0,0] },
+  "network": {
+    "connections":1180, "inbound":47, "outbound":12, "atTargets":34,
+    "companies":[
+      {"name":"Beacon Financial", "n":62},
+      {"name":"Atlas Mobility", "n":41},
+      {"name":"Verdant Labs", "n":28},
+      {"name":"Northwind Health", "n":9},
+      {"name":"Lumen Retail", "n":6}
+    ]
+  },
+  "activity": { "posts":4, "lastPostDays":96, "cadence":"dormant", "timeline":[2,1,1,0,0,0] },
   "steps": [
-    {"t":"<action 1 — exactly 10 total>", "why":"<why it matters — tie to a finding>", "time":"<~20 min>"}
+    {"t":"Rewrite the headline to the searched title", "why":"Replace 'Design Lead' (not your title) with 'Senior Product Designer · Design Systems & 0→1 · B2B SaaS' — recruiters search the literal title and an honest one beats an aspirational one.", "time":"~10 min"},
+    {"t":"Pin the design-system case study to Featured", "why":"Your strongest Staff-scope evidence (120 components, 5 teams) is currently invisible. Featured is the first thing a recruiter clicks.", "time":"~15 min"},
+    {"t":"Reorder Skills for the target role", "why":"Move 'Design Systems', 'Accessibility', and 'Design-Engineering Collaboration' to the top; demote 'branding' and legacy tools.", "time":"~10 min"},
+    {"t":"Rewrite the About with a hook + 2 metrics", "why":"Lead with the design-system win and the 41%→24% onboarding result; embed 'design systems', '0→1', 'WCAG' once each.", "time":"~25 min"},
+    {"t":"Add the missing-but-claimable keywords to roles", "why":"Put 'design tokens', 'Storybook', 'data-informed design' inside the experience bullets, not just the skills list — contextual keywords rank higher.", "time":"~20 min"},
+    {"t":"Reconcile the title across LinkedIn and resume", "why":"LinkedIn 'Lead' vs. resume 'Senior' is an honesty/consistency flag a recruiter will notice. Settle on 'Senior Product Designer (IC)'.", "time":"~5 min"},
+    {"t":"Post one design-systems insight to restart activity", "why":"Last post was 96 days ago. One thoughtful post on governance or adoption signals you're active in the field; cadence feeds the activity sub-score.", "time":"~30 min"},
+    {"t":"Request 3 recommendations tied to your pillars", "why":"Ask a PM (data-informed dashboard), an engineer (design-eng pairing), and a mentee — each corroborates a different pillar.", "time":"~15 min"},
+    {"t":"Run the referral sweep on your 34 target-company contacts", "why":"You already have 9 connections at Northwind and 6 at Lumen — warm intros beat cold applications. Message before applying.", "time":"~30 min"},
+    {"t":"Turn on 'Open to Work' (recruiters-only)", "why":"Private to recruiters, it surfaces you in their searches without signaling to your current network.", "time":"~5 min"}
   ],
-  "howComputed": "Scores computed from your LinkedIn data export (<files used>). Estimates are labelled."
+  "howComputed": "FICTIONAL SAMPLE — these scores are invented for the demo persona. In a real run they are computed from your LinkedIn data export (Profile.csv, Connections.csv, Skills.csv, Shares.csv). Estimates are labelled."
 }
 </script>
 <script>

@@ -1,7 +1,8 @@
 # Per-Job Folder Template — the binding 8-file spec
 
-Every `jobs/<NN-company-role>/` folder contains **exactly these 8 files**. Build by *selection* from
-the master resume and *reference* to the interview packet — never copy shared content wholesale, never
+Every `jobs/<NN-company-role>/` folder contains **these 8 core files** (plus an optional
+`cover-letter.md`, §9, only when the posting requires a cover letter). Build by *selection* from the
+master resume and *reference* to the interview packet — never copy shared content wholesale, never
 invent facts. Replace every `<…>` placeholder with the real value for this job/user.
 
 **Naming:** `jobs/<NN>-<company-slug>-<role-slug>/` (e.g., `jobs/01-acme-staff-engineer/`). Two-digit
@@ -25,6 +26,8 @@ shared prep.
 - **Format:** single column, standard section headings, bullets ≤2 lines, no tables in the body.
   Every bullet is a master entry (a)/(b)/variant — selection, not writing. Missing bullet → MASTER GAPS
   note, never an invention.
+- **Export:** turn this into an ATS-safe PDF via the export prompt (`prompts/08-export-pdf.md`) →
+  `<Name>-Resume-<Company>.pdf`. Don't leave Markdown→PDF to the user.
 
 ## 2. `prep-doc.md` — the night-before read (≤2 pages, 20-min readable)
 1. **Line 1 = the positioning hook** for this company (from `company-positioning.md` / the queue's
@@ -100,6 +103,15 @@ shared prep.
 - **Thank-you-note tracker.**
 - **Post-loop retro** (fill after each round): questions asked vs predicted | what landed | what
   flopped | story drift | update `interview-questions.md` predictions.
+
+## 9. `cover-letter.md` — OPTIONAL (only if the posting requires/expects a cover letter)
+- Build only when the application asks for one (many don't). A focused ≤250-word letter: the hook
+  (why this role/company, tied to a real reason), 2–3 sentences of the single most relevant proof
+  (selected from the master resume — no new claims), and a confident close.
+- **Personal "why this company" sentences are the user's to write** — provide the structure and the
+  evidence beats, mark the voice-dependent lines `DRAFT — REWRITE IN YOUR VOICE`, never ship generated
+  conviction as final.
+- Public/sanitized numbers only (it's sendable). Honesty gates apply.
 
 ---
 

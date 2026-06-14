@@ -47,11 +47,13 @@ Endorsement*.csv
 **/signal.md
 **/cover-letter.md
 **/*-cover-letter.md
+**/resume.md
 **/*-resume.md
 **/*-resume.pdf
 **/*-resume.docx
 **/*-resume-*.pdf
 **/*-signal-*.pdf
+**/*.print.html
 **/application-log.md
 **/job-queue.md
 **/intake.md
@@ -59,10 +61,15 @@ Endorsement*.csv
 **/linkedin-analysis.html
 **/start-here.html
 **/.spider-state.json
-# Belt-and-suspenders: never commit anything a user drops into examples/ inputs.
-examples/**/inputs/
-examples/**/jobs/
-examples/**/interview-packet/
+
+# --- The ONE committed fictional sample (everything in it is invented) --------
+# Scoped, deliberate exception so strangers can inspect real-shaped output. Real
+# runs NEVER go in examples/ — they go in workspace/ (ignored). DO NOT broaden
+# this beyond examples/sample-run/ (that re-opens the personal-data leak).
+!examples/sample-run/
+!examples/sample-run/**
+# …but never commit an input dump even inside the sample:
+examples/sample-run/inputs/
 
 # --- OS / editor / tooling cruft ----------------------------------------------
 .DS_Store

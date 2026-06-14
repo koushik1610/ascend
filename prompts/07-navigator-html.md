@@ -30,6 +30,11 @@ resume-audit.md, master-resume.md, job-queue.md, jobs/*, interview-packet/*) and
    maintenance loop (re-run Phase 4 weekly; update application-logs as you go).
 
 ## Build requirements
+- Start from `../templates/start-here.template.html`. Fill the **`<script type="application/json"
+  id="spider-data">` block** (strict JSON — double-quoted, no comments, no trailing commas); the page
+  renders from it via `JSON.parse`. Per job you may set `status`, and optionally `deadline`
+  (`YYYY-MM-DD`) and `nextAction` (these surface in the Deadlines & Follow-ups strip). **Validate the
+  JSON parses** before declaring done — a syntax error blanks the dashboard. Don't edit the render JS.
 - **Single self-contained HTML**, opens offline. Inline CSS. Any JS inline. Relative links to the
   workspace files so they open from the same folder.
 - **Premium look**, consistent with `linkedin-analysis.html`: dark theme, clean type, stat cards,

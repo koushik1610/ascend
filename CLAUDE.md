@@ -12,8 +12,11 @@ If they say "Run SPIDER Phase N" (or name a phase), jump to that phase's prompt 
 re-reading `workspace/<name>/intake.md` first for context.
 
 ## The pipeline
-`prompts/00-orchestrator.md` drives phases 1–7 (`prompts/01…07`). Outputs go to
-`workspace/<name>/`. The orchestrator pauses for review after each phase.
+`prompts/00-orchestrator.md` drives phases 1–7 (`prompts/01…07`). **Run order: 1 → 2 → 3 → 4 → 6 → 5 →
+7** (the packet's story IDs must exist before the job folders reference them). Utility phases on demand:
+`08-export-pdf.md` (ATS-safe PDF) and `09-maintenance.md` (weekly refresh, outreach, comp, retro).
+Outputs go to `workspace/<name>/`. The orchestrator pauses for review after each phase and updates
+`workspace/<name>/.spider-state.json` so any run is resumable.
 
 ## Binding rules (always)
 - **Person-agnostic.** Nothing about any previous user (the repo author included) carries into a run.

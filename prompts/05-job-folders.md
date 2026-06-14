@@ -63,9 +63,13 @@ Always be honest about what the loop actually contains; never invent a coding ro
 - Every resume bullet traces to a master entry ID, cited in the Delta Log.
 
 ## Verify (per folder)
-- Exactly 8 files, all conforming to the template.
+- Exactly 8 files (+ an optional `cover-letter.md` only if the posting requires one), all conforming
+  to the template.
 - Number-policy grep clean (no leaked sensitive internals).
 - Every resume bullet cites a real master entry ID; MASTER GAPS noted where selection fell short.
+- **Every STAR/deep-dive reference (`S#`, `D#`) resolves to a real entry in `interview-packet/`** — no
+  dangling IDs (Phase 6 ran first, so they exist). Grep each folder's `prep-doc.md` /
+  `interview-questions.md` for `S#`/`D#` and confirm each is defined in the packet.
 
 ## Checkpoint
 Report folders built, the per-folder verification results, and any MASTER GAPS surfaced (fix those in

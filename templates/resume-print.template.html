@@ -1,0 +1,56 @@
+<!doctype html>
+<!--
+  ATS-safe PRINT shell for a resume or signal page. Phase "export" drops the rendered resume/signal
+  content into <main id="doc"> below, then the user opens this file and prints to PDF (Cmd/Ctrl+P →
+  "Save as PDF"). Single column, standard font, US-Letter, 0.6in margins — exactly what ATS parsers and
+  recruiters want. No tables/columns/graphics. Keep it to 1–2 pages.
+  Fill: <TITLE>, and the #doc body (convert the resume.md Markdown to simple HTML: h1=name, .contact
+  line, h2=section headings, ul/li=bullets, h3=role lines). Nothing else needs changing.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title><TITLE — e.g., Jordan Rivera — Resume></title>
+<style>
+  @page { size: Letter; margin: 0.6in; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: "Calibri", "Inter", "Helvetica Neue", Arial, sans-serif;
+    font-size: 10.5pt; line-height: 1.32; color: #111;
+    max-width: 7.3in; margin: 0 auto; padding: 0.3in 0;
+  }
+  #doc h1 { font-size: 20pt; margin: 0 0 2pt; letter-spacing: -0.01em; }
+  .contact { font-size: 9.5pt; color: #333; margin: 0 0 10pt; }
+  #doc h2 {
+    font-size: 10.5pt; text-transform: uppercase; letter-spacing: 0.06em;
+    border-bottom: 1px solid #999; padding-bottom: 2pt; margin: 13pt 0 6pt;
+  }
+  #doc h3 { font-size: 10.5pt; margin: 8pt 0 1pt; }
+  #doc h3 .meta { font-weight: normal; color: #444; float: right; }
+  #doc p { margin: 2pt 0; }
+  #doc ul { margin: 3pt 0 6pt; padding-left: 16pt; }
+  #doc li { margin: 1.5pt 0; }
+  .summary { margin: 0 0 4pt; }
+  a { color: #111; text-decoration: none; }
+  /* Print fidelity: keep roles from splitting awkwardly across pages. */
+  #doc h2, #doc h3 { break-after: avoid; }
+  #doc li { break-inside: avoid; }
+  @media screen { body { padding: 0.6in; box-shadow: 0 0 0 1px #eee; } }
+</style>
+</head>
+<body>
+<main id="doc">
+  <!-- Phase "export" fills this from resume.md (or signal.md). Example shape:
+  <h1>Jordan Rivera</h1>
+  <p class="contact">jordan@example.com · linkedin.com/in/… · portfolio.example.com · Austin, TX</p>
+  <h2>Summary</h2>
+  <p class="summary">…</p>
+  <h2>Experience</h2>
+  <h3>Company — Title <span class="meta">2021 – Present · Remote</span></h3>
+  <ul><li>…bullet…</li></ul>
+  …
+  -->
+</main>
+</body>
+</html>

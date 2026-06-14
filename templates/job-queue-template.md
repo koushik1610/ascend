@@ -1,9 +1,10 @@
 # <Name> — Job Queue (ranked)
 
 **What this is:** the priority-ordered application list, scored against the master resume. Work top to
-bottom. Re-verify each link before applying — postings rot.
+bottom. **Re-open every link before applying — postings rot fast.**
 **Ranking formula:** evidence fit × level match × comp × location feasibility × shortlist probability.
 **Built:** <date> · **Targets:** <roles> · **Constraints:** <location/work-mode/auth from intake>
+**Count:** <N candidates · M independently link-verified> (link-status per entry below)
 
 ---
 
@@ -18,7 +19,8 @@ bottom. Re-verify each link before applying — postings rot.
 ## #1 — <Company> · <Exact Title>
 | | |
 |---|---|
-| Req / Link | <id> · <LIVE URL — re-verified <date>> |
+| Req / Link | <id> · <URL> |
+| Link status | <✅ verified-live / ⚠ unverified / ⚠ find-the-link> · fetched <date> |
 | Level / Comp | <level> · <comp if posted> |
 | Location | <on-site/hybrid/remote — metro> |
 | ATS | <Workday / Greenhouse / Lever / Ashby / proprietary> |
