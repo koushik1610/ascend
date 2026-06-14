@@ -53,6 +53,10 @@
   .pdot{width:9px;height:9px;border-radius:50%;background:var(--muted)} .pdone{background:var(--good)} .prun{background:var(--accent);animation:blink 1s steps(1) infinite}
   .center{text-align:center;margin:auto 0}
   .big{font-size:20px;font-weight:700;margin-bottom:8px}
+  .current{font-family:var(--mono);font-size:13px;color:var(--accent);margin:12px 0 6px;min-height:18px}
+  .feed{font-family:var(--mono);font-size:12px;color:var(--muted);background:var(--panel2);border:1px solid var(--line);
+    border-radius:9px;padding:10px 12px;margin-top:12px;max-height:150px;overflow:auto;line-height:1.65}
+  .feed .now{color:var(--txt)}
 </style>
 </head>
 <body>
@@ -219,11 +223,12 @@ function running(){
     (brief && brief.ok ? `<div class="ok" style="margin-top:8px">✓ Daily brief scheduled for ${brief.time}.</div>`
      : `<div class="muted" style="margin-top:8px">⚠ Daily brief not auto-scheduled${brief&&brief.note?': '+(''+brief.note).replace(/</g,'&lt;'):''}.</div>`);
   step("SPIDER is working", `
-    <div class="line">Intake saved. Switch to your terminal — Claude is running your pipeline now.</div>
+    <div class="line">Sit back — this updates live, right here. No need to touch the terminal.</div>
+    <div class="current" id="current">Starting up…</div>
     <ul class="phaselist" id="phases">${PHASES.map(p=>`<li><span class="pdot" data-p="${p[0]}"></span> Phase ${p[0]} · ${p[1]}</li>`).join("")}</ul>
+    <div class="feed" id="feed"></div>
     ${briefMsg}
-    <div class="btns"><button class="primary" id="openDash" disabled onclick="openDash()">Open my dashboard</button>
-    <a class="muted" style="align-self:center" href="https://github.com/koushik1610/spider#readme" target="_blank">what's happening?</a></div>`);
+    <div class="btns"><button class="primary" id="openDash" disabled onclick="openDash()">Open my dashboard</button></div>`);
   poll();
 }
 async function poll(){
@@ -234,9 +239,14 @@ async function poll(){
       const st = ph[d.dataset.p];
       d.className = "pdot" + (st==="done"?" pdone":(st==="in-progress"?" prun":""));
     });
-    if(s.hasDashboard){ $("#openDash").disabled=false; }
+    if($("#current")) $("#current").textContent = s.error ? ("⚠ "+s.error) : (s.current || (s.hasDashboard ? "Done." : "Working…"));
+    if($("#feed") && Array.isArray(s.log)){
+      $("#feed").innerHTML = s.log.map((l,i)=>`<div class="${i===s.log.length-1?'now':''}">${(''+l).replace(/</g,'&lt;')}</div>`).join("");
+      $("#feed").scrollTop = $("#feed").scrollHeight;
+    }
+    if(s.hasDashboard){ $("#openDash").disabled=false; if($("#current")) $("#current").textContent="✓ All done — open your dashboard."; }
   }catch(e){}
-  setTimeout(poll, 2500);
+  setTimeout(poll, 2000);
 }
 function openDash(){ window.location = `/workspace/${state.slug}/start-here.html`; }
 

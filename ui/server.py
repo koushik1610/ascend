@@ -106,6 +106,9 @@ def write_intake(data: dict):
 - **Agent CLI:** {data.get('agent','')}
 """
     (wdir / "intake.md").write_text(md, encoding="utf-8")
+    for old in WORKSPACE.glob("*/.ui-ready"):    # clear stale flags so the bridge can't mis-route a run
+        try: old.unlink()
+        except Exception: pass
     (wdir / ".ui-ready").write_text("ready\n", encoding="utf-8")   # the pipeline polls for this
     return slug
 
@@ -137,11 +140,11 @@ def install_daily_brief(slug: str, hhmm: str, agent: str = ""):
 def read_status(slug: str):
     """Surface pipeline progress for the UI to poll (from the resumability manifest)."""
     statef = WORKSPACE / slug / ".spider-state.json"
-    out = {"slug": slug, "phases": {}, "phase": None,
+    out = {"slug": slug, "phases": {}, "phase": None, "current": "", "log": [],
            "hasDashboard": (WORKSPACE / slug / "start-here.html").exists()}
     if statef.exists():
         try:
-            out.update(json.loads(statef.read_text(encoding="utf-8")))
+            out.update(json.loads(statef.read_text(encoding="utf-8")))   # carries current + log for the live feed
         except Exception:
             out["error"] = "state file unreadable"   # surface it so the console doesn't hang silently
     return out

@@ -5,6 +5,13 @@ versioning is [SemVer](https://semver.org/).
 
 ## [Unreleased] — v1.0 hardening
 Working through the v1.0 readiness review (`docs/ROADMAP.md` "Path to v1.0").
+- **`/spiderui` runs in the browser, not the terminal.** The console now shows **live progress** — a
+  phase board *and* an activity feed — instead of telling you to switch to the terminal. The pipeline
+  writes `current`/`log` into `.spider-state.json`; the console polls and renders it.
+- **Permissions pre-approved.** A scoped, committed `.claude/settings.json` lets the run go **straight
+  through without approval prompts** (broad Read + web research; Write/Edit limited to `workspace/**`;
+  a short Bash allow-list; a deny-list for `sudo`/`curl`/`rm -rf /`/secrets). Documented in `CLAUDE.md`.
+- Server clears stale `.ui-ready` flags on new intake so a run can't mis-route.
 - **Security:** hardened the `/spiderui` local server against CSRF + DNS-rebinding (Host allowlist,
   per-session token on `/api/*`, Origin check on POST, stricter path-traversal guard). Verified live.
 - **Honesty:** added a **Project status** + **Known limitations** section and marked beta the surfaces

@@ -29,9 +29,16 @@ headers, so other origins can't read your `workspace` files either.
 ```
 /spiderui ──► Claude Code starts ui/server.py (localhost) ──► browser opens the console
    console wizard ──► server writes workspace/<you>/intake.md + a "ready" flag
-   Claude Code sees the flag ──► runs the pipeline ──► writes .spider-state.json
-   console polls progress ──► "Open my dashboard" ──► start-here.html
+   Claude Code sees the flag ──► runs the pipeline ──► writes progress to .spider-state.json
+   console shows it LIVE (phase board + activity feed) ──► "Open my dashboard" ──► start-here.html
 ```
+
+**You watch it in the browser, not the terminal.** Once you finish the wizard, the console shows each
+phase completing and a live activity feed — you never have to switch back to the terminal. And because
+the repo ships a **scoped `.claude/settings.json`** that pre-approves the pipeline's tools (workspace
+writes + web research + a few commands; see `CLAUDE.md → Permissions`), the run goes **straight through
+without stopping for approval prompts**. The agent process still lives in your Claude Code session — but
+you don't have to look at it.
 
 ## What you need (the honest part)
 - **Python 3** — preinstalled on macOS and Linux. (Windows: install Python, then see notes below.)

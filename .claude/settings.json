@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Read",
+      "Edit(workspace/**)",
+      "Write(workspace/**)",
+      "WebSearch",
+      "WebFetch",
+      "Bash(python3 ui/server.py*)",
+      "Bash(node *)",
+      "Bash(mkdir *)",
+      "Bash(rm -f workspace/*)",
+      "Bash(git check-ignore*)",
+      "Bash(pandoc *)"
+    ],
+    "deny": [
+      "Bash(sudo *)",
+      "Bash(curl *)",
+      "Bash(wget *)",
+      "Bash(rm -rf /*)",
+      "Bash(rm -rf ~*)",
+      "Read(~/.ssh/**)",
+      "Read(~/.aws/**)",
+      "Read(**/.env)",
+      "Edit(**/.env)"
+    ]
+  }
+}

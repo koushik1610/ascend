@@ -45,6 +45,17 @@ rule sources; prompts reference them rather than re-stating them. Templates: `te
 `_TEMPLATE.md` is the binding tiered spec — CORE apply pack + on-demand prep pack). Derive the
 **keyword set once** (Phase 3, into master §4) and reuse it downstream — don't re-derive per phase.
 
+## Permissions (pre-approved so `/spiderui` runs uninterrupted)
+The repo commits **`.claude/settings.json`** so a run doesn't stop for approval prompts. It is
+deliberately **scoped**: broad `Read` + `WebSearch`/`WebFetch` (the pipeline reads your files and
+researches jobs across many domains), but **`Write`/`Edit` only under `workspace/**`** (the pipeline
+writes user output there and can't silently change the repo's own prompts/code), plus a short Bash
+allow-list and a deny-list (`sudo`, `curl`/`wget`, `rm -rf /`, secrets like `.env`/`~/.ssh`/`~/.aws`).
+Anyone who opens Claude Code in this repo inherits this allow-list — to tighten or remove it, edit/delete
+`.claude/settings.json`, or override per-user in the gitignored `.claude/settings.local.json`. In UI mode,
+run straight through (no per-phase checkpoints); if a command outside the allow-list ever comes up, note
+it in the live log rather than hanging.
+
 ## Git
 The repo ships the SYSTEM only. **Never commit anyone's personal data or generated output** — `.gitignore`
 blocks `workspace/`, resumes, and LinkedIn exports as a backstop. If asked to commit, stage only

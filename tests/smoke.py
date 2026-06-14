@@ -97,9 +97,15 @@ def test_crossrefs():
 
 # ── 5. Scripts compile / lint ────────────────────────────────────────────────
 def test_scripts():
-    print("scripts")
+    print("scripts & config")
     check("server.py compiles",
           subprocess.run([sys.executable, "-m", "py_compile", str(REPO / "ui/server.py")]).returncode == 0)
+    settings = REPO / ".claude/settings.json"
+    if settings.exists():
+        try:
+            json.loads(settings.read_text(encoding="utf-8")); check(".claude/settings.json is valid JSON", True)
+        except Exception as e:
+            check(".claude/settings.json is valid JSON", False, str(e))
     if shutil.which("bash"):
         check("run-daily-brief.sh passes bash -n",
               subprocess.run(["bash", "-n", str(REPO / "ui/run-daily-brief.sh")]).returncode == 0)

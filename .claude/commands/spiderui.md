@@ -23,21 +23,32 @@ The console writes `workspace/<slug>/intake.md` and a `workspace/<slug>/.ui-read
 finishes the wizard. **Poll** for that flag (e.g., check every ~10–15s with a bounded loop) — do NOT
 re-interview the user in the terminal; the UI already did it. When `.ui-ready` files exist under
 `workspace/*/`, pick the **most recently modified** one (a fresh run must win over a stale flag from a
-previous run), use its parent folder as the slug, then **delete that `.ui-ready` flag** before
+previous run), use its parent folder as the slug, then **delete that flag** (`rm -f workspace/<slug>/.ui-ready`) before
 proceeding (so it can never mis-route a later run). Read that folder's `intake.md`.
 
-## 3. Run the pipeline in UI mode
+## 3. Run the pipeline in UI mode — keep the browser the surface
 With `intake.md` in hand, run the normal default pipeline from `prompts/00-orchestrator.md`
-(order **1 → 3 → 4 → 6 → 5 → 7**), with two UI-mode adjustments:
-- **Skip the Step-1 intake interview** — it's already captured. Confirm the LinkedIn export + résumé
-  paths from `intake.md` resolve; if a path is missing, proceed with the documented fallback and note
-  it (don't block waiting on the browser).
-- **Update `workspace/<slug>/.spider-state.json` after each phase** with `"phases": {"1":"done", ...}`
-  using the phase numbers `1,3,4,6,5,7`. The console polls this to advance its progress board, and
-  enables "Open my dashboard" once `start-here.html` exists.
+(order **1 → 3 → 4 → 6 → 5 → 7**). The user is watching the **browser**, not the terminal — so drive the
+console, don't ask the user to switch back. UI-mode adjustments:
 
-Keep the per-phase checkpoints brief in UI mode (the user is watching the browser), but still honor the
-honesty gates, number policy, and lazy-by-default tiering (apply packs for the top 3–5 only).
+- **Skip the Step-1 intake interview** — it's already captured. Confirm the LinkedIn export + résumé
+  paths from `intake.md` resolve; if a path is missing, proceed with the documented fallback and note it
+  in the log (don't block waiting on the browser).
+- **Don't stop for per-phase checkpoints in UI mode** — the committed `.claude/settings.json` pre-approves
+  the pipeline's tools (workspace writes + web research + a few commands), so run **straight through**
+  without pausing for approval or confirmation. (If something genuinely outside that allow-list comes up,
+  surface it briefly in the log rather than silently hanging.)
+- **Write live progress to `workspace/<slug>/.spider-state.json`** so the console's live feed updates.
+  After every phase boundary — and ideally at the start of long phases too — write the JSON with:
+  - `"phases": {"1":"done", "3":"in-progress", ...}` using phase numbers `1,3,4,6,5,7`,
+  - `"current": "<one short line of what's happening now>"` (e.g. *"Searching for jobs — 12 candidates so far…"*),
+  - `"log": [ … ]` — a growing list of short human-readable lines (append, keep the last ~14), e.g.
+    `"▸ Phase 1 — analyzing your LinkedIn presence"`, `"✓ Master résumé built (24 bullets)"`,
+    `"▸ Phase 4 — searching jobs…"`, `"✓ 16 candidates ranked"`. Keep them friendly and specific; this
+    is what the user reads instead of the terminal.
+  The console enables "Open my dashboard" automatically once `start-here.html` exists.
+
+Honor the honesty gates, number policy, and lazy-by-default tiering (apply packs for the top 3–5 only).
 
 ## 4. Finish
 When `start-here.html` is written, tell the user the dashboard is ready (the console's button is now
