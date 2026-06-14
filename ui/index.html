@@ -1,0 +1,231 @@
+<!doctype html>
+<!-- S.P.I.D.E.R. console — served by ui/server.py at http://127.0.0.1:<port>/. A Jarvis-style intake
+     wizard that writes your intake, schedules the daily brief, and shows the pipeline running. Talks
+     only to the local server; nothing leaves your machine. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>S.P.I.D.E.R. console</title>
+<style>
+  :root{
+    --bg:#0b0f14;--panel:#121822;--panel2:#0f141c;--line:#1f2937;--txt:#e6edf3;--muted:#8b97a7;
+    --accent:#5b9dff;--good:#36d399;--warn:#fbbf24;--bad:#f87171;
+    --mono:ui-monospace,SFMono-Regular,Menlo,monospace;--sans:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}html,body{margin:0;height:100%}
+  body{background:radial-gradient(60% 50% at 30% 20%,rgba(91,157,255,.10),transparent 70%),var(--bg);
+       color:var(--txt);font-family:var(--sans);display:grid;place-items:center;min-height:100%}
+  .console{width:min(760px,92vw);min-height:440px;background:rgba(18,24,34,.66);border:1px solid var(--line);
+    border-radius:16px;backdrop-filter:blur(10px);box-shadow:0 30px 80px rgba(0,0,0,.45);overflow:hidden}
+  .bar{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:12px;color:var(--muted)}
+  .dot{width:11px;height:11px;border-radius:50%} .r{background:#ff5f57}.y{background:#febc2e}.g{background:#28c840}
+  .bar .tag{margin-left:auto;color:var(--accent)}
+  .stage{padding:34px 30px 26px;min-height:360px;display:flex;flex-direction:column}
+  .line{font-family:var(--mono);font-size:15px;line-height:1.7;white-space:pre-wrap}
+  .line .cursor{display:inline-block;width:9px;background:var(--accent);animation:blink 1s steps(1) infinite;color:transparent}
+  @keyframes blink{50%{opacity:0}}
+  .prompt{color:var(--accent)}
+  h2{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 12px}
+  label{display:block;font-size:12px;color:var(--muted);margin:12px 0 5px}
+  input,select,textarea{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:9px;
+    color:var(--txt);padding:10px 12px;font-family:var(--sans);font-size:14px}
+  textarea{min-height:58px;resize:vertical}
+  .row{display:flex;gap:10px}.row>*{flex:1}
+  .btns{display:flex;gap:10px;margin-top:20px;flex-wrap:wrap}
+  button{font-family:var(--sans);font-size:14px;border-radius:9px;padding:10px 16px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--txt);cursor:pointer}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#04101f;font-weight:700}
+  button.ghost{background:transparent}
+  button:hover{filter:brightness(1.08)} button:disabled{opacity:.5;cursor:default}
+  .pick{display:flex;gap:8px;align-items:center} .pick input{flex:1}
+  .muted{color:var(--muted);font-size:12.5px;line-height:1.6}
+  a{color:var(--accent)}
+  .how{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px;margin-top:8px;font-size:13px;line-height:1.7}
+  .ok{color:var(--good)} .err{color:var(--bad)}
+  .phaselist{list-style:none;padding:0;margin:14px 0 0}
+  .phaselist li{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:13px}
+  .pdot{width:9px;height:9px;border-radius:50%;background:var(--muted)} .pdone{background:var(--good)} .prun{background:var(--accent);animation:blink 1s steps(1) infinite}
+  .center{text-align:center;margin:auto 0}
+  .big{font-size:20px;font-weight:700;margin-bottom:8px}
+</style>
+</head>
+<body>
+<div class="console">
+  <div class="bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+    <span>spider://console</span><span class="tag" id="agentTag">detecting agent…</span></div>
+  <div class="stage" id="stage"></div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const api = async (path, opts) => (await fetch(path, opts)).json();
+const stage = $("#stage");
+const state = { asOf: new Date().toISOString().slice(0,10), agent:"" };
+let AGENTS = [];
+
+// ---- typewriter ----
+function type(lines, cb){
+  stage.innerHTML = `<div class="line" id="tw"></div>`;
+  const tw = $("#tw"); let li=0, ci=0, buf="";
+  (function tick(){
+    if(li>=lines.length){ tw.innerHTML = buf; return cb && setTimeout(cb,500); }
+    const cur = lines[li];
+    if(ci<=cur.length){ tw.innerHTML = buf + cur.slice(0,ci) + '<span class="cursor">.</span>'; ci++; setTimeout(tick, 22); }
+    else { buf += cur + "\n"; li++; ci=0; setTimeout(tick, li<lines.length?420:0); }
+  })();
+}
+
+// ---- step shell ----
+function step(title, html){
+  stage.innerHTML = `<h2>${title}</h2>${html}`;
+}
+
+// ---- intro ----
+async function boot(){
+  try{ const r = await api("/api/agents"); AGENTS = r.agents||[];
+       state.platform = r.platform;
+       $("#agentTag").textContent = AGENTS.length ? ("engine: "+AGENTS.map(a=>a.label).join(" / ")) : "no agent CLI found";
+       state.agent = AGENTS[0]?.cli || "";
+  }catch(e){ $("#agentTag").textContent="server offline"; }
+  type(["Welcome to S.P.I.D.E.R.","Strategic Profile Intelligence & Direct Employment Routing.","Let's begin."], s1_linkedin);
+}
+
+// ---- step 1: LinkedIn data ----
+function s1_linkedin(){
+  step("Step 1 of 5 · your data", `
+    <div class="line">First — did you download your LinkedIn data export?</div>
+    <div class="muted" style="margin-top:8px">LinkedIn → Settings → Data Privacy → Get a copy of your data → “The works.” It arrives as a zip; <b>unzip it</b> first.</div>
+    <div id="how"></div>
+    <div class="pick" style="margin-top:14px"><input id="liPath" placeholder="…or paste the unzipped folder path" value="${state.linkedinPath||''}"><button onclick="pick('folder','liPath','linkedinPath')">Browse…</button></div>
+    <div class="btns">
+      <button class="primary" onclick="state.linkedinPath=$('#liPath').value; s2_resume()">Yes — continue</button>
+      <button class="ghost" onclick="showHow()">No — show me how</button>
+      <button class="ghost" onclick="s2_resume()">Skip for now</button>
+    </div>`);
+}
+function showHow(){ $("#how").innerHTML = `<div class="how">
+  1. Open <a href="https://www.linkedin.com/mypreferences/d/download-my-data" target="_blank">LinkedIn → Get a copy of your data</a>.<br>
+  2. Choose <b>“The works”</b> → Request archive. LinkedIn emails a zip (minutes–24h).<br>
+  3. <b>Unzip it.</b> Then click <b>Browse…</b> above and pick the unzipped folder.<br>
+  No export yet? Click <b>Skip for now</b> — SPIDER will run a lighter first pass and you can add it later.</div>`; }
+
+// ---- step 2: resume ----
+function s2_resume(){
+  step("Step 2 of 5 · your résumé", `
+    <div class="line">Point me at your current résumé (PDF, .docx, or .md). No résumé? Skip — I'll build one.</div>
+    <div class="pick" style="margin-top:14px"><input id="rPath" placeholder="…or paste the file path" value="${state.resumePath||''}"><button onclick="pick('file','rPath','resumePath')">Browse…</button></div>
+    <div class="btns">
+      <button class="primary" onclick="state.resumePath=$('#rPath').value; s3_targets()">Continue</button>
+      <button class="ghost" onclick="s3_targets()">Skip — build one for me</button>
+      <button class="ghost" onclick="s1_linkedin()">Back</button>
+    </div>`);
+}
+
+// ---- step 3: targets ----
+function s3_targets(){
+  step("Step 3 of 5 · what you want", `
+    <label>Your name</label><input id="name" value="${state.name||''}" placeholder="e.g., Jordan Rivera">
+    <label>Target roles / titles</label><input id="roles" value="${state.roles||''}" placeholder="e.g., Staff Product Designer">
+    <div class="row">
+      <div><label>Seniority</label><input id="seniority" value="${state.seniority||''}" placeholder="same / step up / stretch"></div>
+      <div><label>Location / work mode</label><input id="location" value="${state.location||''}" placeholder="remote / hybrid (metro) / on-site"></div>
+    </div>
+    <label>Target companies or industries (optional)</label><input id="companies" value="${state.companies||''}" placeholder="named companies or types, or 'open'">
+    <div class="btns">
+      <button class="primary" onclick="grab3()">Continue</button>
+      <button class="ghost" onclick="s2_resume()">Back</button>
+    </div>`);
+}
+function grab3(){
+  for(const k of ["name","roles","seniority","location","companies"]) state[k]=$("#"+k).value;
+  if(!state.name){ $("#name").focus(); $("#name").style.borderColor="var(--bad)"; return; }
+  s4_calibrate();
+}
+
+// ---- step 4: calibration ----
+function s4_calibrate(){
+  step("Step 4 of 5 · calibrate & be honest", `
+    <label>Compensation target / floor (kept private)</label><input id="comp" value="${state.comp||''}" placeholder="e.g., $160k base floor">
+    <label>Your top 2–3 differentiators (your words)</label><textarea id="differentiators" placeholder="what makes you a strong pick">${state.differentiators||''}</textarea>
+    <label>Honest gaps you're aware of</label><textarea id="gaps" placeholder="skills/certs you don't have, employment gaps, a pivot — handled honestly, never hidden">${state.gaps||''}</textarea>
+    <label>Anything you should NOT publish? (employer-internal numbers, codenames)</label><input id="sanitization" value="${state.sanitization||''}" placeholder="default: round internal numbers, keep your own exact, never name codenames">
+    <div class="btns">
+      <button class="primary" onclick="grab4()">Continue</button>
+      <button class="ghost" onclick="s3_targets()">Back</button>
+    </div>`);
+}
+function grab4(){ for(const k of ["comp","differentiators","gaps","sanitization"]) state[k]=$("#"+k).value; s5_daily(); }
+
+// ---- step 5: daily brief ----
+function s5_daily(){
+  const agentOpts = AGENTS.length ? AGENTS.map(a=>`<option value="${a.cli}">${a.label}</option>`).join("")
+    : `<option value="">no agent CLI found</option>`;
+  step("Step 5 of 5 · daily briefing", `
+    <div class="line">Want a daily briefing? I'll schedule a short morning loop — today's 3 actions + any follow-ups due.</div>
+    <div class="row" style="margin-top:14px">
+      <div><label>Time (24h, local)</label><input id="brief" type="time" value="08:30"></div>
+      <div><label>Run it with</label><select id="agent">${agentOpts}</select></div>
+    </div>
+    <div class="muted" style="margin-top:8px">Schedules a local cron job (macOS/Linux). Turn it off anytime. Leave blank to skip.</div>
+    <div class="btns">
+      <button class="primary" onclick="finish(true)">Schedule &amp; start</button>
+      <button class="ghost" onclick="finish(false)">No daily brief — just start</button>
+      <button class="ghost" onclick="s4_calibrate()">Back</button>
+    </div>`);
+}
+
+// ---- pickers ----
+async function pick(kind, inputId, key){
+  const r = await api(`/api/pick?type=${kind}`, {method:"POST"});
+  if(r.path){ $("#"+inputId).value = r.path; state[key]=r.path; }
+}
+
+// ---- finish: save intake, schedule, run ----
+async function finish(wantBrief){
+  state.agent = $("#agent") ? $("#agent").value : state.agent;
+  state.dailyBrief = wantBrief && $("#brief") ? $("#brief").value : "";
+  step("Saving", `<div class="line">Writing your private workspace…</div>`);
+  const res = await api("/api/intake", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(state)});
+  state.slug = res.slug;
+  if(wantBrief && state.dailyBrief){
+    const d = await api("/api/daily-brief", {method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({slug: state.slug, time: state.dailyBrief, agent: state.agent})});
+    state.briefResult = d;
+  }
+  running();
+}
+
+// ---- running board (polls the pipeline) ----
+const PHASES = [["1","LinkedIn analysis"],["3","Master résumé"],["4","Job search"],["6","Interview packet"],["5","Apply packs"],["7","Navigator"]];
+function running(){
+  const brief = state.briefResult;
+  const briefMsg = !state.dailyBrief ? "" :
+    (brief && brief.ok ? `<div class="ok" style="margin-top:8px">✓ Daily brief scheduled for ${brief.time}.</div>`
+     : `<div class="muted" style="margin-top:8px">⚠ Daily brief not auto-scheduled${brief&&brief.note?': '+(''+brief.note).replace(/</g,'&lt;'):''}.</div>`);
+  step("SPIDER is working", `
+    <div class="line">Intake saved. Switch to your terminal — Claude is running your pipeline now.</div>
+    <ul class="phaselist" id="phases">${PHASES.map(p=>`<li><span class="pdot" data-p="${p[0]}"></span> Phase ${p[0]} · ${p[1]}</li>`).join("")}</ul>
+    ${briefMsg}
+    <div class="btns"><button class="primary" id="openDash" disabled onclick="openDash()">Open my dashboard</button>
+    <a class="muted" style="align-self:center" href="https://github.com/koushik1610/spider#readme" target="_blank">what's happening?</a></div>`);
+  poll();
+}
+async function poll(){
+  try{
+    const s = await api(`/api/status?slug=${encodeURIComponent(state.slug)}`);
+    const ph = s.phases||{};
+    document.querySelectorAll("#phases .pdot").forEach(d=>{
+      const st = ph[d.dataset.p];
+      d.className = "pdot" + (st==="done"?" pdone":(st==="in-progress"?" prun":""));
+    });
+    if(s.hasDashboard){ $("#openDash").disabled=false; }
+  }catch(e){}
+  setTimeout(poll, 2500);
+}
+function openDash(){ window.location = `/workspace/${state.slug}/start-here.html`; }
+
+boot();
+</script>
+</body>
+</html>

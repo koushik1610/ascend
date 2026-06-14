@@ -86,3 +86,5 @@ Thumbs.db
 node_modules/
 __pycache__/
 *.log
+# --- UI runtime artifacts ---
+ui/.port

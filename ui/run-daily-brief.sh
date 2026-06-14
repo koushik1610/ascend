@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# S.P.I.D.E.R. daily-brief runner. Invoked by cron (set up in the /spiderui console) to run the
+# Daily Briefing headlessly with whichever agent CLI you have. Writes the briefing to
+# workspace/<slug>/daily-briefing.md and logs to workspace/<slug>/briefing.log.
+#
+# Usage: run-daily-brief.sh <workspace-slug> [agent-cli]
+#   agent-cli (optional): claude | gemini | codex. Defaults to the first one found on PATH.
+set -uo pipefail
+
+SLUG="${1:?usage: run-daily-brief.sh <workspace-slug> [agent]}"
+WANT="${2:-}"
+REPO="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$REPO" || exit 1
+
+OUT="workspace/$SLUG/daily-briefing.md"
+PROMPT="Read prompts/13-daily-briefing.md and run the Daily Briefing for workspace/$SLUG (read its intake.md, job-queue.md, every jobs/*/application-log.md, and network-map.md if present). Write a short briefing — today's 3 actions and any follow-ups due, with drafts — to $OUT. Then stop."
+
+run_with() {
+  case "$1" in
+    claude) command -v claude >/dev/null 2>&1 && { echo "[$(date)] running daily brief via claude"; claude -p "$PROMPT"; return $?; } ;;
+    gemini) command -v gemini >/dev/null 2>&1 && { echo "[$(date)] running daily brief via gemini"; gemini -p "$PROMPT"; return $?; } ;;
+    codex)  command -v codex  >/dev/null 2>&1 && { echo "[$(date)] running daily brief via codex";  codex exec "$PROMPT"; return $?; } ;;
+  esac
+  return 127
+}
+
+# Try the requested agent first, then fall back to whatever is installed.
+for a in "$WANT" claude gemini codex; do
+  [ -z "$a" ] && continue
+  if run_with "$a"; then exit 0; fi
+done
+
+echo "[$(date)] No supported agent CLI (claude/gemini/codex) found on PATH, or the run failed." >&2
+echo "Tip: open Claude Code and say 'Run SPIDER today' to get your briefing manually." >&2
+exit 1

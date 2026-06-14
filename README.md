@@ -6,7 +6,7 @@
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-5b9dff?style=flat-square)
 &nbsp;![Built for Claude Code](https://img.shields.io/badge/built%20for-Claude%20Code-5b9dff?style=flat-square)
-&nbsp;![Version](https://img.shields.io/badge/version-v0.3.0-8b97a7?style=flat-square)
+&nbsp;![Version](https://img.shields.io/badge/version-v0.4.0-8b97a7?style=flat-square)
 &nbsp;![PRs welcome](https://img.shields.io/badge/PRs-welcome-36d399?style=flat-square)
 &nbsp;![Data stays local](https://img.shields.io/badge/data-stays%20local-36d399?style=flat-square)
 
@@ -40,6 +40,11 @@ checking in after each step. When it's done, open **`workspace/<your-name>/start
 
 > New to terminals? **[`docs/SETUP.md`](docs/SETUP.md)** walks through it step by step.
 > Want to sample it cheaply first? Say *"Run SPIDER Phase 1"* (just the LinkedIn analysis).
+
+**Prefer clicking to typing?** Run **`/spiderui`** instead — it opens a graphical, Jarvis-style console
+in your browser that walks you through everything (folder picker, target roles, an optional daily-brief
+time) and shows the pipeline running live. It needs only Python 3 (preinstalled on macOS/Linux) plus an
+agent CLI for the analysis. See [`ui/README.md`](ui/README.md).
 
 ---
 
@@ -103,7 +108,8 @@ SPIDER resume"* later.
 
 | Say this | What it does |
 |---|---|
-| `/spider` / "Run SPIDER" | Full run from the intake interview |
+| `/spiderui` | **Graphical console** — browser intake wizard + live progress + daily-brief scheduling |
+| `/spider` / "Run SPIDER" | Full run from the intake interview (text) |
 | "Run SPIDER Phase 1" | Just the LinkedIn analysis (cheap first taste) |
 | "Run SPIDER resume" | Resume an interrupted run where it stopped |
 | "SPIDER today" | **Daily briefing** — today's 3 actions + ghost-detector follow-ups, drafted |
@@ -181,7 +187,8 @@ session). Nothing is committed to git; nothing is published.
 spider/
 ├── README.md · START-HERE.md · CLAUDE.md · CONTRIBUTING.md · CHANGELOG.md · LICENSE (MIT)
 ├── .gitignore                       privacy backstop (ignores all personal data + output)
-├── .claude/commands/spider.md       the /spider slash command
+├── .claude/commands/                the /spider + /spiderui slash commands
+├── ui/                              the graphical console: server.py, index.html, run-daily-brief.sh
 ├── assets/spider-banner.svg         the brand banner (+ a slot for a demo.gif)
 ├── docs/SETUP.md                    non-technical, step-by-step first-run guide
 ├── prompts/                         00-orchestrator + phases 01–07, 08-export, 09-maintenance, 10-deep-prep

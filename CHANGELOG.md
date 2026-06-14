@@ -5,6 +5,26 @@ versioning is [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-06-14
+A graphical front end so starting SPIDER is point-and-click, not typing.
+
+### Added
+- **`/spiderui` — the SPIDER console.** A local, Jarvis-style browser wizard: typewriter intro → 5-step
+  intake (LinkedIn *"yes (pick folder) / no (show me how)"*, résumé, target roles, honest calibration,
+  optional daily-brief time) → live pipeline progress board → **Open my dashboard**.
+- **`ui/server.py`** — a dependency-free (Python 3 stdlib) localhost-only control server: native
+  folder/file pickers, writes `intake.md`, installs the daily-brief schedule, reports progress, serves
+  the dashboard. Never touches the network.
+- **`ui/index.html`** — the self-contained console (dark brand tokens, talks only to the local server).
+- **`ui/run-daily-brief.sh`** — cron wrapper that **auto-detects `claude` / `gemini` / `codex`** and
+  runs the Daily Briefing headlessly; the console schedules it via cron (macOS/Linux; Windows = Task
+  Scheduler note).
+- `ui/README.md` — how the console works, with the honest engine/free-tier limits (a free *web-chat*
+  tier can't read local files; you need a local agent CLI; the UI + scheduling need only Python).
+
+### Notes
+- The console is optional sugar — the text `/spider` flow does the same thing in chat.
+
 ## [0.3.0] — 2026-06-14
 First cut of the market-research roadmap (`docs/ROADMAP.md`, built from a 5-surface council on how
 people actually use AI for job hunting). Adds the highest-leverage, honesty-aligned P1 features — all
