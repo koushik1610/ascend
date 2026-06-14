@@ -37,11 +37,25 @@ reliably confirm** a posting is open just because it appeared in a search result
 - **Do not invent req IDs or links.** If you can't find a real URL for a role, describe the role and
   where to search for it, marked `⚠ find-the-link`, rather than fabricating one.
 
-## Rank them
-Score each on a transparent formula and order the queue by it:
-`evidence fit (does the master resume prove the JD's asks?) × level match × comp × location feasibility
-× shortlist probability`. State the formula and each job's rough score rationale. The #1 job should be
-the highest (fit × feasibility), not just the highest comp.
+## Rank them — an explainable Fit Score (0–100)
+Give every job a transparent **Fit Score out of 100**, the sum of five sub-scores (each 0–20), and
+**show the reasoning** — never a black-box number:
+
+| Dimension (0–20) | What it measures |
+|---|---|
+| **Skills match** | How well the master résumé's evidence covers the JD's must-haves (use the §4 keyword set) |
+| **Seniority fit** | Is the level right — same, a step up (good), or a reach/down-level (note it) |
+| **Comp fit** | Posted/estimated comp vs the user's `intake.md` target/floor |
+| **Location/logistics** | Remote/hybrid/on-site vs the user's constraints + work auth |
+| **Excitement/growth** | Honest read of how well it matches what the user said they want (mission, domain, trajectory) |
+
+Order the queue by total Fit Score (tie-break on feasibility). For each job, write the total, the five
+sub-scores, and a one-line "why this score" (the strongest match + the biggest gap). The #1 job should
+be the highest *honest* fit, not just the highest comp. If a job scores low on a dimension, say so
+plainly — an honest 58/100 with a clear gap is more useful than an inflated 90.
+
+The same rubric powers the **"score this JD"** op (a pasted JD → its Fit Score + the missing-but-
+claimable keywords), so the user can vet roles they find themselves.
 
 ## Write `job-queue.md` to the template
 Per `../templates/job-queue-template.md`, each entry gets:

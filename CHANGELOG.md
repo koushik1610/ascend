@@ -5,6 +5,30 @@ versioning is [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-06-14
+First cut of the market-research roadmap (`docs/ROADMAP.md`, built from a 5-surface council on how
+people actually use AI for job hunting). Adds the highest-leverage, honesty-aligned P1 features — all
+on-demand, keeping the default run lean.
+
+### Added
+- **Explainable Job Match Score (0–100)** on every job (skills / seniority / comp / location /
+  excitement, each 0–20, with reasoning). Shows on the queue, the navigator job board, and the
+  `score <JD>` op. (P1 #3)
+- **Warm-Network Mapper** (`prompts/11-network-map.md`, `/spider network`) — mines the `Connections.csv`
+  already in the LinkedIn export to surface real warm referral paths per target company and the likely
+  recruiter/HM; feeds referral-first outreach. No scraping, no invented contacts. (P1 #1)
+- **Application Answer Sheet** (`prompts/12-answer-sheet.md`, `/spider answers`) — reusable, **varied**
+  honest answers to common application questions + per-job custom screeners. The honest substitute for
+  paywalled autofill; avoids the identical-answer "AI applicant" tell. (P1 #8)
+- **Daily Briefing** (`prompts/13-daily-briefing.md`, `/spider today`) — a ~20-min action loop, plus a
+  **ghost-detector + follow-up engine**: per-application aging timers that draft the follow-up (or call
+  "move on" and replace the target). (P1 #9 + #12)
+- `docs/ROADMAP.md` — the full P1/P2 backlog with sources and a "deliberately not building" list.
+
+### Changed
+- Application-log template now tracks `applied_on` / `last_contact_on` / `next_followup_due` so the
+  ghost-detector and navigator have real dates.
+
 ## [0.2.0] — 2026-06-13
 A simplification + re-targeting release (from a second council review). Same capabilities, far less
 speculative output, and a modern README.

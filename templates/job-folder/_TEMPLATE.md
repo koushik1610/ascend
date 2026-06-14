@@ -113,6 +113,9 @@ shared prep.
   - [ ] Link re-verified live · LinkedIn/profile consistent with the resume.
   - [ ] Resume PDF exported + named + number-policy grep run.
   - [ ] Any pre-application blocker cleared.
+- **Key dates** (the ghost-detector reads these): `status` · `applied_on` · `last_contact_on` ·
+  `next_followup_due` · `next_action`. Keep them current so the daily briefing (Phase 13) can flag
+  quiet threads and the navigator can show deadlines.
 - **Status table:** date | action | contact | outcome.
 - **Thank-you-note tracker.**
 - **Post-loop retro** (fill after each round): questions asked vs predicted | what landed | what

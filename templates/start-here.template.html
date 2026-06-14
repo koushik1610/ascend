@@ -84,7 +84,7 @@
   <h2>The Job Board</h2>
   <div class="panel" style="padding:0;overflow:auto">
     <table>
-      <thead><tr><th>#</th><th>Company / Role</th><th>Location</th><th>Comp</th><th>ATS</th><th>Status</th><th>Files</th></tr></thead>
+      <thead><tr><th>#</th><th>Company / Role</th><th>Fit</th><th>Location</th><th>Comp</th><th>ATS</th><th>Status</th><th>Files</th></tr></thead>
       <tbody id="jobs"></tbody>
     </table>
   </div>
@@ -123,7 +123,7 @@
   "blockers":[ {"t":"<pre-application blocker>", "note":"<why it outranks applying>"} ],
   "jobs":[
     { "rank":1, "company":"<Company>", "role":"<Title>", "loc":"<Remote / metro>", "comp":"<$…>", "ats":"<Greenhouse>",
-      "status":"not-started", "folder":"./jobs/01-company-role/", "deadline":null, "nextAction":"" }
+      "fit":null, "status":"not-started", "folder":"./jobs/01-company-role/", "deadline":null, "nextAction":"" }
   ],
   "packet":[
     {"t":"STAR stories", "link":"./interview-packet/star-stories.md"},
@@ -175,8 +175,10 @@ const referrals=DATA.jobs.filter(j=>j.status==="referral").length;
   .forEach(([l,v])=>$("#funnel").appendChild(el("div","step",`<div class="v">${v}</div><div class="l">${l}</div>`)));
 DATA.jobs.forEach(j=>{
   const tr=el("tr"); const label=j.status.replace("-"," ");
+  const fit = j.fit==null ? '<span class="sub">—</span>'
+    : `<b style="color:${j.fit>=80?'var(--good)':j.fit>=60?'var(--accent)':'var(--warn)'}">${j.fit}</b><span class="sub">/100</span>`;
   tr.innerHTML=`<td>${j.rank}</td><td><a href="${j.folder}"><b>${j.company}</b></a><div class="sub">${j.role}</div></td>
-    <td>${j.loc}</td><td>${j.comp}</td><td>${j.ats}</td>
+    <td>${fit}</td><td>${j.loc}</td><td>${j.comp}</td><td>${j.ats}</td>
     <td><span class="st st-${j.status}">${label}</span></td>
     <td class="links"><a href="${j.folder}resume.md">resume</a><a href="${j.folder}prep-doc.md">prep</a><a href="${j.folder}application-log.md">log</a></td>`;
   $("#jobs").appendChild(tr);

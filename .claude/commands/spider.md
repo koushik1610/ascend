@@ -16,13 +16,18 @@ and `workspace/<name>/.spider-state.json` first, then:
   **CORE apply pack** per `prompts/05-job-folders.md`. Don't rebuild the queue.
 - **`prep <NN>`** → build the **deep interview-prep pack** for that job per `prompts/10-deep-prep.md`
   (run when a screen is booked) + offer the mock-interview drill.
-- **`today`** → the day's action list: apply packs to send, referrals to ask, follow-ups due.
+- **`network`** → **Warm-Network Mapper** (`prompts/11-network-map.md`): warm referral paths per target
+  company from the user's own `Connections.csv`.
+- **`answers`** → **Application Answer Sheet** (`prompts/12-answer-sheet.md`): reusable varied answers +
+  per-job custom screeners.
+- **`today`** → the **Daily Briefing** (`prompts/13-daily-briefing.md`): today's 3 actions +
+  ghost-detector follow-ups, drafted.
 - **`job rebuild <NN>`** → regenerate that job folder, preserving its `application-log.md` status.
 - **`refresh`** / **`maintenance`** → run `prompts/09-maintenance.md` (weekly job-diff, comp research,
   outreach cadence, retro digest).
 - **`export <company>`** → run `prompts/08-export-pdf.md` for that job's resume.
-- **`score <paste JD>`** → run the master-resume §9 tailoring protocol against the JD; report the ATS
-  gap score + missing-but-claimable keywords; build nothing.
+- **`score <paste JD>`** → report the **0–100 Fit Score** (Phase 4 rubric: skills/seniority/comp/
+  location/excitement + reasoning) and the missing-but-claimable keywords; build nothing.
 
 Honor the binding rules in `CLAUDE.md`: person-agnostic, honesty gates absolute, selection-not-invention,
 all personal output under `workspace/` only, never commit personal data. Update `.spider-state.json`

@@ -21,10 +21,10 @@ Building 5 packs beats building 15 folders nobody opens.
 1. **`resume.md`** — the tailored resume + Delta Log (master entry IDs selected, order, why; verbatim
    JD phrases once each; ATS target; export filename). **Selection only** — a missing bullet is a
    "MASTER GAP" note (fix the master), never an invention. Then export to ATS-safe PDF (Phase 8).
-2. **`outreach.md`** — **referral-first**: real existing connections at this company (seeded from the
-   LinkedIn network analysis — NEVER fabricated names), DM drafts flagged *rewrite in your own voice*,
-   and a recruiter-screen script (comp/level anchor, any location-friction question, the per-company
-   closer from `company-positioning.md`).
+2. **`outreach.md`** — **referral-first**: pull this company's warm contacts from `network-map.md`
+   (Phase 11 — real connections from the user's export, NEVER fabricated; build it first if missing),
+   DM drafts flagged *rewrite in your own voice*, and a recruiter-screen script (comp/level anchor, any
+   location-friction question, the per-company closer from `company-positioning.md`).
 3. **`application-log.md`** — the stateful doc: the **pre-submit checklist with a referral-first hard
    gate** ("referral attempted OR explicitly waived" before applying), status table, thank-you tracker,
    and the post-loop retro template.

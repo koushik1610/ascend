@@ -17,8 +17,11 @@ folded into Phase 3; Phase 6 packet before Phase 5 so story IDs exist first). **
 first run builds a master resume, a 15-job queue, a thin packet, and **CORE apply packs (resume ·
 outreach · application-log) for only the top 3–5 committed jobs** — ~25–30 files, not ~100. Deep
 interview prep is on demand: `prompts/10-deep-prep.md` per job when a screen books. Other on-demand:
-`02-resume-audit` (standalone audit), `08-export-pdf`, `09-maintenance`. Outputs go to
-`workspace/<name>/`; the orchestrator updates `workspace/<name>/.spider-state.json` so runs are resumable.
+`11-network-map` (warm referral paths from the user's `Connections.csv`), `12-answer-sheet` (reusable
+app answers), `13-daily-briefing` (~20-min action loop + ghost-detector follow-ups), `08-export-pdf`,
+`09-maintenance`, `02-resume-audit`. Phase 4 gives every job an explainable 0–100 **Fit Score**. Outputs
+go to `workspace/<name>/`; the orchestrator updates `workspace/<name>/.spider-state.json` so runs are
+resumable.
 
 ## Binding rules (always)
 - **Person-agnostic.** Nothing about any previous user (the repo author included) carries into a run.

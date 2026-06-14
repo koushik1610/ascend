@@ -25,8 +25,8 @@ resume-audit.md, master-resume.md, job-queue.md, jobs/*, interview-packet/*) and
 6. **Deadlines & follow-ups** — set each job's `deadline` / `nextAction` in the JSON (read from its
    `application-log.md`).
 7. **The job board** — all jobs, each linking into `jobs/<folder>/` (resume.md, application-log.md;
-   prep links appear once a job's prep pack is built). Show rank, company, title, location, comp, ATS,
-   and **status read from each `application-log.md`** — `application-log.md` is the single source of
+   prep links appear once a job's prep pack is built). Show rank, company, title, **Fit Score (0–100
+   from `job-queue.md`)**, location, comp, ATS, and **status read from each `application-log.md`** — `application-log.md` is the single source of
    truth for status; Phase 7 copies it into the JSON (don't let the two drift — re-read on refresh).
 8. **Interview packet** — links to each packet file.
 9. **How to use this system** — a short note + pointer to the README maintenance loop ("Run SPIDER

@@ -111,11 +111,17 @@ anything references them. Phase 2 is merged into 3.)
 interview prep is generated **on demand**, per job, only when a screen is booked — see Phase 10.
 
 **On-demand phases (not in the initial sequence):**
-- `02-resume-audit.md` — only if the user wants a standalone audit artifact (otherwise folded into 3).
-- `10-deep-prep.md` — **the deep interview-prep pack** (prep-doc, interview-questions, interview-prep,
-  company-research, signal) for one job, when its screen is booked: `/spider prep <NN>`.
+- `11-network-map.md` — **Warm-Network Mapper**: mine `Connections.csv` for warm referral paths per
+  target company: `/spider network`. (Run before/with apply packs so outreach has named targets.)
+- `12-answer-sheet.md` — **Application Answer Sheet**: reusable, varied honest answers to common app
+  questions + per-job custom screeners: `/spider answers`.
+- `13-daily-briefing.md` — **Daily Briefing**: the ~20-min action loop + ghost-detector follow-ups:
+  `/spider today`.
+- `10-deep-prep.md` — **the deep interview-prep pack** for one job when its screen is booked:
+  `/spider prep <NN>`.
 - `08-export-pdf.md` — resume → ATS-safe PDF at apply time.
 - `09-maintenance.md` — weekly job refresh + diff, outreach cadence, follow-ups, comp research, retro.
+- `02-resume-audit.md` — only if the user wants a standalone audit artifact (otherwise folded into 3).
 
 ---
 
@@ -161,10 +167,15 @@ partial ones.
   `10-deep-prep.md` (run when a screen is booked), and offer the mock-interview drill.
 - **"Rebuild job NN"** / `/spider job rebuild <NN>` — regenerate that folder (e.g., after the JD changed
   or the master resume improved), preserving its `application-log.md` status.
-- **"Score this JD: \<paste>"** — run the master-resume §9 tailoring protocol against a pasted JD and
-  report the 0–100 ATS gap + missing-but-claimable keywords, without building a folder.
-- **"SPIDER today"** — the day's action list: which apply packs to send, which referrals to ask, which
-  follow-ups are due (from the navigator's weekly loop + the `application-log.md` files).
+- **"Map my network"** / `/spider network` — build/refresh `network-map.md` (Phase 11): warm referral
+  paths per target company from the user's own `Connections.csv`.
+- **"Build my answer sheet"** / `/spider answers` — build the reusable `answer-bank.md` (+ per-job
+  custom screeners) per Phase 12.
+- **"Score this JD: \<paste>"** — run Phase 4's Fit-Score rubric + the §9 tailoring protocol against a
+  pasted JD: report the **0–100 Fit Score** (five sub-scores + reasoning) and the missing-but-claimable
+  keywords, without building a folder.
+- **"SPIDER today"** / `/spider today` — run the **Daily Briefing** (Phase 13): today's 3 actions +
+  ghost-detector follow-ups, drafted and ready.
 
 ---
 

@@ -6,7 +6,7 @@
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-5b9dff?style=flat-square)
 &nbsp;![Built for Claude Code](https://img.shields.io/badge/built%20for-Claude%20Code-5b9dff?style=flat-square)
-&nbsp;![Version](https://img.shields.io/badge/version-v0.2.0-8b97a7?style=flat-square)
+&nbsp;![Version](https://img.shields.io/badge/version-v0.3.0-8b97a7?style=flat-square)
 &nbsp;![PRs welcome](https://img.shields.io/badge/PRs-welcome-36d399?style=flat-square)
 &nbsp;![Data stays local](https://img.shields.io/badge/data-stays%20local-36d399?style=flat-square)
 
@@ -71,6 +71,9 @@ Everything lands in `workspace/<your-name>/`, which is **gitignored** — it nev
   7  Navigator ................ start-here.html
 
   On demand:
+  network    Warm referral paths from your connections .... 11-network-map.md
+  answers    Reusable answers to application questions ..... 12-answer-sheet.md
+  today      Daily briefing + follow-up nudges ............. 13-daily-briefing.md
   prep <NN>  Deep interview prep when a screen books ...... 10-deep-prep.md
   export     Résumé → ATS-safe PDF ......................... 08-export-pdf.md
   maintenance Weekly refresh, follow-ups, retros ........... 09-maintenance.md
@@ -103,12 +106,17 @@ SPIDER resume"* later.
 | `/spider` / "Run SPIDER" | Full run from the intake interview |
 | "Run SPIDER Phase 1" | Just the LinkedIn analysis (cheap first taste) |
 | "Run SPIDER resume" | Resume an interrupted run where it stopped |
-| "SPIDER today" | Your action list: packs to send, referrals to ask, follow-ups due |
+| "SPIDER today" | **Daily briefing** — today's 3 actions + ghost-detector follow-ups, drafted |
+| "SPIDER network" | **Warm-network map** — who you already know at each target company |
+| "SPIDER answers" | Reusable, varied answers to common application questions |
 | "SPIDER job add \<url>" | Add + build an apply pack for a job you found |
 | "SPIDER prep 03" | Build deep interview prep for job #3 (when a screen books) + mock drill |
-| "SPIDER score \<paste a JD>" | ATS gap score + missing keywords, no files built |
+| "SPIDER score \<paste a JD>" | 0–100 Fit Score + missing keywords, no files built |
 | "SPIDER export Acme" | Turn a job's résumé into an ATS-safe PDF |
 | "Run SPIDER maintenance" | Weekly: new/closed jobs, follow-ups due, retro patterns |
+
+Every job also gets an explainable **Fit Score (0–100)** so you work the best matches first, and the
+**roadmap** ([`docs/ROADMAP.md`](docs/ROADMAP.md)) tracks what's next.
 
 **The objective is action, not paperwork.** The dashboard leads with a weekly *apply N / ask N
 referrals* loop and a funnel scoreboard — applications sent and referrals asked are what get you

@@ -19,13 +19,14 @@ bottom. **Re-open every link before applying — postings rot fast.**
 ## #1 — <Company> · <Exact Title>
 | | |
 |---|---|
+| **Fit Score** | **<NN>/100** — skills <0–20> · seniority <0–20> · comp <0–20> · location <0–20> · excitement <0–20> |
 | Req / Link | <id> · <URL> |
 | Link status | <✅ verified-live / ⚠ unverified / ⚠ find-the-link> · fetched <date> |
 | Level / Comp | <level> · <comp if posted> |
 | Location | <on-site/hybrid/remote — metro> |
 | ATS | <Workday / Greenhouse / Lever / Ashby / proprietary> |
 
-**Why it ranks here:** <1–3 sentences — fit × feasibility.>
+**Why this score:** <one line — strongest match + biggest gap.>
 
 **Resume delta (vs master):** <which master entry IDs lead, in what order; per-job emphasis; verbatim
 JD phrases to insert once each.>
