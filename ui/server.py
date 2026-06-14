@@ -12,7 +12,7 @@ It never sends your data anywhere. Everything it writes lives under workspace/<y
 Run directly:  python3 ui/server.py [--port 8765] [--no-browser]
 The /spiderui Claude Code command launches it for you.
 """
-import argparse, json, os, platform, re, shlex, shutil, subprocess, sys, threading, webbrowser
+import argparse, json, os, platform, re, secrets, shlex, shutil, subprocess, sys, threading, webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs
@@ -20,6 +20,15 @@ from urllib.parse import urlparse, parse_qs
 REPO = Path(__file__).resolve().parent.parent          # spider/
 UIDIR = REPO / "ui"
 WORKSPACE = REPO / "workspace"
+
+# Set in main(). The server is local-only, but a localhost port is still reachable by any site you
+# visit while it runs, so we defend against CSRF and DNS-rebinding:
+#   • Host-header allowlist → a rebound hostname (attacker.com → 127.0.0.1) is rejected.
+#   • Per-session TOKEN injected into the served page and required on /api/* → a cross-site fetch can't
+#     read the token (CORS hides the page body), so it can't call the API.
+#   • No CORS headers → the browser blocks cross-origin reads of /workspace files anyway.
+TOKEN = ""
+PORT = 0
 
 
 def slugify(name: str) -> str:
@@ -134,7 +143,7 @@ def read_status(slug: str):
         try:
             out.update(json.loads(statef.read_text(encoding="utf-8")))
         except Exception:
-            pass
+            out["error"] = "state file unreadable"   # surface it so the console doesn't hang silently
     return out
 
 
@@ -162,10 +171,27 @@ class Handler(BaseHTTPRequestHandler):
         except Exception:
             return {}
 
+    # --- request-origin defenses (see TOKEN/PORT note up top) ---
+    def _host_ok(self):
+        host = (self.headers.get("Host") or "").lower()
+        return host in (f"127.0.0.1:{PORT}", f"localhost:{PORT}")
+
+    def _origin_ok(self):
+        o = self.headers.get("Origin")
+        return (not o) or o.lower() in (f"http://127.0.0.1:{PORT}", f"http://localhost:{PORT}")
+
+    def _token_ok(self):
+        return bool(TOKEN) and self.headers.get("X-SPIDER-Token") == TOKEN
+
     def do_GET(self):
+        if not self._host_ok():
+            return self._send(403, {"error": "bad host"})
         u = urlparse(self.path)
         if u.path in ("/", "/index.html"):
-            return self._send(200, (UIDIR / "index.html").read_text(encoding="utf-8"), "text/html; charset=utf-8")
+            html = (UIDIR / "index.html").read_text(encoding="utf-8").replace("__SPIDER_TOKEN__", TOKEN)
+            return self._send(200, html, "text/html; charset=utf-8")
+        if u.path.startswith("/api/") and not self._token_ok():
+            return self._send(403, {"error": "forbidden"})
         if u.path == "/api/agents":
             return self._send(200, {"agents": detect_agents(), "platform": platform.system()})
         if u.path == "/api/status":
@@ -178,7 +204,13 @@ class Handler(BaseHTTPRequestHandler):
         return self._send(404, {"error": "not found"})
 
     def do_POST(self):
+        if not self._host_ok():
+            return self._send(403, {"error": "bad host"})
+        if not self._origin_ok():
+            return self._send(403, {"error": "bad origin"})
         u = urlparse(self.path)
+        if u.path.startswith("/api/") and not self._token_ok():
+            return self._send(403, {"error": "forbidden"})
         if u.path == "/api/pick":
             kind = parse_qs(u.query).get("type", ["folder"])[0]
             return self._send(200, {"path": native_pick("file" if kind == "file" else "folder")})
@@ -194,9 +226,15 @@ class Handler(BaseHTTPRequestHandler):
         return self._send(404, {"error": "not found"})
 
     def _serve_dir(self, base, prefix, path):
-        # Serve static files from `base` (dashboards from workspace/, art from images/). Traversal-guarded.
+        # Serve static files from `base` (dashboards from workspace/, art from images/). Traversal-guarded:
+        # resolve() collapses ../ and follows symlinks, then relative_to() rejects anything outside base
+        # (incl. sibling dirs like workspace-secrets that a string startswith would wrongly allow).
         target = (base / path[len(prefix):]).resolve()
-        if not str(target).startswith(str(base.resolve())) or not target.is_file():
+        try:
+            target.relative_to(base.resolve())
+        except ValueError:
+            return self._send(404, {"error": "not found"})
+        if not target.is_file():
             return self._send(404, {"error": "not found"})
         ctype = {"html": "text/html; charset=utf-8", "md": "text/plain; charset=utf-8",
                  "json": "application/json", "css": "text/css", "js": "text/javascript",
@@ -220,6 +258,9 @@ def main():
             port += 1
     else:
         print("Could not bind a local port.", file=sys.stderr); sys.exit(1)
+    global TOKEN, PORT
+    PORT = port
+    TOKEN = secrets.token_urlsafe(24)                    # per-session CSRF token
     url = f"http://127.0.0.1:{port}/"
     (UIDIR / ".port").write_text(str(port), encoding="utf-8")
     print(f"SPIDER console → {url}")

@@ -63,8 +63,13 @@
 </div>
 
 <script>
+const TOKEN = "__SPIDER_TOKEN__";   // injected by the server when it serves this page
 const $ = s => document.querySelector(s);
-const api = async (path, opts) => (await fetch(path, opts)).json();
+const api = async (path, opts={}) => {
+  opts.headers = Object.assign({"X-SPIDER-Token": TOKEN}, opts.headers || {});
+  try { const r = await fetch(path, opts); return await r.json(); }
+  catch(e){ return {__error: String(e)}; }   // server gone → don't hang silently
+};
 const stage = $("#stage");
 const state = { asOf: new Date().toISOString().slice(0,10), agent:"" };
 let AGENTS = [];
@@ -192,6 +197,11 @@ async function finish(wantBrief){
   state.dailyBrief = wantBrief && $("#brief") ? $("#brief").value : "";
   step("Saving", `<div class="line">Writing your private workspace…</div>`);
   const res = await api("/api/intake", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(state)});
+  if(res.__error || !res.slug){
+    return step("Hmm", `<div class="line err">Couldn't reach the SPIDER server (${res.__error||'no response'}).</div>
+      <div class="muted">Is it still running in your terminal? Restart with <code>/spiderui</code>, or use the text flow <code>/spider</code>.</div>
+      <div class="btns"><button class="primary" onclick="finish(${wantBrief})">Retry</button></div>`);
+  }
   state.slug = res.slug;
   if(wantBrief && state.dailyBrief){
     const d = await api("/api/daily-brief", {method:"POST", headers:{"Content-Type":"application/json"},
