@@ -13,8 +13,11 @@ and `workspace/<name>/.spider-state.json` first, then:
 - **`resume`** → read `.spider-state.json`, tell the user where it stopped, and continue from the first
   incomplete unit (skip completed phases/folders).
 - **`job add <url-or-description>`** → fetch/verify the posting, append it to `job-queue.md`, build its
-  one folder per `prompts/05-job-folders.md`. Don't rebuild the queue.
-- **`job rebuild <NN>`** → regenerate only that job folder, preserving its `application-log.md` status.
+  **CORE apply pack** per `prompts/05-job-folders.md`. Don't rebuild the queue.
+- **`prep <NN>`** → build the **deep interview-prep pack** for that job per `prompts/10-deep-prep.md`
+  (run when a screen is booked) + offer the mock-interview drill.
+- **`today`** → the day's action list: apply packs to send, referrals to ask, follow-ups due.
+- **`job rebuild <NN>`** → regenerate that job folder, preserving its `application-log.md` status.
 - **`refresh`** / **`maintenance`** → run `prompts/09-maintenance.md` (weekly job-diff, comp research,
   outreach cadence, retro digest).
 - **`export <company>`** → run `prompts/08-export-pdf.md` for that job's resume.

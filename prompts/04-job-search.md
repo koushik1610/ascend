@@ -4,8 +4,8 @@
 rank them, and write a ranked queue with a per-job application plan. This is the spine the per-job
 folders (Phase 5) are built from.
 
-**Read first:** `workspace/<name>/intake.md`, `master-resume.md` (§2 summaries, §4 skills),
-`resume-audit.md` (keyword set), `../templates/job-queue-template.md`,
+**Read first:** `workspace/<name>/intake.md`, `master-resume.md` (§2 summaries + the **§4 keyword set**
+already derived in Phase 3 — reuse it, don't re-derive), `../templates/job-queue-template.md`,
 `../reference/ats-and-keywords.md`.
 
 ---

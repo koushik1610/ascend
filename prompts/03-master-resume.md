@@ -4,9 +4,17 @@
 maximum detail, from which every per-job resume is later *selected* (never rewritten). This is the
 single most important artifact in the system; get it right and tailoring becomes a filter operation.
 
-**Read first:** `workspace/<name>/intake.md`, `resume-audit.md`, the user's resume + LinkedIn export,
-`../templates/master-resume-template.md` (the structure to follow),
+**Read first:** `workspace/<name>/intake.md`, the user's resume + LinkedIn export,
+`../templates/master-resume-template.md` (the structure to follow), `../reference/ats-and-keywords.md`,
 `../reference/resume-writing-rules.md`, `../reference/number-and-honesty-policy.md`.
+
+**Audit folded in (was Phase 2):** before building, do a quick ATS + 2026-trends pass on the user's
+current resume (per `../reference/ats-and-keywords.md`) — format hazards, the 6-second-scan verdict,
+the **keyword set** (Tier-1/Tier-2 → present / missing-but-claimable / true-gap), and the weakest
+bullets. Capture it as a short **"Gaps & fixes" section at the top of `master-resume.md`** and use it
+to drive the build (missing-but-claimable keywords get their substantiating bullet added here, at the
+source). The keyword set you derive becomes the master's §4 reference — Phases 4 and 5 reuse it instead
+of re-deriving. (Only produce a standalone `resume-audit.md` if the user explicitly asks — Phase 2.)
 
 ---
 

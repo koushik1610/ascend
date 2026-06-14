@@ -1,9 +1,18 @@
-# Per-Job Folder Template — the binding 8-file spec
+# Per-Job Folder Template — two tiers, built when they're needed
 
-Every `jobs/<NN-company-role>/` folder contains **these 8 core files** (plus an optional
-`cover-letter.md`, §9, only when the posting requires a cover letter). Build by *selection* from the
-master resume and *reference* to the interview packet — never copy shared content wholesale, never
-invent facts. Replace every `<…>` placeholder with the real value for this job/user.
+A job folder is built in **two tiers**, so you don't generate deep interview prep for 15 cold leads
+that may never call back:
+
+- **🟢 CORE — the "apply pack" (build now, for jobs you'll actually pursue):**
+  `resume.md` · `outreach.md` · `application-log.md`. The minimum to send a strong, referral-first
+  application. This is what Phase 5 builds.
+- **🔵 PREP PACK — deep interview prep (build *on demand* when a screen is booked, via Phase 10 /
+  `/spider prep <NN>`):** `prep-doc.md` · `interview-questions.md` · `interview-prep.md` ·
+  `company-research.md` · `signal.md`. Don't build these speculatively.
+- **⚪ OPTIONAL:** `cover-letter.md` (only when the posting requires one).
+
+Build by *selection* from the master resume and *reference* to the interview packet — never copy shared
+content wholesale, never invent facts. Replace every `<…>` placeholder with the real value.
 
 **Naming:** `jobs/<NN>-<company-slug>-<role-slug>/` (e.g., `jobs/01-acme-staff-engineer/`). Two-digit
 prefix = queue rank.
@@ -96,9 +105,14 @@ shared prep.
 - **Public/sanitized values ONLY** (it leaves the machine by design). No certs unless truly active.
   Send as PDF or pasted text, never `.md`.
 
-## 8. `application-log.md` — the only stateful doc
-- **Pre-submit checklist:** link re-verified · referral attempted first · LinkedIn/profile synced ·
-  resume PDF exported + named + number-policy grep run · any pre-application blocker cleared.
+## 8. `application-log.md` — the only stateful doc  🟢 CORE
+- **Pre-submit checklist with a REFERRAL-FIRST HARD GATE** — do not mark "applied" until:
+  - [ ] **Referral attempted _or_ explicitly waived** (a real connection at the company was asked, or
+        the user consciously decided to apply cold). Referrals are the #1 interview-rate lever — this is
+        a gate, not a suggestion.
+  - [ ] Link re-verified live · LinkedIn/profile consistent with the resume.
+  - [ ] Resume PDF exported + named + number-policy grep run.
+  - [ ] Any pre-application blocker cleared.
 - **Status table:** date | action | contact | outcome.
 - **Thank-you-note tracker.**
 - **Post-loop retro** (fill after each round): questions asked vs predicted | what landed | what

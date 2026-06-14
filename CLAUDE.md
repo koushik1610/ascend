@@ -12,11 +12,13 @@ If they say "Run SPIDER Phase N" (or name a phase), jump to that phase's prompt 
 re-reading `workspace/<name>/intake.md` first for context.
 
 ## The pipeline
-`prompts/00-orchestrator.md` drives phases 1–7 (`prompts/01…07`). **Run order: 1 → 2 → 3 → 4 → 6 → 5 →
-7** (the packet's story IDs must exist before the job folders reference them). Utility phases on demand:
-`08-export-pdf.md` (ATS-safe PDF) and `09-maintenance.md` (weekly refresh, outreach, comp, retro).
-Outputs go to `workspace/<name>/`. The orchestrator pauses for review after each phase and updates
-`workspace/<name>/.spider-state.json` so any run is resumable.
+`prompts/00-orchestrator.md` drives the run. **Default order: 1 → 3 → 4 → 6 → 5 → 7** (Phase 2 audit is
+folded into Phase 3; Phase 6 packet before Phase 5 so story IDs exist first). **Lazy by design:** the
+first run builds a master resume, a 15-job queue, a thin packet, and **CORE apply packs (resume ·
+outreach · application-log) for only the top 3–5 committed jobs** — ~25–30 files, not ~100. Deep
+interview prep is on demand: `prompts/10-deep-prep.md` per job when a screen books. Other on-demand:
+`02-resume-audit` (standalone audit), `08-export-pdf`, `09-maintenance`. Outputs go to
+`workspace/<name>/`; the orchestrator updates `workspace/<name>/.spider-state.json` so runs are resumable.
 
 ## Binding rules (always)
 - **Person-agnostic.** Nothing about any previous user (the repo author included) carries into a run.
@@ -33,10 +35,12 @@ Outputs go to `workspace/<name>/`. The orchestrator pauses for review after each
 - **Field-aware.** Adapt coding/assessment prep, evidence types, and keywords to the user's actual
   field via the intake answers.
 
-## Reference (read before phases 2–6)
+## Reference (the single home for the rules — link, don't restate)
 `reference/resume-writing-rules.md` · `reference/ats-and-keywords.md` ·
-`reference/number-and-honesty-policy.md` · `reference/interview-prep-framework.md`.
-Templates: `templates/` (job-folder `_TEMPLATE.md` is the binding 8-file spec).
+`reference/number-and-honesty-policy.md` · `reference/interview-prep-framework.md` are the **canonical**
+rule sources; prompts reference them rather than re-stating them. Templates: `templates/` (job-folder
+`_TEMPLATE.md` is the binding tiered spec — CORE apply pack + on-demand prep pack). Derive the
+**keyword set once** (Phase 3, into master §4) and reuse it downstream — don't re-derive per phase.
 
 ## Git
 The repo ships the SYSTEM only. **Never commit anyone's personal data or generated output** — `.gitignore`

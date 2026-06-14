@@ -5,6 +5,31 @@ versioning is [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-06-13
+A simplification + re-targeting release (from a second council review). Same capabilities, far less
+speculative output, and a modern README.
+
+### Changed — leaner workflow (the headline)
+- **Tiered job folders.** A folder is now a **CORE apply pack** (`resume.md` · `outreach.md` ·
+  `application-log.md`) built only for the **top 3–5 jobs you commit to**, plus a **deep interview-prep
+  pack** built **on demand** when a screen is booked (`prompts/10-deep-prep.md`, `/spider prep <NN>`).
+  A first run now produces ~25–30 files instead of ~100 — no deep prep for leads that never call back.
+- **Resume audit folded into the master resume** (was a standalone Phase 2). Keyword set is derived
+  once (master §4) and reused downstream instead of re-computed per phase.
+- **Default order is now 1 → 3 → 4 → 6 → 5 → 7**, with 02/08/09/10 on demand.
+
+### Added — targeting the real objective (interviews, not paperwork)
+- **Weekly action loop + scoreboard** on the navigator: apply-N / ask-N-referrals targets and a
+  referrals→applied→screening→onsite→offers funnel up top; `"SPIDER today"` action list.
+- **Referral-first hard gate** in `application-log.md` — can't mark "applied" until a referral was
+  attempted or explicitly waived.
+- **Mock-interview drill** in the on-demand prep pack (reps, not just reading).
+- Single-source job status (`application-log.md` → navigator JSON) to prevent drift.
+
+### Added — brand & docs
+- `assets/spider-banner.svg` (static, dashboard-token brand mark) and a modernized README: banner,
+  badges, tagline, demo-GIF slot, collapsible sections, ASCII spider, "see a fictional run" link.
+
 ## [0.1.0] — 2026-06-13
 First public version. A reusable, Claude Code-driven job-search pipeline.
 

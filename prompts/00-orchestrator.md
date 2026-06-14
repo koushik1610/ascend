@@ -97,23 +97,25 @@ user unless they've told you to run straight through.
 | Phase | Prompt file | Produces |
 |---|---|---|
 | 1 | `01-linkedin-analysis.md` | `linkedin-analysis.html` — visual profile audit + **10 actionable next steps** |
-| 2 | `02-resume-audit.md` | `resume-audit.md` — ATS + trends gap analysis, missing keywords, fix list |
-| 3 | `03-master-resume.md` | `master-resume.md` — the superset bullet database (metrics bank, tagged bullets, tailoring protocol) |
-| 4 | `04-job-search.md` | `job-queue.md` — **15+ ranked, live jobs** matched to the profile |
-| 5 | `05-job-folders.md` | `jobs/<NN-company-role>/` — one workspace per job, **8 files each** |
-| 6 | `06-interview-packet.md` | `interview-packet/` — cross-job STAR stories, project deep-dives, metrics cheat sheet |
-| 7 | `07-navigator-html.md` | `start-here.html` — the master navigator linking everything |
+| 3 | `03-master-resume.md` | `master-resume.md` — the superset bullet database. **The resume audit (old Phase 2) is folded in here** as the opening "gaps & fixes" section — no separate `resume-audit.md` artifact by default. |
+| 4 | `04-job-search.md` | `job-queue.md` — **15+ ranked candidate jobs** (link-status per entry) |
+| 6 | `06-interview-packet.md` | `interview-packet/` — STAR stories + positioning hooks (build a **thin** version here; enrich on demand) |
+| 5 | `05-job-folders.md` | **CORE apply packs** (resume · outreach · application-log) for the **top 3–5 jobs the user commits to** — not deep prep for all 15 |
+| 7 | `07-navigator-html.md` | `start-here.html` — the navigator: weekly action loop, funnel, job board |
 
-**Ordering rule (not optional):** **Phase 6 runs before Phase 5.** The per-job folders reference the
-interview packet's STAR stories by ID (`S1`, `D2`, …), so those IDs must exist first. Build at least a
-**thin packet** — stable story IDs + one-line themes — before any job folder, then enrich the packet
-after the folders if you like. Phase 5 then verifies every `S#/D#` reference it emits resolves to a
-real packet entry (no dangling IDs). Run order: 1 → 2 → 3 → 4 → **6 → 5** → 7.
+**Default run order: 1 → 3 → 4 → 6 → 5 → 7.** (Phase 6 before 5 so the packet's story IDs exist before
+anything references them. Phase 2 is merged into 3.)
 
-**Utility phases (run on demand, not part of the initial sequence):** `08-export-pdf.md` (resume/signal
-→ ATS-safe PDF, run per job at apply time) and `09-maintenance.md` (weekly job refresh + diff, outreach
-cadence, follow-ups, comp research, retro digest). See **Single-job operations** and the maintenance
-loop below.
+**Lazy by design — the key simplification:** the first run produces ~25–30 files (a master resume, a
+15-job queue, a thin packet, and a 3-file apply pack for the top few jobs), **not ~100**. Deep
+interview prep is generated **on demand**, per job, only when a screen is booked — see Phase 10.
+
+**On-demand phases (not in the initial sequence):**
+- `02-resume-audit.md` — only if the user wants a standalone audit artifact (otherwise folded into 3).
+- `10-deep-prep.md` — **the deep interview-prep pack** (prep-doc, interview-questions, interview-prep,
+  company-research, signal) for one job, when its screen is booked: `/spider prep <NN>`.
+- `08-export-pdf.md` — resume → ATS-safe PDF at apply time.
+- `09-maintenance.md` — weekly job refresh + diff, outreach cadence, follow-ups, comp research, retro.
 
 ---
 
@@ -149,17 +151,20 @@ completed units**; only build what's `todo`/`in-progress`.
 
 ### Resume a run — "Run SPIDER resume" / `/spider resume`
 Read `.spider-state.json`, tell the user exactly where it stopped, and continue from the first
-incomplete unit. Make Phase 5 idempotent: skip job folders already marked `complete` (re-verify they
-have all 8 files); only finish partial ones.
+incomplete unit. Make Phase 5 idempotent: skip apply packs already marked `complete`; only finish
+partial ones.
 
 ### Single-job operations
 - **"Add this job: \<url-or-description>"** / `/spider job add` — fetch/verify the posting, append one
-  entry to `job-queue.md` (with link-status), and build its one folder per `05-job-folders.md`. Don't
-  rebuild the queue.
-- **"Rebuild job NN"** / `/spider job rebuild <NN>` — regenerate only that folder (e.g., after the JD
-  changed or the master resume improved), preserving its `application-log.md` status.
+  entry to `job-queue.md` (with link-status), and build its **CORE apply pack** per `05-job-folders.md`.
+- **"Prep me for NN"** / `/spider prep <NN>` — build the **deep interview-prep pack** for that job per
+  `10-deep-prep.md` (run when a screen is booked), and offer the mock-interview drill.
+- **"Rebuild job NN"** / `/spider job rebuild <NN>` — regenerate that folder (e.g., after the JD changed
+  or the master resume improved), preserving its `application-log.md` status.
 - **"Score this JD: \<paste>"** — run the master-resume §9 tailoring protocol against a pasted JD and
   report the 0–100 ATS gap + missing-but-claimable keywords, without building a folder.
+- **"SPIDER today"** — the day's action list: which apply packs to send, which referrals to ask, which
+  follow-ups are due (from the navigator's weekly loop + the `application-log.md` files).
 
 ---
 

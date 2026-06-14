@@ -13,21 +13,24 @@ resume-audit.md, master-resume.md, job-queue.md, jobs/*, interview-packet/*) and
 ## What it must contain
 1. **Header** — the user's name, target role(s), and a one-line positioning summary (from the master
    resume §2). Today's date.
-2. **Pipeline status** — a visual of the 7 phases with completion state, each linking to its output
-   (the LinkedIn analysis HTML, the resume audit, the master resume, the job queue, the packet).
-3. **Pre-application blockers** — the checklist from `job-queue.md` (the things to do before applying
-   to anything), shown prominently with check states.
-4. **The job board** — a card or table for all jobs, each linking into its `jobs/<folder>/` (link the
-   folder and the key files: resume.md, prep-doc.md, application-log.md). Show per-job: rank, company,
-   title, location/mode, comp, ATS, and **application status** (pulled from each `application-log.md`
-   — not-started / referral-sought / applied / screening / onsite / offer / rejected). Make status
-   filterable or at least color-coded.
-5. **Funnel** — a simple count strip: jobs identified → applied → screening → onsite → offers.
-6. **Interview packet** — links to each packet file.
-7. **This week** — the top 3–5 next actions (highest-leverage first: usually a LinkedIn next-step, the
-   biggest resume fix, and the #1 job's referral path).
-8. **How to use this system** — a short "what to do" note + a pointer back to the repo README for the
-   maintenance loop (re-run Phase 4 weekly; update application-logs as you go).
+2. **This week — the action loop (TOP of page).** This is the point of the dashboard: drive *action*,
+   not reading. Set `weekly.applyTarget` / `referralTarget` (sensible defaults 3 / 2) so the two
+   target cards render, plus the top 3–5 highest-leverage actions (send apply pack #1, ask the referral
+   at company X, the biggest LinkedIn fix). The system optimizes applications-sent + referrals-asked,
+   not documents-produced.
+3. **Scoreboard** — the funnel: identified → referrals → applied → screening → onsite → offers. The
+   leading indicators, up high, before any document links.
+4. **Pipeline status** — the phases with completion state, each linking to its output.
+5. **Pre-application blockers** — the checklist from `job-queue.md`, with check states.
+6. **Deadlines & follow-ups** — set each job's `deadline` / `nextAction` in the JSON (read from its
+   `application-log.md`).
+7. **The job board** — all jobs, each linking into `jobs/<folder>/` (resume.md, application-log.md;
+   prep links appear once a job's prep pack is built). Show rank, company, title, location, comp, ATS,
+   and **status read from each `application-log.md`** — `application-log.md` is the single source of
+   truth for status; Phase 7 copies it into the JSON (don't let the two drift — re-read on refresh).
+8. **Interview packet** — links to each packet file.
+9. **How to use this system** — a short note + pointer to the README maintenance loop ("Run SPIDER
+   maintenance" weekly; "/spider prep \<NN>" when a screen books; update application-logs as you go).
 
 ## Build requirements
 - Start from `../templates/start-here.template.html`. Fill the **`<script type="application/json"

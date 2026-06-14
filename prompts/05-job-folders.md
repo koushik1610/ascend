@@ -1,76 +1,55 @@
-# Phase 5 — Per-Job Folders → `jobs/<NN-company-role>/`
+# Phase 5 — Apply Packs (CORE) → `jobs/<NN-company-role>/`
 
-**Goal:** for every job in the queue, build a complete application + interview workspace — one folder,
-**8 files**, built by *selection* from the master resume and *reference* to the interview packet. This
-is the deep, enriched per-job work.
+**Goal:** build the **apply pack** — the minimum to send a strong, referral-first application — for the
+jobs the user is **actually going to pursue**. Not 8 files × 15 jobs of speculative prep. Three core
+files per pursued job; deep interview prep is built later, on demand, only when a screen is booked
+(Phase 10).
 
 **Read first:** `workspace/<name>/intake.md`, `job-queue.md`, `master-resume.md`,
-`interview-packet/` (if built — Phase 6), `../templates/job-folder/_TEMPLATE.md` (THE binding 8-file
-spec), `../reference/` (all four files).
-
-> **Scale tip:** this is the heaviest phase. Build folders in batches (e.g., 4 at a time). For each
-> folder you may dispatch a focused sub-agent given: the job's queue entry, the master resume, the
-> packet, the template, and the reference rules — with strict instructions to touch only its own
-> folder and to run the verification grep before finishing. Or build them sequentially. Either way,
-> every folder must conform to `_TEMPLATE.md` exactly.
+`interview-packet/company-positioning.md` (the hooks/closers), `../templates/job-folder/_TEMPLATE.md`,
+`../reference/`.
 
 ---
 
-## The 8 files (per `../templates/job-folder/_TEMPLATE.md`)
-1. `resume.md` — the tailored resume + a **Delta Log** (which master entry IDs were selected, in what
-   order, why; verbatim JD phrases inserted once each; ATS target; export filename). Selection only —
-   a missing bullet is a "MASTER GAP" note, never an invention.
-2. `prep-doc.md` — the ≤2-page night-before read: positioning hook, role thesis, talking points, story
-   map (round → story ID → job-specific opening line), rehearsed gap-handling lines, closer, a
-   numbers-discipline box.
-3. `interview-questions.md` — predicted technical/design questions (bullet-skeleton answers, ≥3 design
-   prompts); a **coding section calibrated to this company's real loop** (named LeetCode-style problems
-   where the company actually tests algorithms; practical/domain tasks where it doesn't; the user's
-   field decides the flavor); behavioral questions mapped to the user's STAR stories.
-4. `interview-prep.md` — the study plan: prioritized topics + hours, set-piece designs to rehearse,
-   gap-handling verbatim, a week-by-week plan, a day-before checklist.
-5. `outreach.md` — referral targets (seeded from the LinkedIn network analysis — real connections at
-   this company; NEVER fabricated names), DM drafts (flagged *rewrite in your own voice*), a
-   recruiter-screen script with the comp/level anchor and any location-friction question.
-6. `company-research.md` — team intel, `VERIFY:` items to confirm with live search before the loop,
-   an interviewer-notes table, comp/negotiation anchors, level context.
-7. `signal.md` — the **sendable** one-pager for this job: a re-lead of the master positioning summary
-   with evidence reordered for the role. Public values only. Send as PDF or pasted text, never `.md`.
-8. `application-log.md` — the only stateful doc: pre-submit checklist, status log, thank-you tracker,
-   post-loop retro template.
+## Which jobs get a pack
+Ask the user (or use the ranking): build apply packs for the **top 3–5 jobs they commit to applying to
+now**. Jobs further down the queue stay as **queue rows** ("activate to build") until the user commits
+to them — then build their pack with `/spider job rebuild <NN>` or just "build the pack for #N."
+Building 5 packs beats building 15 folders nobody opens.
+
+## The CORE apply pack (3 files per `_TEMPLATE.md` §1, §5, §8)
+1. **`resume.md`** — the tailored resume + Delta Log (master entry IDs selected, order, why; verbatim
+   JD phrases once each; ATS target; export filename). **Selection only** — a missing bullet is a
+   "MASTER GAP" note (fix the master), never an invention. Then export to ATS-safe PDF (Phase 8).
+2. **`outreach.md`** — **referral-first**: real existing connections at this company (seeded from the
+   LinkedIn network analysis — NEVER fabricated names), DM drafts flagged *rewrite in your own voice*,
+   and a recruiter-screen script (comp/level anchor, any location-friction question, the per-company
+   closer from `company-positioning.md`).
+3. **`application-log.md`** — the stateful doc: the **pre-submit checklist with a referral-first hard
+   gate** ("referral attempted OR explicitly waived" before applying), status table, thank-you tracker,
+   and the post-loop retro template.
+
+Optionally add `signal.md` (sendable one-pager) **only if the user wants something to send** alongside
+outreach — otherwise it's part of the on-demand prep pack.
 
 ## Single-sourcing rule
 If a sentence already exists in the master resume or interview packet, the folder holds only the
-*job-specific delta* plus a reference (e.g., `../../interview-packet/star-stories.md → S3`). Never copy
-story bodies, the metrics bank, or shared prep wholesale.
+*job-specific delta* + a reference (`../../interview-packet/star-stories.md → S3`). Never copy story
+bodies, the metrics bank, or shared prep.
 
-## Coding calibration (field-aware)
-Encode the real interview reality for each company/role:
-- **Software/SRE/security/data roles at big tech** → algorithm rounds: give 8–15 named LeetCode-style
-  problems by pattern (arrays/hashing, intervals, graphs/BFS-DFS, heaps, strings, trees) plus any
-  domain-flavored coding tasks. Where a company is known for *not* doing LC (many startups, many
-  non-SWE roles), say so and give the practical/take-home/portfolio reality instead.
-- **Non-engineering roles** (design, PM, marketing, ops, etc.) → replace the coding section with the
-  real assessment for that field (portfolio review, case study, take-home exercise, work sample) and
-  prep for it concretely.
-Always be honest about what the loop actually contains; never invent a coding round that isn't there.
-
-## Hard rules (per `../templates/job-folder/_TEMPLATE.md` + `../reference/`)
-- Public/sanitized numbers in every sendable file (resume, signal, outreach); the user's exact
-  verifiable numbers stay exact. Run the user's number-policy grep over each folder before finishing.
-- Honesty gates: no fabricated experience, no fabricated referral contacts, no claimed skills the user
-  doesn't have, no completed personal "why this company" essays (outlines only — the user writes them).
+## Hard rules
+- Public/sanitized numbers in every sendable file; the user's exact verifiable numbers stay exact. Run
+  the number-policy grep over each folder before finishing.
+- Honesty gates: no fabricated experience, referral contacts, or skills; conviction essays are
+  outlines only.
 - Every resume bullet traces to a master entry ID, cited in the Delta Log.
 
-## Verify (per folder)
-- Exactly 8 files (+ an optional `cover-letter.md` only if the posting requires one), all conforming
-  to the template.
-- Number-policy grep clean (no leaked sensitive internals).
+## Verify (per pack)
+- 3 core files present and conforming; number-policy grep clean.
 - Every resume bullet cites a real master entry ID; MASTER GAPS noted where selection fell short.
-- **Every STAR/deep-dive reference (`S#`, `D#`) resolves to a real entry in `interview-packet/`** — no
-  dangling IDs (Phase 6 ran first, so they exist). Grep each folder's `prep-doc.md` /
-  `interview-questions.md` for `S#`/`D#` and confirm each is defined in the packet.
+- `outreach.md` referral names are real (from the network analysis) or honestly absent.
 
 ## Checkpoint
-Report folders built, the per-folder verification results, and any MASTER GAPS surfaced (fix those in
-`master-resume.md` — fix the source, not the derivative). Then proceed to Phase 7 (navigator).
+Report the packs built, MASTER GAPS surfaced (fix in `master-resume.md` — fix the source), and remind
+the user: **deep interview prep is generated on demand** — when a screen gets booked, run
+`/spider prep <NN>` (Phase 10). Then Phase 7 (navigator).

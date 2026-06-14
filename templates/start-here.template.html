@@ -65,10 +65,11 @@
     🔒 <b>Contains your personal data</b> (and links to your resumes, comp, and outreach). Keep it inside <code>workspace/</code> — don't email, upload, or commit it. The <code>.gitignore</code> only protects it there.
   </div>
 
-  <h2>This Week — do these first</h2>
+  <h2>This Week — your action loop</h2>
+  <div id="weekly" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px"></div>
   <ul class="todo" id="thisWeek"></ul>
 
-  <h2>Funnel</h2>
+  <h2>Scoreboard</h2>
   <div class="funnel" id="funnel"></div>
 
   <h2>Pipeline</h2>
@@ -109,6 +110,7 @@
 {
   "name":"<Full Name>", "role":"<target role(s)>", "positioning":"<one-line positioning>", "asOf":"<YYYY-MM-DD>",
   "thisWeek":[ {"t":"<highest-leverage action — 3 to 5>", "note":"<why>"} ],
+  "weekly": { "applyTarget":3, "referralTarget":2, "appliedThisWeek":0, "referralsThisWeek":0 },
   "phases":[
     {"n":"Phase 1","t":"LinkedIn Analysis","done":true,"link":"./linkedin-analysis.html"},
     {"n":"Phase 2","t":"Resume Audit","done":true,"link":"./resume-audit.md"},
@@ -141,6 +143,12 @@ const DATA = JSON.parse(document.getElementById("spider-data").textContent);
 const $=s=>document.querySelector(s), el=(t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e};
 $("#hName").textContent=`${DATA.name} — Job Search HQ`;
 $("#hSub").textContent=`${DATA.role}  ·  ${DATA.positioning}  ·  as of ${DATA.asOf}`;
+/* Weekly targets: send applications + ask referrals are the leading indicators that drive interviews. */
+(function(){const w=DATA.weekly||{};
+  const card=(v,t,l)=>el("div","stat",`<div class="v">${v}<span style="font-size:14px;color:var(--muted)">/${t}</span></div><div class="l">${l} this week</div>`);
+  if(w.applyTarget!=null) $("#weekly").appendChild(card(w.appliedThisWeek||0, w.applyTarget, "Applications"));
+  if(w.referralTarget!=null) $("#weekly").appendChild(card(w.referralsThisWeek||0, w.referralTarget, "Referrals asked"));
+})();
 DATA.thisWeek.forEach((a,i)=>$("#thisWeek").appendChild(el("li",null,`<span class="rank">${i+1}.</span><b>${a.t}</b> <span class="sub">— ${a.note||""}</span>`)));
 DATA.phases.forEach(p=>$("#phases").appendChild(el("div","phase",
   `<div class="n">${p.n}</div><div class="t">${p.t}</div><a href="${p.link}"><span class="dot ${p.done?'done':'todo'}"></span>${p.done?'open':'pending'}</a>`)));
@@ -162,7 +170,8 @@ const f={total:DATA.jobs.length,
   screening:DATA.jobs.filter(j=>["screening","onsite","offer"].includes(j.status)).length,
   onsite:DATA.jobs.filter(j=>["onsite","offer"].includes(j.status)).length,
   offer:DATA.jobs.filter(j=>j.status==="offer").length};
-[["Identified",f.total],["Applied",f.applied],["Screening",f.screening],["Onsite",f.onsite],["Offers",f.offer]]
+const referrals=DATA.jobs.filter(j=>j.status==="referral").length;
+[["Identified",f.total],["Referrals",referrals],["Applied",f.applied],["Screening",f.screening],["Onsite",f.onsite],["Offers",f.offer]]
   .forEach(([l,v])=>$("#funnel").appendChild(el("div","step",`<div class="v">${v}</div><div class="l">${l}</div>`)));
 DATA.jobs.forEach(j=>{
   const tr=el("tr"); const label=j.status.replace("-"," ");
