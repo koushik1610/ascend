@@ -150,6 +150,89 @@ def read_status(slug: str):
     return out
 
 
+def build_results(slug: str):
+    """The output tree the console's in-app results browser navigates (only files that exist)."""
+    w = WORKSPACE / slug
+    def it(name, rel):
+        p = w / rel
+        return {"name": name, "path": rel, "type": "html" if rel.endswith(".html") else "md"} if p.is_file() else None
+    groups = []
+    overview = [x for x in (it("Start here", "start-here.html"),
+                            it("LinkedIn analysis", "linkedin-analysis.html"),
+                            it("Master résumé", "master-resume.md"),
+                            it("Job queue", "job-queue.md")) if x]
+    if overview:
+        groups.append({"label": "Overview", "items": overview})
+    pk = w / "interview-packet"
+    if pk.is_dir():
+        items = [{"name": f.stem.replace("-", " ").capitalize(), "path": f"interview-packet/{f.name}", "type": "md"}
+                 for f in sorted(pk.glob("*.md"))]
+        if items:
+            groups.append({"label": "Interview packet", "items": items})
+    jobs = w / "jobs"
+    if jobs.is_dir():
+        items = []
+        for jd in sorted(p for p in jobs.iterdir() if p.is_dir()):
+            for fn, nm in (("resume.md", "résumé"), ("prep-doc.md", "prep"), ("application-log.md", "log")):
+                if (jd / fn).is_file():
+                    items.append({"name": f"{jd.name} · {nm}", "path": f"jobs/{jd.name}/{fn}", "type": "md"})
+        if items:
+            groups.append({"label": "Apply packs", "items": items})
+    return {"slug": slug, "groups": groups}
+
+
+# A self-contained dark "reader" that renders a markdown file (the run's outputs) in the browser — no CDN,
+# offline. The file's text is HTML-escaped into a hidden <textarea>; tiny JS reads .value (decoded back to
+# the original) and renders it. Served by /view/<slug>/<path>.
+READER_SHELL = """<!doctype html><html><head><meta charset="utf-8">
+<title>__TITLE__</title><style>
+:root{--bg:#0b0f14;--txt:#e6edf3;--muted:#8b97a7;--line:#1f2937;--accent:#5b9dff;--panel:#0f141c}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--txt);
+font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;line-height:1.6}
+.doc{max-width:820px;margin:0 auto;padding:30px 28px 80px}
+h1{font-size:26px;letter-spacing:-.01em;margin:.2em 0 .4em}h2{font-size:13px;text-transform:uppercase;
+letter-spacing:.12em;color:var(--muted);border-bottom:1px solid var(--line);padding-bottom:5px;margin:1.6em 0 .7em}
+h3{font-size:16px;margin:1.1em 0 .3em}a{color:var(--accent)}
+code{font-family:ui-monospace,Menlo,monospace;background:var(--panel);border:1px solid var(--line);
+border-radius:5px;padding:1px 5px;font-size:.9em}
+pre{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:12px 14px;overflow:auto}
+pre code{background:none;border:0;padding:0}
+table{border-collapse:collapse;width:100%;margin:.8em 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+th{color:var(--muted);font-weight:600;background:var(--panel)}
+blockquote{border-left:3px solid var(--accent);margin:.8em 0;padding:.2em 0 .2em 14px;color:var(--muted)}
+hr{border:0;border-top:1px solid var(--line);margin:1.4em 0}ul,ol{padding-left:22px}li{margin:.2em 0}
+strong{color:#fff}</style></head><body>
+<textarea id="md" hidden>__MD__</textarea><div class="doc" id="out"></div>
+<script>
+function render(md){
+  md = md.replace(/<!--[\\s\\S]*?-->/g,"");
+  const esc=s=>s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  const inl=s=>esc(s).replace(/`([^`]+)`/g,"<code>$1</code>")
+    .replace(/\\*\\*([^*]+)\\*\\*/g,"<strong>$1</strong>")
+    .replace(/(^|[^*])\\*([^*\\n]+)\\*/g,"$1<em>$2</em>")
+    .replace(/\\[([^\\]]+)\\]\\(([^)]+)\\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
+  const L=md.replace(/\\r\\n/g,"\\n").split("\\n");let h="",i=0;
+  const cells=r=>r.replace(/^\\s*\\|/,"").replace(/\\|\\s*$/,"").split("|").map(c=>c.trim());
+  while(i<L.length){let l=L[i];
+    if(/^```/.test(l)){let c="";i++;while(i<L.length&&!/^```/.test(L[i])){c+=L[i]+"\\n";i++}i++;h+="<pre><code>"+esc(c)+"</code></pre>";continue}
+    let m=l.match(/^\\s*(#{1,6})\\s+(.*)$/);if(m){const n=m[1].length;h+="<h"+n+">"+inl(m[2])+"</h"+n+">";i++;continue}
+    if(/^\\s*([-*_])\\1{2,}\\s*$/.test(l)){h+="<hr>";i++;continue}
+    if(/\\|/.test(l)&&i+1<L.length&&/^[\\s|:\\-]+$/.test(L[i+1])&&/-/.test(L[i+1])){
+      const hd=cells(l);i+=2;let b=[];while(i<L.length&&/\\|/.test(L[i])&&L[i].trim()){b.push(cells(L[i]));i++}
+      h+="<table><thead><tr>"+hd.map(c=>"<th>"+inl(c)+"</th>").join("")+"</tr></thead><tbody>"+
+        b.map(r=>"<tr>"+r.map(c=>"<td>"+inl(c)+"</td>").join("")+"</tr>").join("")+"</tbody></table>";continue}
+    if(/^\\s*>\\s?/.test(l)){let q="";while(i<L.length&&/^\\s*>\\s?/.test(L[i])){q+=L[i].replace(/^\\s*>\\s?/,"")+" ";i++}h+="<blockquote>"+inl(q)+"</blockquote>";continue}
+    if(/^\\s*[-*+]\\s+/.test(l)){let x="";while(i<L.length&&/^\\s*[-*+]\\s+/.test(L[i])){x+="<li>"+inl(L[i].replace(/^\\s*[-*+]\\s+/,""))+"</li>";i++}h+="<ul>"+x+"</ul>";continue}
+    if(/^\\s*\\d+\\.\\s+/.test(l)){let x="";while(i<L.length&&/^\\s*\\d+\\.\\s+/.test(L[i])){x+="<li>"+inl(L[i].replace(/^\\s*\\d+\\.\\s+/,""))+"</li>";i++}h+="<ol>"+x+"</ol>";continue}
+    if(!l.trim()){i++;continue}
+    let p=l;i++;while(i<L.length&&L[i].trim()&&!/^\\s*(#{1,6}\\s|>|[-*+]\\s|\\d+\\.\\s|```)/.test(L[i])&&!/^\\s*([-*_])\\1{2,}\\s*$/.test(L[i])){p+=" "+L[i];i++}
+    h+="<p>"+inl(p)+"</p>"}
+  return h}
+document.getElementById("out").innerHTML=render(document.getElementById("md").value);
+</script></body></html>"""
+
+
 class Handler(BaseHTTPRequestHandler):
     def _send(self, code, body, ctype="application/json"):
         if isinstance(body, (dict, list)):
@@ -200,6 +283,11 @@ class Handler(BaseHTTPRequestHandler):
         if u.path == "/api/status":
             slug = parse_qs(u.query).get("slug", [""])[0]
             return self._send(200, read_status(slugify(slug)))
+        if u.path == "/api/results":
+            slug = parse_qs(u.query).get("slug", [""])[0]
+            return self._send(200, build_results(slugify(slug)))
+        if u.path.startswith("/view/"):
+            return self._serve_md_reader(u.path)
         if u.path.startswith("/workspace/"):
             return self._serve_dir(WORKSPACE, "/workspace/", u.path)
         if u.path.startswith("/images/"):
@@ -245,6 +333,20 @@ class Handler(BaseHTTPRequestHandler):
                  "png": "image/png", "webp": "image/webp", "gif": "image/gif"}.get(
                      target.suffix.lstrip("."), "application/octet-stream")
         return self._send(200, target.read_bytes(), ctype)
+
+    def _serve_md_reader(self, path):
+        # Render a workspace .md file as a styled, offline HTML page (the in-app results reader).
+        target = (WORKSPACE / path[len("/view/"):]).resolve()
+        try:
+            target.relative_to(WORKSPACE.resolve())
+        except ValueError:
+            return self._send(404, {"error": "not found"})
+        if not target.is_file() or target.suffix != ".md":
+            return self._send(404, {"error": "not found"})
+        md = target.read_text(encoding="utf-8", errors="replace")
+        esc = md.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        html = READER_SHELL.replace("__TITLE__", target.name).replace("__MD__", esc)
+        return self._send(200, html, "text/html; charset=utf-8")
 
 
 def main():

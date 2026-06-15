@@ -8,6 +8,10 @@ Working through the v1.0 readiness review (`docs/ROADMAP.md` "Path to v1.0").
 - **`/spiderui` runs in the browser, not the terminal.** The console now shows **live progress** — a
   phase board *and* an activity feed — instead of telling you to switch to the terminal. The pipeline
   writes `current`/`log` into `.spider-state.json`; the console polls and renders it.
+- **Results display in the console.** When the run finishes it opens an in-app **results browser** — a
+  nav of every output (Start here → LinkedIn analysis → Master résumé → Job queue → Interview packet →
+  apply packs) with a reading pane. New server routes: `/api/results` (the output tree) and `/view/`
+  (renders a workspace `.md` as styled, offline HTML via a small built-in Markdown renderer — no CDN).
 - **Permissions pre-approved.** A scoped, committed `.claude/settings.json` lets the run go **straight
   through without approval prompts** (broad Read + web research; Write/Edit limited to `workspace/**`;
   a short Bash allow-list; a deny-list for `sudo`/`curl`/`rm -rf /`/secrets). Documented in `CLAUDE.md`.

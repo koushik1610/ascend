@@ -57,6 +57,16 @@
   .feed{font-family:var(--mono);font-size:12px;color:var(--muted);background:var(--panel2);border:1px solid var(--line);
     border-radius:9px;padding:10px 12px;margin-top:12px;max-height:150px;overflow:auto;line-height:1.65}
   .feed .now{color:var(--txt)}
+  /* results browser */
+  .console.wide{width:min(1180px,96vw)}
+  .results{display:flex;height:66vh;min-height:430px}
+  .rnav{width:236px;flex:0 0 auto;overflow:auto;padding-right:6px;border-right:1px solid var(--line)}
+  .rgroup{margin-bottom:10px}
+  .rglabel{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin:10px 6px 4px}
+  .rnavitem{display:block;padding:7px 10px;border-radius:8px;color:var(--txt);font-size:13px;text-decoration:none;cursor:pointer}
+  .rnavitem:hover{background:var(--panel2)} .rnavitem.active{background:var(--accent);color:#04101f;font-weight:600}
+  .rnavitem.pop{color:var(--accent);margin-top:8px}
+  .rframe{flex:1;border:0;border-radius:10px;background:var(--bg);margin-left:14px}
 </style>
 </head>
 <body>
@@ -228,7 +238,7 @@ function running(){
     <ul class="phaselist" id="phases">${PHASES.map(p=>`<li><span class="pdot" data-p="${p[0]}"></span> Phase ${p[0]} · ${p[1]}</li>`).join("")}</ul>
     <div class="feed" id="feed"></div>
     ${briefMsg}
-    <div class="btns"><button class="primary" id="openDash" disabled onclick="openDash()">Open my dashboard</button></div>`);
+    <div class="btns"><button class="primary" id="openDash" disabled onclick="results()">View my results →</button></div>`);
   poll();
 }
 async function poll(){
@@ -244,11 +254,35 @@ async function poll(){
       $("#feed").innerHTML = s.log.map((l,i)=>`<div class="${i===s.log.length-1?'now':''}">${(''+l).replace(/</g,'&lt;')}</div>`).join("");
       $("#feed").scrollTop = $("#feed").scrollHeight;
     }
-    if(s.hasDashboard){ $("#openDash").disabled=false; if($("#current")) $("#current").textContent="✓ All done — open your dashboard."; }
+    if(s.hasDashboard){
+      if($("#openDash")) $("#openDash").disabled=false;
+      if(!state.resultsShown){ state.resultsShown=true; results(); }   // auto-show the results when the run finishes
+      return;   // stop polling — the results browser is up
+    }
   }catch(e){}
   setTimeout(poll, 2000);
 }
-function openDash(){ window.location = `/workspace/${state.slug}/start-here.html`; }
+
+// ---- results browser (in-app: nav of every output + a rendered pane) ----
+async function results(){
+  const r = await api(`/api/results?slug=${encodeURIComponent(state.slug)}`);
+  const groups = r.groups || [];
+  document.querySelector(".console").classList.add("wide");
+  const nav = groups.map(g => `<div class="rgroup"><div class="rglabel">${g.label}</div>` +
+    g.items.map(it => {
+      const src = it.type === "html" ? `/workspace/${state.slug}/${it.path}` : `/view/${state.slug}/${it.path}`;
+      return `<a class="rnavitem" data-src="${src}">${it.name}</a>`;
+    }).join("") + `</div>`).join("") || `<div class="muted" style="padding:10px">No results found.</div>`;
+  step("Your results", `
+    <div class="results">
+      <div class="rnav">${nav}<a class="rnavitem pop" href="/workspace/${state.slug}/start-here.html" target="_blank">Open full dashboard ↗</a></div>
+      <iframe class="rframe" id="rframe" title="result"></iframe>
+    </div>`);
+  const items = [...document.querySelectorAll(".rnavitem[data-src]")];
+  const show = el => { items.forEach(x => x.classList.remove("active")); el.classList.add("active"); $("#rframe").src = el.dataset.src; };
+  items.forEach(el => el.addEventListener("click", e => { e.preventDefault(); show(el); }));
+  if (items[0]) show(items[0]);   // default to "Start here"
+}
 
 boot();
 </script>

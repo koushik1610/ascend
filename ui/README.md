@@ -40,6 +40,12 @@ writes + web research + a few commands; see `CLAUDE.md → Permissions`), the ru
 without stopping for approval prompts**. The agent process still lives in your Claude Code session — but
 you don't have to look at it.
 
+**When it finishes, the results open right in the console** — a left-hand list of every output (Start
+here, LinkedIn analysis, Master résumé, Job queue, Interview packet, your apply packs) with a reading
+pane beside it. HTML dashboards render as-is; Markdown files render as clean, dark documents (the server
+turns them into styled HTML offline — no CDN). "Open full dashboard ↗" pops `start-here.html` out to its
+own tab.
+
 ## What you need (the honest part)
 - **Python 3** — preinstalled on macOS and Linux. (Windows: install Python, then see notes below.)
 - **An agentic CLI that can read local files + search the web** — this is the engine that does the
