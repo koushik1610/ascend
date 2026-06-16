@@ -207,16 +207,19 @@ th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-ali
 th{color:var(--muted);font-weight:600;background:var(--panel)}
 blockquote{border-left:3px solid var(--accent);margin:.8em 0;padding:.2em 0 .2em 14px;color:var(--muted)}
 hr{border:0;border-top:1px solid var(--line);margin:1.4em 0}ul,ol{padding-left:22px}li{margin:.2em 0}
-strong{color:#fff}</style></head><body>
+strong{color:#fff}.blk{color:var(--muted);text-decoration:line-through;cursor:not-allowed}</style></head><body>
 <textarea id="md" hidden>__MD__</textarea><div class="doc" id="out"></div>
-<script>
+<script nonce="__NONCE__">
 function render(md){
   md = md.replace(/<!--[\\s\\S]*?-->/g,"");
   const esc=s=>s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
   const inl=s=>esc(s).replace(/`([^`]+)`/g,"<code>$1</code>")
     .replace(/\\*\\*([^*]+)\\*\\*/g,"<strong>$1</strong>")
     .replace(/(^|[^*])\\*([^*\\n]+)\\*/g,"$1<em>$2</em>")
-    .replace(/\\[([^\\]]+)\\]\\(([^)]+)\\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
+    .replace(/\\[([^\\]]+)\\]\\(([^)]+)\\)/g,function(m,t,u){u=u.trim();
+      var ok=/^(https?:\\/\\/|mailto:|#|\\/|\\.\\/|\\.\\.\\/)/i.test(u)||!/^[a-z][a-z0-9+.\\-]*:/i.test(u);
+      return ok?'<a href="'+u.replace(/"/g,"&quot;")+'" target="_blank" rel="noopener">'+t+'</a>'
+              :'<span class="blk" title="blocked non-http link">'+t+'</span>';});
   const L=md.replace(/\\r\\n/g,"\\n").split("\\n");let h="",i=0;
   const cells=r=>r.replace(/^\\s*\\|/,"").replace(/\\|\\s*$/,"").split("|").map(c=>c.trim());
   while(i<L.length){let l=L[i];
@@ -239,7 +242,7 @@ document.getElementById("out").innerHTML=render(document.getElementById("md").va
 
 
 class Handler(BaseHTTPRequestHandler):
-    def _send(self, code, body, ctype="application/json"):
+    def _send(self, code, body, ctype="application/json", headers=None):
         if isinstance(body, (dict, list)):
             body = json.dumps(body).encode()
         elif isinstance(body, str):
@@ -247,6 +250,8 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(code)
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(body)))
+        for k, v in (headers or {}).items():
+            self.send_header(k, v)
         self.end_headers()
         self.wfile.write(body)
 
@@ -353,8 +358,19 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(404, {"error": "not found"})
         md = target.read_text(encoding="utf-8", errors="replace")
         esc = md.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-        html = READER_SHELL.replace("__TITLE__", target.name).replace("__MD__", esc)
-        return self._send(200, html, "text/html; charset=utf-8")
+        nonce = secrets.token_urlsafe(16)
+        html = (READER_SHELL.replace("__TITLE__", target.name)
+                            .replace("__NONCE__", nonce)
+                            .replace("__MD__", esc))
+        # Defense-in-depth for the offline reader: a strict CSP. The lone inline script runs via its
+        # nonce; everything else (network connections, other scripts, javascript: URLs) is denied, so a
+        # malicious link/payload in a workspace .md can't execute or phone home even if it slips the
+        # renderer's scheme allow-list.
+        csp = ("default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; "
+               f"script-src 'nonce-{nonce}'; connect-src 'none'; base-uri 'none'; form-action 'none'")
+        return self._send(200, html, "text/html; charset=utf-8",
+                          {"Content-Security-Policy": csp, "X-Content-Type-Options": "nosniff",
+                           "Referrer-Policy": "no-referrer"})
 
 
 def main():

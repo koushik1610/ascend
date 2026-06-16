@@ -8,6 +8,7 @@ Covers the regressions a human won't catch by eye, all fast:
   3. The gitignore privacy matrix: personal data ignored, system + the committed sample tracked.
   4. Repo cross-references resolve (catches prompt/template drift + dead links).
   5. The UI shell scripts pass `bash -n`, and server.py compiles.
+  6. The /view reader's scheme allow-list (SEC-CRIT-2) is present and its strict CSP is served.
 Exits non-zero if anything fails — wired into CI (.github/workflows/ci.yml).
 """
 import http.client, json, re, shutil, subprocess, sys, time
@@ -44,6 +45,25 @@ def test_server():
         check("forged Origin POST → 403 (no side effect)",
               req("POST", "/api/shutdown", {"X-SPIDER-Token": tok, "Origin": "http://evil.com"})[0] == 403)
         check("server still alive after forged shutdown", req("GET", "/api/agents", {"X-SPIDER-Token": tok})[0] == 200)
+        # SEC-CRIT-2: the /view markdown reader. Link sanitization is client-side, but guard the
+        # defense-in-depth CSP server-side and the scheme allow-list statically.
+        smoke_md = REPO / "workspace/_sec_smoke/x.md"
+        smoke_md.parent.mkdir(parents=True, exist_ok=True)
+        smoke_md.write_text("[evil](javascript:alert(1)) and [ok](https://example.com)\n", encoding="utf-8")
+        try:
+            def reqh(path):  # like req() but also return headers
+                c = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
+                c.request("GET", path, headers={"X-SPIDER-Token": tok, "Host": f"127.0.0.1:{port}"})
+                r = c.getresponse(); b = r.read().decode("utf-8", "replace"); h = dict(r.getheaders()); c.close()
+                return r.status, b, h
+            st, body2, hdrs = reqh("/view/_sec_smoke/x.md")
+            csp = hdrs.get("Content-Security-Policy", "")
+            check("/view served", st == 200)
+            check("/view sets strict CSP (nonce script-src + connect-src none)",
+                  "script-src 'nonce-" in csp and "connect-src 'none'" in csp)
+            check("/view template placeholders fully substituted", "__NONCE__" not in body2 and "__MD__" not in body2)
+        finally:
+            shutil.rmtree(REPO / "workspace/_sec_smoke", ignore_errors=True)
     finally:
         proc.terminate()
         try: proc.wait(timeout=5)
@@ -94,13 +114,33 @@ def test_crossrefs():
             if not (REPO / rel).exists():
                 missing.append(f"{f.name} → {raw}")
     check("all repo cross-references resolve", not missing, "; ".join(missing[:6]))
+    # SEC-CRIT-1: every prompt that ingests web/file content must carry the injection quarantine.
+    ingesting = ["01-linkedin-analysis", "04-job-search", "09-maintenance", "10-deep-prep",
+                 "11-network-map", "13-daily-briefing"]
+    no_quarantine = [p for p in ingesting
+                     if "untrusted-content-policy" not in (REPO / f"prompts/{p}.md").read_text(encoding="utf-8")]
+    check("ingesting prompts cite the injection quarantine (SEC-CRIT-1)", not no_quarantine,
+          "missing in: " + ", ".join(no_quarantine))
 
 # ── 5. Scripts compile / lint ────────────────────────────────────────────────
 def test_scripts():
     print("scripts & config")
     check("server.py compiles",
           subprocess.run([sys.executable, "-m", "py_compile", str(REPO / "ui/server.py")]).returncode == 0)
+    src = (REPO / "ui/server.py").read_text(encoding="utf-8")
+    check("reader has a link scheme allow-list (SEC-CRIT-2)",
+          "blocked non-http link" in src and "https?:" in src)
     settings = REPO / ".claude/settings.json"
+    try:
+        perms = json.loads(settings.read_text(encoding="utf-8")).get("permissions", {})
+        allow, deny = perms.get("allow", []), perms.get("deny", [])
+        check("no RCE interpreter pre-approved in allow (SEC-HIGH-3)",
+              not any(a.startswith(("Bash(node", "Bash(deno", "Bash(bun", "Bash(ruby",
+                                    "Bash(perl", "Bash(php", "Bash(osascript")) for a in allow))
+        check("RCE interpreters + exfil tools denied (SEC-HIGH-3)",
+              "Bash(node *)" in deny and "Bash(nc *)" in deny and "Bash(ssh *)" in deny)
+    except Exception as e:
+        check("settings.json permissions parse", False, str(e))
     if settings.exists():
         try:
             json.loads(settings.read_text(encoding="utf-8")); check(".claude/settings.json is valid JSON", True)
