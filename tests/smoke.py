@@ -91,7 +91,10 @@ def test_html_json():
 def test_gitignore():
     print("gitignore (privacy matrix)")
     def ignored(p):
-        return subprocess.run(["git", "check-ignore", "-q", p], cwd=REPO).returncode == 0
+        # Force case-sensitive matching so macOS (core.ignorecase=true) catches gaps that would only
+        # bite on a case-sensitive Linux box — e.g. `Resume.pdf` vs a lowercase-only pattern.
+        return subprocess.run(["git", "-c", "core.ignorecase=false", "check-ignore", "-q", p],
+                              cwd=REPO).returncode == 0
     must_ignore = ["workspace/jane/master-resume.md", "workspace/jane/jobs/01-acme/resume.md",
                    "workspace/jane/inputs/linkedin-export/Connections.csv", "workspace/jane/start-here.html",
                    "examples/realperson/master-resume.md", "examples/realperson/inputs/Connections.csv",

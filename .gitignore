@@ -16,13 +16,18 @@ koushik-docs/
 *koushik-docs*
 
 # --- Anyone's source documents (resumes, LinkedIn exports, cover letters) -----
+# NOTE: patterns are case-insensitive on macOS (core.ignorecase) but NOT on Linux, so spell out the
+# common case variants explicitly — otherwise a `Resume.pdf` slips through on a contributor's Linux box.
 *.resume.*
 *-resume.md
 *-resume.pdf
 *-resume.docx
-*resume*.pdf
-*resume*.docx
-*CV*.pdf
+*[Rr]esume*.pdf
+*[Rr]esume*.docx
+*[Rr]esume*.md
+[Rr]esume.*
+*[Cc][Vv]*.pdf
+*[Cc][Vv]*.docx
 linkedin-data/
 linkedin_extracted/
 Basic_LinkedIn_Data*/
