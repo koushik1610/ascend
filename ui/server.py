@@ -140,8 +140,13 @@ def install_daily_brief(slug: str, hhmm: str, agent: str = ""):
 def read_status(slug: str):
     """Surface pipeline progress for the UI to poll (from the resumability manifest)."""
     statef = WORKSPACE / slug / ".spider-state.json"
+    sh = WORKSPACE / slug / "start-here.html"
+    intake = WORKSPACE / slug / "intake.md"
+    # "Done" = the dashboard exists AND was (re)generated AFTER the current intake — so a re-run with a
+    # fresh intake shows live progress instead of instantly surfacing a stale report from an old run.
+    done = sh.exists() and (not intake.exists() or sh.stat().st_mtime >= intake.stat().st_mtime)
     out = {"slug": slug, "phases": {}, "phase": None, "current": "", "log": [],
-           "hasDashboard": (WORKSPACE / slug / "start-here.html").exists()}
+           "hasDashboard": done}
     if statef.exists():
         try:
             out.update(json.loads(statef.read_text(encoding="utf-8")))   # carries current + log for the live feed
