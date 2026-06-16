@@ -161,11 +161,24 @@ function s3_targets(){
       <button class="ghost" onclick="s2_resume()">Back</button>
     </div>`);
 }
-function grab3(){
+async function grab3(){
   for(const k of ["name","roles","seniority","location","companies"]) state[k]=$("#"+k).value;
   if(!state.name){ $("#name").focus(); $("#name").style.borderColor="var(--bad)"; return; }
+  const r = await api(`/api/exists?name=${encodeURIComponent(state.name)}`);
+  if(r && r.hasReport){ state.existingSlug = r.slug; return existingChoice(); }
   s4_calibrate();
 }
+function existingChoice(){
+  step("You've been here before", `
+    <div class="line">You already have a SPIDER report for <b>${state.name}</b>.</div>
+    <div class="muted" style="margin-top:8px">Open it as-is, or run a fresh one — that re-does the analysis and <b>replaces</b> the old report.</div>
+    <div class="btns">
+      <button class="primary" onclick="viewExisting()">View my existing report</button>
+      <button class="ghost" onclick="s4_calibrate()">Run a fresh one</button>
+      <button class="ghost" onclick="s3_targets()">Back</button>
+    </div>`);
+}
+function viewExisting(){ state.slug = state.existingSlug; state.resultsShown = true; results(); }
 
 // ---- step 4: calibration ----
 function s4_calibrate(){

@@ -12,6 +12,10 @@ Working through the v1.0 readiness review (`docs/ROADMAP.md` "Path to v1.0").
   nav of every output (Start here → LinkedIn analysis → Master résumé → Job queue → Interview packet →
   apply packs) with a reading pane. New server routes: `/api/results` (the output tree) and `/view/`
   (renders a workspace `.md` as styled, offline HTML via a small built-in Markdown renderer — no CDN).
+- **Returning-user flow.** A run now counts as "done" only when `start-here.html` is newer than the
+  current intake, so a **re-run shows live progress** instead of instantly surfacing a stale report. And
+  if you enter a name that already has a report, the console offers **View existing / Run a fresh one**
+  (new `/api/exists` endpoint) — viewing skips the pipeline and just opens your previous results.
 - **Permissions pre-approved.** A scoped, committed `.claude/settings.json` lets the run go **straight
   through without approval prompts** (broad Read + web research; Write/Edit limited to `workspace/**`;
   a short Bash allow-list; a deny-list for `sudo`/`curl`/`rm -rf /`/secrets). Documented in `CLAUDE.md`.

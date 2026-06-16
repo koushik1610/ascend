@@ -291,6 +291,9 @@ class Handler(BaseHTTPRequestHandler):
         if u.path == "/api/results":
             slug = parse_qs(u.query).get("slug", [""])[0]
             return self._send(200, build_results(slugify(slug)))
+        if u.path == "/api/exists":     # does a finished report already exist for this name?
+            slug = slugify(parse_qs(u.query).get("name", [""])[0])
+            return self._send(200, {"slug": slug, "hasReport": (WORKSPACE / slug / "start-here.html").exists()})
         if u.path.startswith("/view/"):
             return self._serve_md_reader(u.path)
         if u.path.startswith("/workspace/"):
