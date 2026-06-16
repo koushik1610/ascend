@@ -1,0 +1,26 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Smoke tests (server + reader security, perms, dashboards, gitignore, cross-refs, phase-order, scripts)
+        run: python3 tests/smoke.py
+
+      - name: Validate dashboard render scripts (JS syntax)
+        run: |
+          set -e
+          for f in templates/linkedin-analysis.template.html templates/start-here.template.html; do
+            awk 'BEGIN{n=0}/<script>/{n++;if(n>=1){g=1;next}}/<\/script>/{g=0}g' "$f" > /tmp/render.js
+            node --check /tmp/render.js && echo "JS ok: $f"
+          done
+
+      - name: Validate SVG banner is well-formed XML
+        run: python3 -c "import xml.dom.minidom; xml.dom.minidom.parse('assets/spider-banner.svg'); print('SVG ok')"
