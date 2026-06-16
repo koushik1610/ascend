@@ -28,7 +28,7 @@ proceeding (so it can never mis-route a later run). Read that folder's `intake.m
 
 ## 3. Run the pipeline in UI mode — keep the browser the surface
 With `intake.md` in hand, run the normal default pipeline from `prompts/00-orchestrator.md`
-(order **1 → 3 → 4 → 6 → 5 → 7**). The user is watching the **browser**, not the terminal — so drive the
+(canonical order **1 → 3 → 4 → 6 → 5 → 7**; defined in `00-orchestrator.md`). The user is watching the **browser**, not the terminal — so drive the
 console, don't ask the user to switch back. UI-mode adjustments:
 
 - **Skip the Step-1 intake interview** — it's already captured. Confirm the LinkedIn export + résumé

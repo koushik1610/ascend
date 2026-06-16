@@ -11,7 +11,18 @@
 # instructions; the scoped .claude/settings.json deny-list is the capability backstop.
 set -uo pipefail
 
-SLUG="${1:?usage: run-daily-brief.sh <workspace-slug> [agent]}"
+# Self-check mode: `run-daily-brief.sh --check` verifies the wrapper can find an agent CLI and assemble
+# the prompt — WITHOUT invoking the agent (no quota use, no workspace needed). Used by tests/smoke.py and
+# handy for manually confirming a scheduled run will work on this machine.
+if [ "${1:-}" = "--check" ]; then
+  found=""
+  for c in claude gemini codex; do command -v "$c" >/dev/null 2>&1 && found="$found $c"; done
+  if [ -n "$found" ]; then echo "OK: agent CLI available:$found"; exit 0; fi
+  echo "WARN: no agent CLI (claude/gemini/codex) on PATH — scheduled brief will fall back to a manual run." >&2
+  exit 2
+fi
+
+SLUG="${1:?usage: run-daily-brief.sh <workspace-slug> [agent]   (or --check)}"
 WANT="${2:-}"
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$REPO" || exit 1

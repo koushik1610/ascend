@@ -20,6 +20,12 @@ Working through the v1.0 readiness review (`docs/ROADMAP.md` "Path to v1.0").
   through without approval prompts** (broad Read + web research; Write/Edit limited to `workspace/**`;
   a short Bash allow-list; a deny-list for `sudo`/`curl`/`rm -rf /`/secrets). Documented in `CLAUDE.md`.
 - Server clears stale `.ui-ready` flags on new intake so a run can't mis-route.
+- **v1.0 polish (should-fix items).** The folder/file picker now returns a **status**
+  (`ok`/`cancelled`/`unavailable`/`error`) so the console shows a *"no native picker — paste the path"*
+  hint on Linux without `zenity`/`kdialog` (instead of a silent no-op). The phase **run-order is
+  single-sourced** — canonical in `00-orchestrator.md`, restated in `CLAUDE.md`/`spiderui.md`, with a
+  smoke-test asserting all three match. The daily-brief wrapper gained a **`--check`** self-test (agent
+  detection + prompt assembly, no agent call / no quota) wired into the smoke suite.
 - **Security:** hardened the `/spiderui` local server against CSRF + DNS-rebinding (Host allowlist,
   per-session token on `/api/*`, Origin check on POST, stricter path-traversal guard). Verified live.
 - **Security (council 2026-06-15, fixed 2026-06-16):** closed the two CRITICALs the council found.

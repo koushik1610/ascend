@@ -103,6 +103,9 @@ user unless they've told you to run straight through.
 | 5 | `05-job-folders.md` | **CORE apply packs** (resume · outreach · application-log) for the **top 3–5 jobs the user commits to** — not deep prep for all 15 |
 | 7 | `07-navigator-html.md` | `start-here.html` — the navigator: weekly action loop, funnel, job board |
 
+<!-- CANONICAL RUN ORDER — single source of truth. CLAUDE.md and .claude/commands/spiderui.md restate
+this for convenience; tests/smoke.py asserts all three match, so change the order HERE and keep them in
+sync. -->
 **Default run order: 1 → 3 → 4 → 6 → 5 → 7.** (Phase 6 before 5 so the packet's story IDs exist before
 anything references them. Phase 2 is merged into 3.)
 

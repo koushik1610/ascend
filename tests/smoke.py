@@ -7,8 +7,9 @@ Covers the regressions a human won't catch by eye, all fast:
   2. Every HTML dashboard's embedded JSON block parses (a bad block blanks the dashboard).
   3. The gitignore privacy matrix: personal data ignored, system + the committed sample tracked.
   4. Repo cross-references resolve (catches prompt/template drift + dead links).
-  5. The UI shell scripts pass `bash -n`, and server.py compiles.
+  5. The UI shell scripts pass `bash -n`, server.py compiles, the daily-brief `--check` self-test runs.
   6. The /view reader's scheme allow-list (SEC-CRIT-2) is present and its strict CSP is served.
+  7. The phase run-order stays single-sourced (00-orchestrator == CLAUDE.md == spiderui.md).
 Exits non-zero if anything fails — wired into CI (.github/workflows/ci.yml).
 """
 import http.client, json, re, shutil, subprocess, sys, time
@@ -122,6 +123,19 @@ def test_crossrefs():
     check("ingesting prompts cite the injection quarantine (SEC-CRIT-1)", not no_quarantine,
           "missing in: " + ", ".join(no_quarantine))
 
+# ── 4b. Phase run-order stays single-sourced ─────────────────────────────────
+def test_phase_order():
+    print("phase run-order (single-source)")
+    canon = (REPO / "prompts/00-orchestrator.md").read_text(encoding="utf-8")
+    m = re.search(r"Default run order:\s*([0-9 →>-]+?)\.", canon)
+    order = re.sub(r"\s+", "", m.group(1)) if m else ""
+    check("canonical run order found in 00-orchestrator.md", bool(order),
+          "no 'Default run order:' line")
+    for f in ["CLAUDE.md", ".claude/commands/spiderui.md"]:
+        txt = re.sub(r"\s+", "", (REPO / f).read_text(encoding="utf-8"))
+        check(f"{f} matches the canonical run order", bool(order) and order in txt,
+              f"expected {order!r}")
+
 # ── 5. Scripts compile / lint ────────────────────────────────────────────────
 def test_scripts():
     print("scripts & config")
@@ -149,11 +163,15 @@ def test_scripts():
     if shutil.which("bash"):
         check("run-daily-brief.sh passes bash -n",
               subprocess.run(["bash", "-n", str(REPO / "ui/run-daily-brief.sh")]).returncode == 0)
+        # --check self-test must run cleanly (0 = a CLI is present, 2 = none found) — never crash.
+        rc = subprocess.run(["bash", str(REPO / "ui/run-daily-brief.sh"), "--check"],
+                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode
+        check("run-daily-brief.sh --check exits cleanly (0 or 2)", rc in (0, 2), f"rc={rc}")
     else:
         print("  – bash not found, skipping shell lint")
 
 if __name__ == "__main__":
-    for t in (test_server, test_html_json, test_gitignore, test_crossrefs, test_scripts):
+    for t in (test_server, test_html_json, test_gitignore, test_crossrefs, test_phase_order, test_scripts):
         try: t()
         except Exception as e:
             check(f"{t.__name__} raised", False, repr(e))

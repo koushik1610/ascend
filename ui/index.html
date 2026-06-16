@@ -122,6 +122,7 @@ function s1_linkedin(){
     <div class="muted" style="margin-top:8px">LinkedIn → Settings → Data Privacy → Get a copy of your data → “The works.” It arrives as a zip; <b>unzip it</b> first.</div>
     <div id="how"></div>
     <div class="pick" style="margin-top:14px"><input id="liPath" placeholder="…or paste the unzipped folder path" value="${state.linkedinPath||''}"><button onclick="pick('folder','liPath','linkedinPath')">Browse…</button></div>
+    <div class="muted phint" id="liPath_hint" style="margin-top:6px"></div>
     <div class="btns">
       <button class="primary" onclick="state.linkedinPath=$('#liPath').value; s2_resume()">Yes — continue</button>
       <button class="ghost" onclick="showHow()">No — show me how</button>
@@ -139,6 +140,7 @@ function s2_resume(){
   step("Step 2 of 5 · your résumé", `
     <div class="line">Point me at your current résumé (PDF, .docx, or .md). No résumé? Skip — I'll build one.</div>
     <div class="pick" style="margin-top:14px"><input id="rPath" placeholder="…or paste the file path" value="${state.resumePath||''}"><button onclick="pick('file','rPath','resumePath')">Browse…</button></div>
+    <div class="muted phint" id="rPath_hint" style="margin-top:6px"></div>
     <div class="btns">
       <button class="primary" onclick="state.resumePath=$('#rPath').value; s3_targets()">Continue</button>
       <button class="ghost" onclick="s3_targets()">Skip — build one for me</button>
@@ -214,8 +216,15 @@ function s5_daily(){
 
 // ---- pickers ----
 async function pick(kind, inputId, key){
+  const hint = $("#"+inputId+"_hint");
+  if(hint) hint.textContent = "Opening the file picker…";
   const r = await api(`/api/pick?type=${kind}`, {method:"POST"});
-  if(r.path){ $("#"+inputId).value = r.path; state[key]=r.path; }
+  if(r.path){ $("#"+inputId).value = r.path; state[key]=r.path; if(hint) hint.textContent=""; return; }
+  if(!hint) return;
+  if(r.__error)             hint.textContent = "Couldn't reach the SPIDER server — paste the path in the box above instead.";
+  else if(r.status==="unavailable") hint.textContent = "No native file picker on this system — paste the full path in the box above instead.";
+  else if(r.status==="error")       hint.textContent = "Couldn't open the picker — paste the path in the box above instead.";
+  else                      hint.textContent = "";   // cancelled → stay quiet
 }
 
 // ---- finish: save intake, schedule, run ----

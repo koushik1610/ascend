@@ -45,10 +45,14 @@ links, phase list consistent · ⑥ README/CHANGELOG represent maturity honestly
 > [**Security review**](#security-review--council-2026-06-15) for the findings and fixes. They gate the
 > 1.0 tag because `/spiderui` runs untrusted web content through a pre-approved, broadly-permissioned agent.
 
-**Should-fix before 1.0 (not hard gates):** mostly done in the hardening pass (ready-flag clears on
-pickup, `read_status` surfaces errors, traversal guard uses `relative_to`, console error handling).
-Remaining: single-source the triplicated phase list; surface a folder-picker fallback message on Linux
-without `zenity`; verify the headless daily-brief on at least one CLI.
+**Should-fix before 1.0 (not hard gates):** ✅ done. The hardening pass covered ready-flag-clears-on-pickup,
+`read_status` error surfacing, the `relative_to` traversal guard, and console error handling. The
+2026-06-16 pass closed the rest: the **phase run-order is single-sourced** (canonical in
+`00-orchestrator.md`; `CLAUDE.md` + `spiderui.md` restate it and `tests/smoke.py` asserts all three match);
+the **folder picker returns a status** (`ok`/`cancelled`/`unavailable`/`error`) so the console shows a
+*"no native picker — paste the path"* hint on Linux without `zenity`/`kdialog`; and the **daily-brief
+wrapper gained a `--check` self-test** (agent detection + prompt assembly, no agent call) wired into the
+smoke suite — full end-to-end verification still rides along with the one real run (gate #2).
 
 ---
 

@@ -12,7 +12,8 @@ If they say "Run SPIDER Phase N" (or name a phase), jump to that phase's prompt 
 re-reading `workspace/<name>/intake.md` first for context.
 
 ## The pipeline
-`prompts/00-orchestrator.md` drives the run. **Default order: 1 → 3 → 4 → 6 → 5 → 7** (Phase 2 audit is
+`prompts/00-orchestrator.md` drives the run (the **canonical run order** lives there). **Default order:
+1 → 3 → 4 → 6 → 5 → 7** (Phase 2 audit is
 folded into Phase 3; Phase 6 packet before Phase 5 so story IDs exist first). **Lazy by design:** the
 first run builds a master resume, a 15-job queue, a thin packet, and **CORE apply packs (resume ·
 outreach · application-log) for only the top 3–5 committed jobs** — ~25–30 files, not ~100. Deep

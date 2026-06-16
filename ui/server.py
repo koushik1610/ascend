@@ -46,7 +46,14 @@ def detect_agents():
 
 
 def native_pick(kind: str):
-    """Open the OS's native folder/file dialog and return the chosen absolute path (or None)."""
+    """Open the OS's native folder/file dialog.
+
+    Returns {"path": <abs path or None>, "status": ...} so the UI can tell the cases apart:
+      "ok"          — a path was chosen
+      "cancelled"   — a picker opened but the user dismissed it (just re-prompt)
+      "unavailable" — no native picker on this system (UI should point at the paste-path field)
+      "error"       — the picker invocation blew up
+    """
     sysname = platform.system()
     try:
         if sysname == "Darwin":
@@ -54,7 +61,8 @@ def native_pick(kind: str):
             verb = "choose folder" if kind == "folder" else "choose file"
             script = f'POSIX path of ({verb} with prompt "{prompt}")'
             out = subprocess.run(["osascript", "-e", script], capture_output=True, text=True, timeout=600)
-            return (out.stdout.strip() or None)
+            path = out.stdout.strip() or None
+            return {"path": path, "status": "ok" if path else "cancelled"}
         if sysname == "Linux":
             home = os.path.expanduser("~")
             if shutil.which("zenity"):
@@ -63,9 +71,10 @@ def native_pick(kind: str):
                 args = ["kdialog", "--getexistingdirectory", home] if kind == "folder" \
                     else ["kdialog", "--getopenfilename", home]
             else:
-                return None
+                return {"path": None, "status": "unavailable"}
             out = subprocess.run(args, capture_output=True, text=True, timeout=600)
-            return (out.stdout.strip() or None)
+            path = out.stdout.strip() or None
+            return {"path": path, "status": "ok" if path else "cancelled"}
         if sysname == "Windows":
             if kind == "folder":
                 ps = ("Add-Type -AssemblyName System.Windows.Forms;"
@@ -76,10 +85,11 @@ def native_pick(kind: str):
                       "$d=New-Object System.Windows.Forms.OpenFileDialog;"
                       "if($d.ShowDialog() -eq 'OK'){$d.FileName}")
             out = subprocess.run(["powershell", "-NoProfile", "-Command", ps], capture_output=True, text=True, timeout=600)
-            return (out.stdout.strip() or None)
+            path = out.stdout.strip() or None
+            return {"path": path, "status": "ok" if path else "cancelled"}
     except Exception:
-        return None
-    return None
+        return {"path": None, "status": "error"}
+    return {"path": None, "status": "unavailable"}
 
 
 def write_intake(data: dict):
@@ -317,7 +327,7 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(403, {"error": "forbidden"})
         if u.path == "/api/pick":
             kind = parse_qs(u.query).get("type", ["folder"])[0]
-            return self._send(200, {"path": native_pick("file" if kind == "file" else "folder")})
+            return self._send(200, native_pick("file" if kind == "file" else "folder"))
         if u.path == "/api/intake":
             slug = write_intake(self._body())
             return self._send(200, {"ok": True, "slug": slug})
