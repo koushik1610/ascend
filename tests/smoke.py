@@ -111,7 +111,7 @@ def test_gitignore():
 def test_crossrefs():
     print("cross-references (drift)")
     files = list((REPO / "prompts").glob("*.md")) + [REPO / "templates/job-folder/_TEMPLATE.md",
-            REPO / "CLAUDE.md", REPO / "README.md", REPO / "START-HERE.md"]
+            REPO / "CLAUDE.md", REPO / "README.md", REPO / "WORKFLOW.md"]
     ref = re.compile(r'(?:\.\./)*(?:prompts|templates|reference|docs|ui|assets)/[A-Za-z0-9_./-]+\.(?:md|html|css|svg|py|sh)')
     missing = []
     for f in files:

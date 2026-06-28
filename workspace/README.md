@@ -1,6 +1,6 @@
 # workspace/ — your private output lives here (never committed)
 
-Everything S.P.I.D.E.R. generates about **you** lands in `workspace/<your-name>/` and is
+Everything Ascend generates about **you** lands in `workspace/<your-name>/` and is
 ignored by git (see the repo `.gitignore`). Your LinkedIn export, your resume, your master
 resume, your job folders, and the two HTML dashboards are all personal data — they stay on
 your machine and are never pushed to GitHub.

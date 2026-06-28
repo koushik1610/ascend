@@ -157,7 +157,7 @@ First public version. A reusable, Claude Code-driven job-search pipeline.
   `export`, `maintenance` operations via the `/ascend` command.
 - **Privacy model:** everything personal under gitignored `workspace/`; PII banners on both dashboards;
   a fictional worked example under `examples/sample-run/`.
-- **Docs:** comprehensive `README`, `START-HERE`, non-technical `docs/SETUP.md`, `CONTRIBUTING`,
+- **Docs:** comprehensive `README` (quickstart + contributing folded in), non-technical `docs/SETUP.md`,
   `.github/` issue & PR templates.
 
 ### Fixed

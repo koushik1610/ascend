@@ -45,10 +45,12 @@ claude          # open Claude Code in this folder
 
 Then type **`/ascend`** (or *"Run Ascend"*). It interviews you — name, where your LinkedIn export and
 resume are, what jobs you want — builds a private `workspace/<your-name>/`, and runs the pipeline,
-checking in after each step. When it's done, open **`workspace/<your-name>/start-here.html`**.
+checking in after each step. When it's done, open **`workspace/<your-name>/start-here.html`**. Start
+with the **"Before you apply" blockers** and your **#1-ranked job**.
 
 > New to terminals? **[`docs/SETUP.md`](docs/SETUP.md)** walks through it step by step.
 > Want to sample it cheaply first? Say *"Run Ascend Phase 1"* (just the LinkedIn analysis).
+> Re-run anytime: *"Run Ascend Phase 4"* refreshes your job queue with new postings.
 
 **Prefer clicking to typing?** Run **`/ascendui`** instead — it opens a graphical, Jarvis-style console
 in your browser that walks you through everything (folder picker, target roles, an optional daily-brief
@@ -221,7 +223,7 @@ Honest about what's proven vs. still beta (and the path to 1.0 is tracked in [`d
 
 ```
 ascend/
-├── README.md · START-HERE.md · WORKFLOW.md · CLAUDE.md · CONTRIBUTING.md · CHANGELOG.md · LICENSE (MIT)
+├── README.md · WORKFLOW.md · CLAUDE.md · CHANGELOG.md · LICENSE (MIT)
 ├── .gitignore                       privacy backstop (ignores all personal data + output)
 ├── .claude/commands/                the /ascend + /ascendui slash commands
 ├── ui/                              the graphical console: server.py (also `--render` → PDF), index.html, run-daily-brief.sh
@@ -239,8 +241,45 @@ ascend/
 └── workspace/                       YOUR private output lands here (gitignored)
 ```
 
-See [`CONTRIBUTING.md`](CONTRIBUTING.md) to add field packs, polish the dashboards, or fix prompts.
+See **[Contributing](#contributing)** below to add field packs, polish the dashboards, or fix prompts.
 </details>
+
+---
+
+## Contributing
+
+Ascend is a prompt-and-template system, not a codebase — most contributions are Markdown (prompts,
+templates, reference rules) plus the occasional HTML/JS in the dashboard templates.
+
+**The one hard rule: never commit personal data.** No real resumes, LinkedIn exports, names, or
+generated runs go into git, ever. All of it lives in `workspace/` (gitignored). Any example must be
+100% fictional and live under `examples/`. Before a PR:
+
+```bash
+git status --porcelain                              # nothing personal staged
+git check-ignore workspace/you/master-resume.md     # should print the path (ignored)
+python3 tests/smoke.py                               # stdlib + git, no installs; CI runs the same
+```
+
+If you change `.gitignore`, prove it still ignores personal data and still tracks the system files. The
+gitignore is load-bearing, so test it.
+
+**Principles to preserve:** honesty gates (nothing fabricated; conviction essays stay outlines) ·
+selection-not-invention (per-job resumes are selected from the master; a missing bullet is a MASTER GAP
+note, never fiction) · self-contained dashboards (no CDN; they open offline) · field-agnostic ·
+person-agnostic (no real person's details in committed files).
+
+**Good first contributions:** field packs (the system is field-agnostic but examples lean tech — a
+worked sample or reference notes for design, PM, marketing, healthcare, finance, trades, academia);
+keeping [`reference/ats-and-keywords.md`](reference/ats-and-keywords.md) and
+[`reference/interview-prep-framework.md`](reference/interview-prep-framework.md) current as the market
+shifts; dashboard polish; non-tech onboarding in [`docs/SETUP.md`](docs/SETUP.md) (especially Windows);
+and prompt bug fixes.
+
+**Workflow:** fork → branch → make the change → run `python3 tests/smoke.py` → update `CHANGELOG.md`
+under "Unreleased" → open a PR (use the template) describing what changed and which principle(s) it
+touches. Report bugs via the issue templates; for prompt bugs, include the phase, what you asked, and
+what it produced (personal data removed).
 
 ---
 
