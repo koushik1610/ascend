@@ -1,12 +1,12 @@
 <!doctype html>
-<!-- S.P.I.D.E.R. console — served by ui/server.py at http://127.0.0.1:<port>/. A Jarvis-style intake
+<!-- Ascend console — served by ui/server.py at http://127.0.0.1:<port>/. A Jarvis-style intake
      wizard that writes your intake, schedules the daily brief, and shows the pipeline running. Talks
      only to the local server; nothing leaves your machine. -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>S.P.I.D.E.R. console</title>
+<title>Ascend console</title>
 <style>
   :root{
     --bg:#0b0f14;--panel:#121822;--panel2:#0f141c;--line:#1f2937;--txt:#e6edf3;--muted:#8b97a7;
@@ -72,15 +72,15 @@
 <body>
 <div class="console">
   <div class="bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
-    <span>spider://console</span><span class="tag" id="agentTag">detecting agent…</span></div>
+    <span>ascend://console</span><span class="tag" id="agentTag">detecting agent…</span></div>
   <div class="stage" id="stage"></div>
 </div>
 
 <script>
-const TOKEN = "__SPIDER_TOKEN__";   // injected by the server when it serves this page
+const TOKEN = "__Ascend_TOKEN__";   // injected by the server when it serves this page
 const $ = s => document.querySelector(s);
 const api = async (path, opts={}) => {
-  opts.headers = Object.assign({"X-SPIDER-Token": TOKEN}, opts.headers || {});
+  opts.headers = Object.assign({"X-Ascend-Token": TOKEN}, opts.headers || {});
   try { const r = await fetch(path, opts); return await r.json(); }
   catch(e){ return {__error: String(e)}; }   // server gone → don't hang silently
 };
@@ -112,7 +112,7 @@ async function boot(){
        $("#agentTag").textContent = AGENTS.length ? ("engine: "+AGENTS.map(a=>a.label).join(" / ")) : "no agent CLI found";
        state.agent = AGENTS[0]?.cli || "";
   }catch(e){ $("#agentTag").textContent="server offline"; }
-  type(["Welcome to S.P.I.D.E.R.","Strategic Profile Intelligence & Direct Employment Routing.","Let's begin."], s1_linkedin);
+  type(["Welcome to Ascend","Your job search, grounded in evidence.","Let's begin."], s1_linkedin);
 }
 
 // ---- step 1: LinkedIn data ----
@@ -133,7 +133,7 @@ function showHow(){ $("#how").innerHTML = `<div class="how">
   1. Open <a href="https://www.linkedin.com/mypreferences/d/download-my-data" target="_blank">LinkedIn → Get a copy of your data</a>.<br>
   2. Choose <b>“The works”</b> → Request archive. LinkedIn emails a zip (minutes–24h).<br>
   3. <b>Unzip it.</b> Then click <b>Browse…</b> above and pick the unzipped folder.<br>
-  No export yet? Click <b>Skip for now</b> — SPIDER will run a lighter first pass and you can add it later.</div>`; }
+  No export yet? Click <b>Skip for now</b> — Ascend will run a lighter first pass and you can add it later.</div>`; }
 
 // ---- step 2: resume ----
 function s2_resume(){
@@ -172,7 +172,7 @@ async function grab3(){
 }
 function existingChoice(){
   step("You've been here before", `
-    <div class="line">You already have a SPIDER report for <b>${state.name}</b>.</div>
+    <div class="line">You already have an Ascend report for <b>${state.name}</b>.</div>
     <div class="muted" style="margin-top:8px">Open it as-is, or run a fresh one — that re-does the analysis and <b>replaces</b> the old report.</div>
     <div class="btns">
       <button class="primary" onclick="viewExisting()">View my existing report</button>
@@ -221,7 +221,7 @@ async function pick(kind, inputId, key){
   const r = await api(`/api/pick?type=${kind}`, {method:"POST"});
   if(r.path){ $("#"+inputId).value = r.path; state[key]=r.path; if(hint) hint.textContent=""; return; }
   if(!hint) return;
-  if(r.__error)             hint.textContent = "Couldn't reach the SPIDER server — paste the path in the box above instead.";
+  if(r.__error)             hint.textContent = "Couldn't reach the Ascend server — paste the path in the box above instead.";
   else if(r.status==="unavailable") hint.textContent = "No native file picker on this system — paste the full path in the box above instead.";
   else if(r.status==="error")       hint.textContent = "Couldn't open the picker — paste the path in the box above instead.";
   else                      hint.textContent = "";   // cancelled → stay quiet
@@ -234,8 +234,8 @@ async function finish(wantBrief){
   step("Saving", `<div class="line">Writing your private workspace…</div>`);
   const res = await api("/api/intake", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(state)});
   if(res.__error || !res.slug){
-    return step("Hmm", `<div class="line err">Couldn't reach the SPIDER server (${res.__error||'no response'}).</div>
-      <div class="muted">Is it still running in your terminal? Restart with <code>/spiderui</code>, or use the text flow <code>/spider</code>.</div>
+    return step("Hmm", `<div class="line err">Couldn't reach the Ascend server (${res.__error||'no response'}).</div>
+      <div class="muted">Is it still running in your terminal? Restart with <code>/ascendui</code>, or use the text flow <code>/ascend</code>.</div>
       <div class="btns"><button class="primary" onclick="finish(${wantBrief})">Retry</button></div>`);
   }
   state.slug = res.slug;
@@ -254,7 +254,7 @@ function running(){
   const briefMsg = !state.dailyBrief ? "" :
     (brief && brief.ok ? `<div class="ok" style="margin-top:8px">✓ Daily brief scheduled for ${brief.time}.</div>`
      : `<div class="muted" style="margin-top:8px">⚠ Daily brief not auto-scheduled${brief&&brief.note?': '+(''+brief.note).replace(/</g,'&lt;'):''}.</div>`);
-  step("SPIDER is working", `
+  step("Ascend is working", `
     <div class="line">Sit back — this updates live, right here. No need to touch the terminal.</div>
     <div class="current" id="current">Starting up…</div>
     <ul class="phaselist" id="phases">${PHASES.map(p=>`<li><span class="pdot" data-p="${p[0]}"></span> Phase ${p[0]} · ${p[1]}</li>`).join("")}</ul>

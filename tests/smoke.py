@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """
-S.P.I.D.E.R. smoke tests — dependency-free (Python 3 stdlib + git). Run:  python3 tests/smoke.py
+Ascend smoke tests — dependency-free (Python 3 stdlib + git). Run:  python3 tests/smoke.py
 
 Covers the regressions a human won't catch by eye, all fast:
-  1. The hardened /spiderui server: token + Host allowlist + Origin + path-traversal (the security fix).
+  1. The hardened /ascendui server: token + Host allowlist + Origin + path-traversal (the security fix).
   2. Every HTML dashboard's embedded JSON block parses (a bad block blanks the dashboard).
   3. The gitignore privacy matrix: personal data ignored, system + the committed sample tracked.
   4. Repo cross-references resolve (catches prompt/template drift + dead links).
   5. The UI shell scripts pass `bash -n`, server.py compiles, the daily-brief `--check` self-test runs.
   6. The /view reader's scheme allow-list (SEC-CRIT-2) is present and its strict CSP is served.
-  7. The phase run-order stays single-sourced (00-orchestrator == CLAUDE.md == spiderui.md).
+  7. The phase run-order stays single-sourced (00-orchestrator == CLAUDE.md == ascendui.md).
   8. On-demand ops stay discoverable on both surfaces (command file ⇄ 00-orchestrator).
   9. The résumé builder is self-contained + `server.py --render` makes a selectable-text PDF (or fails clean).
 Exits non-zero if anything fails — wired into CI (.github/workflows/ci.yml).
@@ -40,14 +40,14 @@ def test_server():
         s, body = req("GET", "/")
         m = re.search(r'const TOKEN = "([^"]+)"', body)
         tok = m.group(1) if m else ""
-        check("GET / serves page with a real token", s == 200 and tok and tok != "__SPIDER_TOKEN__")
+        check("GET / serves page with a real token", s == 200 and tok and tok != "__Ascend_TOKEN__")
         check("GET /api/agents WITHOUT token → 403", req("GET", "/api/agents")[0] == 403)
-        check("GET /api/agents WITH token → 200", req("GET", "/api/agents", {"X-SPIDER-Token": tok})[0] == 200)
-        check("forged Host (DNS-rebind) → 403", req("GET", "/api/agents", {"X-SPIDER-Token": tok}, host="evil.com")[0] == 403)
+        check("GET /api/agents WITH token → 200", req("GET", "/api/agents", {"X-Ascend-Token": tok})[0] == 200)
+        check("forged Host (DNS-rebind) → 403", req("GET", "/api/agents", {"X-Ascend-Token": tok}, host="evil.com")[0] == 403)
         check("path traversal → 404", req("GET", "/workspace/../../../../etc/passwd")[0] == 404)
         check("forged Origin POST → 403 (no side effect)",
-              req("POST", "/api/shutdown", {"X-SPIDER-Token": tok, "Origin": "http://evil.com"})[0] == 403)
-        check("server still alive after forged shutdown", req("GET", "/api/agents", {"X-SPIDER-Token": tok})[0] == 200)
+              req("POST", "/api/shutdown", {"X-Ascend-Token": tok, "Origin": "http://evil.com"})[0] == 403)
+        check("server still alive after forged shutdown", req("GET", "/api/agents", {"X-Ascend-Token": tok})[0] == 200)
         # SEC-CRIT-2: the /view markdown reader. Link sanitization is client-side, but guard the
         # defense-in-depth CSP server-side and the scheme allow-list statically.
         smoke_md = REPO / "workspace/_sec_smoke/x.md"
@@ -56,7 +56,7 @@ def test_server():
         try:
             def reqh(path):  # like req() but also return headers
                 c = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
-                c.request("GET", path, headers={"X-SPIDER-Token": tok, "Host": f"127.0.0.1:{port}"})
+                c.request("GET", path, headers={"X-Ascend-Token": tok, "Host": f"127.0.0.1:{port}"})
                 r = c.getresponse(); b = r.read().decode("utf-8", "replace"); h = dict(r.getheaders()); c.close()
                 return r.status, b, h
             st, body2, hdrs = reqh("/view/_sec_smoke/x.md")
@@ -111,7 +111,7 @@ def test_gitignore():
 def test_crossrefs():
     print("cross-references (drift)")
     files = list((REPO / "prompts").glob("*.md")) + [REPO / "templates/job-folder/_TEMPLATE.md",
-            REPO / "CLAUDE.md", REPO / "README.md", REPO / "START-HERE.md"]
+            REPO / "CLAUDE.md", REPO / "README.md", REPO / "WORKFLOW.md"]
     ref = re.compile(r'(?:\.\./)*(?:prompts|templates|reference|docs|ui|assets)/[A-Za-z0-9_./-]+\.(?:md|html|css|svg|py|sh)')
     missing = []
     for f in files:
@@ -136,23 +136,23 @@ def test_phase_order():
     order = re.sub(r"\s+", "", m.group(1)) if m else ""
     check("canonical run order found in 00-orchestrator.md", bool(order),
           "no 'Default run order:' line")
-    for f in ["CLAUDE.md", ".claude/commands/spiderui.md"]:
+    for f in ["CLAUDE.md", ".claude/commands/ascendui.md"]:
         txt = re.sub(r"\s+", "", (REPO / f).read_text(encoding="utf-8"))
         check(f"{f} matches the canonical run order", bool(order) and order in txt,
               f"expected {order!r}")
 
 # ── 4c. On-demand ops stay discoverable on every surface ─────────────────────
 def test_op_parity():
-    # Every documented `/spider <op>` must appear in BOTH the command file (canonical op list) and
+    # Every documented `/ascend <op>` must appear in BOTH the command file (canonical op list) and
     # the orchestrator (so a user reading either surface can find it). Catches the kind of menu drift
     # where an op exists in one place but not the other. Case-insensitive substring match.
     print("op parity (command ⇄ orchestrator)")
     OPS = ["resume", "job add", "prep", "network", "answers", "today",
            "score", "export", "maintenance", "job rebuild", "build-resume"]
-    cmd = (REPO / ".claude/commands/spider.md").read_text(encoding="utf-8").lower()
+    cmd = (REPO / ".claude/commands/ascend.md").read_text(encoding="utf-8").lower()
     orch = (REPO / "prompts/00-orchestrator.md").read_text(encoding="utf-8").lower()
     for op in OPS:
-        check(f"op '{op}' documented in spider.md", op in cmd)
+        check(f"op '{op}' documented in ascend.md", op in cmd)
         check(f"op '{op}' documented in 00-orchestrator.md", op in orch)
 
 # ── 4d. Résumé builder + render path ─────────────────────────────────────────
@@ -187,7 +187,7 @@ def test_resume_builder():
               "work": [{"company": "Acme", "position": "Engineer", "dates": "2020 - Present",
                         "highlights": ["Did a measurable thing that improved a number by 20%."]}],
               "projects": [], "education": [], "skills": ["Python", "Testing"]}
-    d = Path(tempfile.mkdtemp(prefix="spider-resume-"))
+    d = Path(tempfile.mkdtemp(prefix="ascend-resume-"))
     try:
         filled = re.sub(r'(<script type="application/json" id="resume-data">)\s*\{\}\s*(</script>)',
                         lambda mm: mm.group(1) + "\n" + json.dumps(sample) + "\n" + mm.group(2), html, count=1)

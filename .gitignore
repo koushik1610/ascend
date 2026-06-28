@@ -1,5 +1,5 @@
 # ============================================================================
-# S.P.I.D.E.R. — privacy-first .gitignore
+# Ascend — privacy-first .gitignore
 # The repo ships the SYSTEM (prompts, templates, reference). It must NEVER ship
 # anyone's personal career data or generated outputs. Everything personal lives
 # under workspace/ and is ignored. When in doubt, it does not get committed.
@@ -70,7 +70,7 @@ Endorsement*.csv
 **/daily-briefing.md
 **/linkedin-analysis.html
 **/start-here.html
-**/.spider-state.json
+**/.ascend-state.json
 
 # --- The ONE committed fictional sample (everything in it is invented) --------
 # Scoped, deliberate exception so strangers can inspect real-shaped output. Real

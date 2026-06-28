@@ -1,4 +1,4 @@
-# S.P.I.D.E.R. — Roadmap
+# Ascend — Roadmap
 
 Where the project has been, where it's going, and why. The forward-looking backlog is built from a
 5-surface market-research council on how people actually use Claude/AI for job hunting — Reddit &
@@ -14,10 +14,10 @@ model: **no fabrication, no auto-apply, no scraping, no real-time interview copi
 
 | Version | Theme | What it added |
 |---|---|---|
-| **0.1.0** | The pipeline | Intake → LinkedIn analysis (HTML + 10 next steps) → master résumé → 15+ job search → per-job folders → interview packet → `start-here.html` navigator; on-demand export/maintenance/deep-prep; resumability (`.spider-state.json`); privacy model; a fictional worked example; honest verified/unverified job-link framing. |
+| **0.1.0** | The pipeline | Intake → LinkedIn analysis (HTML + 10 next steps) → master résumé → 15+ job search → per-job folders → interview packet → `start-here.html` navigator; on-demand export/maintenance/deep-prep; resumability (`.ascend-state.json`); privacy model; a fictional worked example; honest verified/unverified job-link framing. |
 | **0.2.0** | Simpler + outcome-targeted | **Tiered job folders** (CORE apply pack now, deep prep on demand) so a first run is ~25–30 files, not ~100; résumé audit folded into the master résumé; default order 1→3→4→6→5→7. Navigator **weekly action loop + funnel scoreboard**, **referral-first hard gate**, mock-interview drill. Modern README + hand-authored SVG banner. |
 | **0.3.0** | P1 first cut (research-driven) | **Explainable Fit Score 0–100** (P1 #3), **Warm-Network Mapper** from your `Connections.csv` (#1), **Application Answer Sheet** (#8), **Daily Briefing + ghost-detector follow-ups** (#9 + #12). `docs/ROADMAP.md` itself. |
-| **0.4.0** | Graphical console | **`/spiderui`** — a local Jarvis-style browser wizard (Python-stdlib server, native folder picker, live progress, optional daily-brief cron that auto-detects claude/gemini/codex). |
+| **0.4.0** | Graphical console | **`/ascendui`** — a local Jarvis-style browser wizard (Python-stdlib server, native folder picker, live progress, optional daily-brief cron that auto-detects claude/gemini/codex). |
 | **Unreleased** | v1.0 hardening | Server **CSRF / DNS-rebinding hardening** (verified live); **beta labels + Known Limitations** honesty pass; dead-link fix; **smoke-test harness + CI**. 2026-06-15 **council review** (architecture · competitive · security) documented; the two new security gates (**SEC-CRIT-1 prompt-injection**, **SEC-CRIT-2 reader XSS**) plus SEC-HIGH-3 **fixed 2026-06-16** and smoke-tested. **Résumé builder** — a self-contained live-preview builder (`templates/resume-builder.template.html`) with a locked ATS-safe one-page layout, JSON Resume data model, and headless auto-render to PDF via `ui/server.py --render`; wired into Phases 3 (master public résumé) and 5 (per-job), plus a standalone `build-resume` op. Closes the competitive "live-preview builder" + JSON-export gaps. (See *Path to v1.0* + *Council review*.) |
 
 ---
@@ -26,7 +26,7 @@ model: **no fabrication, no auto-apply, no scraping, no real-time interview copi
 
 **Definition of Done (gate the 1.0 tag on all):** ① one real end-to-end run on real LinkedIn data,
 archived as proof, honesty gates verified · ② each shipped on-demand op run once or labeled beta ·
-③ `/spiderui` security-hardened + run end-to-end once, or beta · ④ smoke harness + CI green · ⑤ no dead
+③ `/ascendui` security-hardened + run end-to-end once, or beta · ④ smoke harness + CI green · ⑤ no dead
 links, phase list consistent · ⑥ README/CHANGELOG represent maturity honestly · ⑦ tag `v1.0.0`.
 
 **Blockers (from the v1.0 readiness council):**
@@ -43,12 +43,12 @@ links, phase list consistent · ⑥ README/CHANGELOG represent maturity honestly
 
 > Both security gates were surfaced by the 2026-06-15 council and verified against source. See
 > [**Security review**](#security-review--council-2026-06-15) for the findings and fixes. They gate the
-> 1.0 tag because `/spiderui` runs untrusted web content through a pre-approved, broadly-permissioned agent.
+> 1.0 tag because `/ascendui` runs untrusted web content through a pre-approved, broadly-permissioned agent.
 
 **Should-fix before 1.0 (not hard gates):** ✅ done. The hardening pass covered ready-flag-clears-on-pickup,
 `read_status` error surfacing, the `relative_to` traversal guard, and console error handling. The
 2026-06-16 pass closed the rest: the **phase run-order is single-sourced** (canonical in
-`00-orchestrator.md`; `CLAUDE.md` + `spiderui.md` restate it and `tests/smoke.py` asserts all three match);
+`00-orchestrator.md`; `CLAUDE.md` + `ascendui.md` restate it and `tests/smoke.py` asserts all three match);
 the **folder picker returns a status** (`ok`/`cancelled`/`unavailable`/`error`) so the console shows a
 *"no native picker — paste the path"* hint on Linux without `zenity`/`kdialog`; and the **daily-brief
 wrapper gained a `--check` self-test** (agent detection + prompt assembly, no agent call) wired into the
@@ -75,7 +75,7 @@ and **Security**. Where a security claim could be checked against source, it was
 |---|---|---|---|---|---|
 | **SEC-CRIT-1** | 🔴 | **Indirect prompt injection → exfiltration / RCE.** The pipeline fetches arbitrary job pages + reads the résumé, then runs with **pre-approved** Write/Bash/WebFetch and *no human gate*. A malicious posting can exfiltrate PII via all-domain `WebFetch` or abuse `Bash(node *)` (≈ arbitrary code execution). | Zero injection guidance in `prompts/` (grep); `Bash(node *)` + bare `Read` + `WebFetch` in `.claude/settings.json` | Canonical `reference/untrusted-content-policy.md` + a binding rule in `CLAUDE.md` + a 🔒 banner on every ingesting prompt (01/04/09/10/11/13); deny-list now blocks `node`/`deno`/`bun`/`ruby`/`perl`/`php`/`osascript`/`python3 -c`/`npm`/`npx`/`pip` and `nc`/`ssh`/`scp`/`sftp`/`telnet`; unattended daily-brief restates the quarantine inline. | 🟢 **fixed** (smoke-tested) |
 | **SEC-CRIT-2** | 🔴 | **Stored XSS in the `/view` Markdown reader.** The link regex emits `<a href="$2">` with **no scheme sanitization**, so `[x](javascript:…)` in a résumé/JD executes in the localhost origin and can read `workspace` files. | `ui/server.py:219` | Scheme allow-list in the renderer (`http`/`https`/`mailto`/relative only; others render inert) **+ a strict nonce-based `Content-Security-Policy`** on `/view` (`default-src 'none'`, `script-src 'nonce-…'`, `connect-src 'none'`) so even a slipped payload can't execute or phone home. | 🟢 **fixed** (smoke-tested) |
-| **SEC-HIGH-3** | 🟠 | **Inherited `settings.json` is too broad.** Bare `Read`, all-domain `WebFetch`, and `Bash(node *)` ship committed, so every cloner inherits an over-permissioned agent by default. | `.claude/settings.json` | Tightened **in place** (kept committed so `/spiderui` still runs uninterrupted): dropped `Bash(node *)`, denied the full set of RCE interpreters/package-managers/exfil tools, broadened the secret deny-list. `Read` stays broad *by design* (must read a résumé/export wherever the user points) with the secret deny-list as guard; `WebFetch` stays broad (career sites are arbitrary) paired with the CRIT-1 quarantine. | 🟢 **fixed** (tightened in place) |
+| **SEC-HIGH-3** | 🟠 | **Inherited `settings.json` is too broad.** Bare `Read`, all-domain `WebFetch`, and `Bash(node *)` ship committed, so every cloner inherits an over-permissioned agent by default. | `.claude/settings.json` | Tightened **in place** (kept committed so `/ascendui` still runs uninterrupted): dropped `Bash(node *)`, denied the full set of RCE interpreters/package-managers/exfil tools, broadened the secret deny-list. `Read` stays broad *by design* (must read a résumé/export wherever the user points) with the secret deny-list as guard; `WebFetch` stays broad (career sites are arbitrary) paired with the CRIT-1 quarantine. | 🟢 **fixed** (tightened in place) |
 | **SEC-MED-4** | 🟡 | **Session token is injected into the page**, so an XSS (CRIT-2) escalates to driving the API — e.g. installing a cron job. | `ui/index.html` token inject | Largely closed: the CRIT-2 nonce-CSP blocks the script execution that this depended on. Residual: token is still in the page DOM. | 🟢 mitigated (via CRIT-2) |
 | **SEC-MED-5** | 🟡 | **No per-slug authorization on `/view`** — any workspace slug is viewable by the session. | `_serve_md_reader` | Acceptable single-user; revisit if multi-user | ⬜ open (accepted for single-user) |
 | **SEC-LOW-6** | 🟡 | **Daily-brief cron runs unattended** with the same broad perms. | `ui/run-daily-brief.sh` | Wrapper now restates the quarantine inline (CLIs may not load `CLAUDE.md` headless) and relies on the tightened deny-list. | 🟢 mitigated (via CRIT-1) |
@@ -88,7 +88,7 @@ security work:** SEC-MED-5 (per-slug auth) is accepted for the single-user model
 
 ### Competitive read (vs. GitHub peers)
 
-SPIDER uniquely **combines** four things no peer does together: the end-to-end pipeline, real interview
+Ascend uniquely **combines** four things no peer does together: the end-to-end pipeline, real interview
 prep + mock drills, the warm-network referral mapper (no scraping — mines the `Connections.csv` you
 already exported), and explicit honesty gates. The **live-preview résumé builder** and **JSON-Resume
 export** shipped (Unreleased), so the remaining table-stakes gaps are: traction/community, **DOCX
@@ -115,13 +115,13 @@ The panels converged on a phased path — don't jump straight to SaaS:
 ## The 6 signals behind the backlog (every research panel, independently)
 
 1. **Relationships beat volume.** Referrals convert ~**35×**; warm intros + targeted apps drive 60–80%
-   of fills while online-app offers fell 73%→60%. The clearest gap: SPIDER drafts referral messages but
+   of fills while online-app offers fell 73%→60%. The clearest gap: Ascend drafts referral messages but
    can't **find** the contacts or **map your network**.
 2. **"AI slop" is the #1 recruiter complaint.** ~35% of applicants paste the *same* ChatGPT answer;
    generic AI résumés are "the new typos." Validates the honesty gates; demands an active
    **de-genericizer**.
 3. **A match score + a standing feed are table stakes.** Jobright/OphyAI/Resume-Matcher give a 0–100 fit
-   number and a daily curated feed. SPIDER does on-demand search with no composite score.
+   number and a daily curated feed. Ascend does on-demand search with no composite score.
 4. **Interactivity beats documents.** The standout technique is *"interview me one question at a time"* —
    for achievement mining and live mock drills. Voice mock is a defensible category (Yoodli; Google
    Interview Warmup shut down April 2026).
@@ -130,7 +130,7 @@ The panels converged on a phased path — don't jump straight to SaaS:
 6. **Honest + local + free is on-trend.** Mass auto-apply is dying (Sonara shut down; LinkedIn bans
    "human-impossible velocity"; 819 auto-apps → 0.6% interviews); stealth interview copilots ($148/mo,
    instant-DQ at Amazon) are an ethics wedge. Competitors charge $14–148/mo and **paywall exactly what
-   SPIDER does free**: answer generation, contact finding, prep.
+   Ascend does free**: answer generation, contact finding, prep.
 
 **Validated bets:** the bullet-DB "experience library," referral-first stance, no-auto-apply, and
 privacy model are all confirmed correct. The whitespace is the **relationship + brand layer**,

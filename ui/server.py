@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-S.P.I.D.E.R. local control server.
+Ascend local control server.
 
-A tiny, dependency-free (Python 3 standard library only) server that powers the /spiderui graphical
+A tiny, dependency-free (Python 3 standard library only) server that powers the /ascendui graphical
 console. It binds to 127.0.0.1 ONLY — it is a local tool, never exposed to the network. It does the
 things a browser can't do on its own: open a native folder/file picker, write your intake, install the
 daily-brief schedule, report pipeline progress, and serve your private dashboard over http so links work.
@@ -10,14 +10,14 @@ daily-brief schedule, report pipeline progress, and serve your private dashboard
 It never sends your data anywhere. Everything it writes lives under workspace/<you>/ (gitignored).
 
 Run directly:  python3 ui/server.py [--port 8765] [--no-browser]
-The /spiderui Claude Code command launches it for you.
+The /ascendui Claude Code command launches it for you.
 """
 import argparse, json, os, platform, re, secrets, shlex, shutil, subprocess, sys, threading, webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs
 
-REPO = Path(__file__).resolve().parent.parent          # spider/
+REPO = Path(__file__).resolve().parent.parent          # ascend/
 UIDIR = REPO / "ui"
 TEMPLATES = REPO / "templates"
 WORKSPACE = REPO / "workspace"
@@ -161,7 +161,7 @@ def write_intake(data: dict):
     (wdir / "inputs").mkdir(parents=True, exist_ok=True)
     md = f"""# Intake — {data.get('name','')}
 
-> Captured by the SPIDER console ({data.get('asOf','')}). The pipeline reads this first.
+> Captured by the Ascend console ({data.get('asOf','')}). The pipeline reads this first.
 
 - **Name:** {data.get('name','')}
 - **LinkedIn export folder:** {data.get('linkedinPath') or '(not provided yet — see how-to)'}
@@ -197,10 +197,10 @@ def install_daily_brief(slug: str, hhmm: str, agent: str = ""):
         return {"ok": False, "manual": True,
                 "note": f"On Windows, schedule Task Scheduler to run: bash {wrapper} {slug} daily at {hhmm}."}
     line = (f"{m} {h} * * * /bin/bash {shlex.quote(str(wrapper))} {shlex.quote(slug)} "
-            f"{shlex.quote(agent)} >> {shlex.quote(str(logp))} 2>&1 # SPIDER-DAILY-BRIEF-{slug}")
+            f"{shlex.quote(agent)} >> {shlex.quote(str(logp))} 2>&1 # Ascend-DAILY-BRIEF-{slug}")
     try:
         existing = subprocess.run(["crontab", "-l"], capture_output=True, text=True).stdout.splitlines()
-        kept = [l for l in existing if f"SPIDER-DAILY-BRIEF-{slug}" not in l]
+        kept = [l for l in existing if f"Ascend-DAILY-BRIEF-{slug}" not in l]
         new = "\n".join(kept + [line]) + "\n"
         subprocess.run(["crontab", "-"], input=new, text=True, check=True)
         return {"ok": True, "time": hhmm}
@@ -211,7 +211,7 @@ def install_daily_brief(slug: str, hhmm: str, agent: str = ""):
 
 def read_status(slug: str):
     """Surface pipeline progress for the UI to poll (from the resumability manifest)."""
-    statef = WORKSPACE / slug / ".spider-state.json"
+    statef = WORKSPACE / slug / ".ascend-state.json"
     sh = WORKSPACE / slug / "start-here.html"
     intake = WORKSPACE / slug / "intake.md"
     # "Done" = the dashboard exists AND was (re)generated AFTER the current intake — so a re-run with a
@@ -349,14 +349,14 @@ class Handler(BaseHTTPRequestHandler):
         return (not o) or o.lower() in (f"http://127.0.0.1:{PORT}", f"http://localhost:{PORT}")
 
     def _token_ok(self):
-        return bool(TOKEN) and self.headers.get("X-SPIDER-Token") == TOKEN
+        return bool(TOKEN) and self.headers.get("X-Ascend-Token") == TOKEN
 
     def do_GET(self):
         if not self._host_ok():
             return self._send(403, {"error": "bad host"})
         u = urlparse(self.path)
         if u.path in ("/", "/index.html"):
-            html = (UIDIR / "index.html").read_text(encoding="utf-8").replace("__SPIDER_TOKEN__", TOKEN)
+            html = (UIDIR / "index.html").read_text(encoding="utf-8").replace("__Ascend_TOKEN__", TOKEN)
             return self._send(200, html, "text/html; charset=utf-8")
         if u.path in ("/resume-builder", "/resume-builder.html"):     # standalone builder (blank)
             html = (TEMPLATES / "resume-builder.template.html").read_text(encoding="utf-8")
@@ -477,7 +477,7 @@ def main():
     TOKEN = secrets.token_urlsafe(24)                    # per-session CSRF token
     url = f"http://127.0.0.1:{port}/"
     (UIDIR / ".port").write_text(str(port), encoding="utf-8")
-    print(f"SPIDER console → {url}")
+    print(f"Ascend console → {url}")
     if not args.no_browser:
         try: webbrowser.open(url)
         except Exception: pass

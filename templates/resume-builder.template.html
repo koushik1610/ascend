@@ -1,12 +1,12 @@
 <!doctype html>
 <!--
-  S.P.I.D.E.R. Resume Builder — single self-contained file (no build step, no external assets).
+  Ascend Resume Builder — single self-contained file (no build step, no external assets).
 
   Three ways it is used:
     1. Standalone: open this file in a browser, type or Import a resume.json, press "Create PDF".
-    2. Prefilled: SPIDER writes the resume data into the #resume-data island below, saves a copy next
+    2. Prefilled: Ascend writes the resume data into the #resume-data island below, saves a copy next
        to the resume, and the user (or headless Chrome via `ui/server.py --render`) prints it.
-    3. Served: /spiderui serves this file as a route.
+    3. Served: /ascendui serves this file as a route.
 
   Data model: JSON Resume-based (jsonresume.org), with display date strings. Shape:
     { "basics": { name, label, email, phone, location, url, summary },
@@ -19,13 +19,13 @@
   the single source of truth for the ATS-safe layout — single column, web-safe fonts, 10pt body,
   standard headings, no tables/graphics. Keep it that way.
 
-  Prefill: SPIDER replaces the empty object in <script id="resume-data"> with the resume JSON.
+  Prefill: Ascend replaces the empty object in <script id="resume-data"> with the resume JSON.
 -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>S.P.I.D.E.R. Resume Builder</title>
+<title>Ascend Resume Builder</title>
 <style>
   :root {
     --bg: #0f1115; --panel: #161922; --panel-2: #1c2030; --line: #2a2f3d;
@@ -136,14 +136,14 @@
 </head>
 <body>
 
-<!-- SPIDER fills this with the resume JSON. Empty = standalone blank builder. -->
+<!-- Ascend fills this with the resume JSON. Empty = standalone blank builder. -->
 <script type="application/json" id="resume-data">
 {}
 </script>
 
 <div class="app">
   <div class="topbar">
-    <h1>S.P.I.D.E.R. Resume Builder</h1>
+    <h1>Ascend Resume Builder</h1>
     <span class="spacer"></span>
     <button class="btn primary" id="btn-print">Create PDF</button>
     <button class="btn" id="btn-sample">Sample</button>

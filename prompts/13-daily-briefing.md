@@ -11,9 +11,9 @@
 (distinct from the heavier weekly `09-maintenance.md`): in ~20 minutes it tells the user the 3 things to
 do *today* and drafts the messages so there's no friction. It also runs the **ghost-detector** —
 flagging applications gone quiet and drafting the follow-up (or the "move on" call). Run on request:
-*"Run SPIDER today,"* `/spider today`, or `/spider briefing`.
+*"Run Ascend today,"* `/ascend today`, or `/ascend briefing`.
 
-**Read first:** `.spider-state.json`, `job-queue.md`, every `jobs/*/application-log.md`,
+**Read first:** `.ascend-state.json`, `job-queue.md`, every `jobs/*/application-log.md`,
 `network-map.md` (best warm paths), `start-here.html` (weekly targets), `intake.md`.
 
 ---
@@ -56,7 +56,7 @@ endorsement ask, one bullet to sharpen) — the kind of thing that builds presen
 - Update each affected `application-log.md` (record that a follow-up is due / drafted; set status to
   `move-on`/closed where chosen) and set the job's `deadline`/`nextAction` so the navigator's
   **Deadlines & Follow-ups** strip and **weekly targets** reflect today's state.
-- Bump `.spider-state.json` `updated`.
+- Bump `.ascend-state.json` `updated`.
 
 ## Verify & checkpoint
 - Every drafted message is honest, short, and flagged for the user's voice.

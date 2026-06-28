@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# S.P.I.D.E.R. daily-brief runner. Invoked by cron (set up in the /spiderui console) to run the
+# Ascend daily-brief runner. Invoked by cron (set up in the /ascendui console) to run the
 # Daily Briefing headlessly with whichever agent CLI you have. Writes the briefing to
 # workspace/<slug>/daily-briefing.md and logs to workspace/<slug>/briefing.log.
 #
@@ -46,5 +46,5 @@ for a in "$WANT" claude gemini codex; do
 done
 
 echo "[$(date)] No supported agent CLI (claude/gemini/codex) found on PATH, or the run failed." >&2
-echo "Tip: open Claude Code and say 'Run SPIDER today' to get your briefing manually." >&2
+echo "Tip: open Claude Code and say 'Run Ascend today' to get your briefing manually." >&2
 exit 1

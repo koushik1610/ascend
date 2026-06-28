@@ -8,7 +8,7 @@
 **Goal:** referrals convert ~35× better than cold applies, and the user already exported the data to
 find them — `Connections.csv` is in their LinkedIn archive. Mine it to surface **who they already know
 at each target company**, identify the likely recruiter/hiring manager, and rank warm paths so the
-referral-first outreach has a real person to aim at. Run on request: *"map my network,"* `/spider
+referral-first outreach has a real person to aim at. Run on request: *"map my network,"* `/ascend
 network`, or automatically before building apply packs.
 
 **Read first:** `workspace/<name>/inputs/linkedin-export/Connections.csv` (the user's real connections),

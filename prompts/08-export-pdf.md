@@ -5,7 +5,7 @@ can submit — in the locked builder layout, fitted to one page. This closes the
 dead-end.
 
 **When:** automatically, per job, right after a `resume.md` is finalized in Phase 5; for the master
-public résumé in Phase 3; or on request (`/spider export <company>`, `/spider build-resume`).
+public résumé in Phase 3; or on request (`/ascend export <company>`, `/ascend build-resume`).
 
 **One renderer.** Everything goes through `../templates/resume-builder.template.html` (the locked,
 single-column, ATS-safe layout). There is no separate print template anymore.

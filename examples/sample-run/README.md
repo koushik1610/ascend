@@ -8,7 +8,7 @@
 
 ## What this is
 
-A complete, real-shaped **worked example** of what S.P.I.D.E.R. produces end-to-end, so you can
+A complete, real-shaped **worked example** of what Ascend produces end-to-end, so you can
 inspect the structure and quality of the output without running the pipeline yourself.
 
 The persona is deliberately **non-engineering** — a Senior Product Designer — to prove the system is

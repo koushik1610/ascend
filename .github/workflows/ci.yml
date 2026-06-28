@@ -21,6 +21,3 @@ jobs:
             awk 'BEGIN{n=0}/<script>/{n++;if(n>=1){g=1;next}}/<\/script>/{g=0}g' "$f" > /tmp/render.js
             node --check /tmp/render.js && echo "JS ok: $f"
           done
-
-      - name: Validate SVG banner is well-formed XML
-        run: python3 -c "import xml.dom.minidom; xml.dom.minidom.parse('assets/spider-banner.svg'); print('SVG ok')"

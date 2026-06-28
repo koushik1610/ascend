@@ -17,7 +17,7 @@ a master resume, a 5-job queue, an interview packet, two full per-job folders (8
 `examples/sample-run/start-here.html` in a browser to tour it. Everything in it is invented.
 
 ## The proof case
-S.P.I.D.E.R. was extracted from a real, end-to-end run the author did on their own job search:
+Ascend was extracted from a real, end-to-end run the author did on their own job search:
 a LinkedIn-export analysis, a master resume built by selection, a ranked queue of live roles, and
 per-job folders (8 files each) plus a cross-job interview packet. That run is what the templates and
 prompts in this repo encode. The author's actual documents are **not** included — they live in a

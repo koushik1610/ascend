@@ -7,7 +7,7 @@ that may never call back:
   `resume.md` · `outreach.md` · `application-log.md`. The minimum to send a strong, referral-first
   application. This is what Phase 5 builds.
 - **🔵 PREP PACK — deep interview prep (build *on demand* when a screen is booked, via Phase 10 /
-  `/spider prep <NN>`):** `prep-doc.md` · `interview-questions.md` · `interview-prep.md` ·
+  `/ascend prep <NN>`):** `prep-doc.md` · `interview-questions.md` · `interview-prep.md` ·
   `company-research.md` · `signal.md`. Don't build these speculatively.
 - **⚪ OPTIONAL:** `cover-letter.md` (only when the posting requires one).
 

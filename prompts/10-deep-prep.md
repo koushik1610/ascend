@@ -6,7 +6,7 @@
 
 **Goal:** when the user lands a screen or commits hard to a job, build the **deep prep pack** for that
 one job — the interview-prep depth that would have been wasted if generated for all 15 leads upfront.
-Run on request: *"`/spider prep <NN>`"*, "prep me for the Acme onsite," or when a job's status hits
+Run on request: *"`/ascend prep <NN>`"*, "prep me for the Acme onsite," or when a job's status hits
 `screening`.
 
 **Read first:** that job's existing `jobs/<NN>/` (resume.md, outreach.md, application-log.md),
@@ -45,5 +45,5 @@ number discipline, length). Reps beat reading — push for at least the top 3 be
 - Number-policy grep clean over the new files.
 
 ## Checkpoint
-Tell the user the folder now has full prep, offer the mock drill, and update `.spider-state.json`
+Tell the user the folder now has full prep, offer the mock drill, and update `.ascend-state.json`
 (mark this job's prep complete). Refresh the navigator (Phase 7) so the job shows "prep ready."
