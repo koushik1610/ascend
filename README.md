@@ -1,9 +1,6 @@
 <div align="center">
 
-<!-- Banner: the SVG below is the on-brand fallback. Once you generate the raster banner,
-     save it as assets/ascend-banner.png and swap the next line to:
-     ![Ascend](assets/ascend-banner.png) -->
-![Ascend](assets/ascend-banner.svg)
+![ascend](assets/ascend-banner.png)
 
 **AI-run job search and career advancement, grounded in your real history.**
 
@@ -227,7 +224,7 @@ ascend/
 ├── .gitignore                       privacy backstop (ignores all personal data + output)
 ├── .claude/commands/                the /ascend + /ascendui slash commands
 ├── ui/                              the graphical console: server.py (also `--render` → PDF), index.html, run-daily-brief.sh
-├── assets/ascend-banner.svg         the brand banner (+ a slot for a demo.gif)
+├── assets/ascend-banner.png         the brand banner (.svg vector fallback alongside)
 ├── docs/                            SETUP.md (first-run guide) · ROADMAP.md (versions + what's next)
 ├── prompts/                         00-orchestrator + phases 01–07; on-demand 08–13
 │                                    (export, maintenance, deep-prep, network-map, answer-sheet, daily-briefing)
