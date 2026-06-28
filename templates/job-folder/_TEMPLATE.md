@@ -34,9 +34,11 @@ shared prep.
   Certifications (honest status — no "Active" unless true), Education.
 - **Format:** single column, standard section headings, bullets ≤2 lines, no tables in the body.
   Every bullet is a master entry (a)/(b)/variant — selection, not writing. Missing bullet → MASTER GAPS
-  note, never an invention.
-- **Export:** turn this into an ATS-safe PDF via the export prompt (`prompts/08-export-pdf.md`) →
-  `<Name>-Resume-<Company>.pdf`. Don't leave Markdown→PDF to the user.
+  note, never an invention. Selection must fit the **one-page content budget**
+  (`reference/resume-writing-rules.md`).
+- **Export:** the export prompt (`prompts/08-export-pdf.md`) emits `resume.json`, the filled builder
+  `<name>-resume-<company-role>.html`, and the auto-rendered one-page `<Name>-Resume-<Company>.pdf`.
+  Don't leave Markdown→PDF to the user.
 
 ## 2. `prep-doc.md` — the night-before read (≤2 pages, 20-min readable)
 1. **Line 1 = the positioning hook** for this company (from `company-positioning.md` / the queue's

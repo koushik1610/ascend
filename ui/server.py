@@ -19,6 +19,7 @@ from urllib.parse import urlparse, parse_qs
 
 REPO = Path(__file__).resolve().parent.parent          # spider/
 UIDIR = REPO / "ui"
+TEMPLATES = REPO / "templates"
 WORKSPACE = REPO / "workspace"
 
 # Set in main(). The server is local-only, but a localhost port is still reachable by any site you
@@ -43,6 +44,67 @@ def detect_agents():
         if shutil.which(cli):
             found.append({"cli": cli, "label": label})
     return found
+
+
+def find_chrome():
+    """Locate a Chrome-class engine (Chrome/Chromium/Edge/Brave) for headless PDF rendering.
+
+    Returns an absolute path string, or None if nothing usable is installed. Render is the one feature
+    that needs a real browser engine; everything else here is stdlib-only.
+    """
+    for name in ("google-chrome", "google-chrome-stable", "chromium", "chromium-browser",
+                 "microsoft-edge", "brave-browser", "chrome"):
+        hit = shutil.which(name)
+        if hit:
+            return hit
+    sysname = platform.system()
+    candidates = []
+    if sysname == "Darwin":
+        candidates = [
+            "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+            "/Applications/Chromium.app/Contents/MacOS/Chromium",
+            "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+            "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
+        ]
+    elif sysname == "Windows":
+        candidates = [
+            r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+            r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+            r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
+        ]
+    for c in candidates:
+        if Path(c).exists():
+            return c
+    return None
+
+
+def render_pdf(input_html: str, out_pdf: str):
+    """Render a local résumé-builder HTML file to an ATS-safe PDF via headless Chrome.
+
+    The HTML is loaded as a file:// URL (no network) and printed with the page's own print CSS, which
+    shows only the résumé. Returns (ok: bool, message: str). On a missing engine it returns ok=False
+    with the manual fallback instructions rather than raising — the caller tells the user to open the
+    file and press Cmd/Ctrl-P.
+    """
+    src = Path(input_html).resolve()
+    if not src.is_file():
+        return False, f"input HTML not found: {src}"
+    out = Path(out_pdf).resolve()
+    out.parent.mkdir(parents=True, exist_ok=True)
+    chrome = find_chrome()
+    if not chrome:
+        return False, ("No Chrome-class engine found. Open this file in your browser and press "
+                       f"Cmd/Ctrl-P -> Save as PDF (Background graphics off):\n  {src}")
+    cmd = [chrome, "--headless", "--disable-gpu", "--no-pdf-header-footer",
+           f"--print-to-pdf={out}", src.as_uri()]
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+    except Exception as e:
+        return False, f"render failed to launch ({e}). Fallback: open {src} and print to PDF."
+    if r.returncode != 0 or not out.is_file():
+        return False, (f"render returned {r.returncode}; {r.stderr.strip()[:200]}\n"
+                       f"Fallback: open {src} and print to PDF.")
+    return True, str(out)
 
 
 def native_pick(kind: str):
@@ -296,6 +358,9 @@ class Handler(BaseHTTPRequestHandler):
         if u.path in ("/", "/index.html"):
             html = (UIDIR / "index.html").read_text(encoding="utf-8").replace("__SPIDER_TOKEN__", TOKEN)
             return self._send(200, html, "text/html; charset=utf-8")
+        if u.path in ("/resume-builder", "/resume-builder.html"):     # standalone builder (blank)
+            html = (TEMPLATES / "resume-builder.template.html").read_text(encoding="utf-8")
+            return self._send(200, html, "text/html; charset=utf-8")
         if u.path.startswith("/api/") and not self._token_ok():
             return self._send(403, {"error": "forbidden"})
         if u.path == "/api/agents":
@@ -387,7 +452,17 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", type=int, default=8765)
     ap.add_argument("--no-browser", action="store_true")
+    ap.add_argument("--render", metavar="INPUT.html", help="render a résumé-builder HTML file to PDF and exit")
+    ap.add_argument("--out", metavar="OUTPUT.pdf", help="output PDF path (with --render)")
     args = ap.parse_args()
+
+    if args.render:                                      # one-shot PDF render, no server
+        if not args.out:
+            print("--render requires --out OUTPUT.pdf", file=sys.stderr); sys.exit(2)
+        ok, msg = render_pdf(args.render, args.out)
+        print(("PDF: " + msg) if ok else msg, file=(sys.stdout if ok else sys.stderr))
+        sys.exit(0 if ok else 1)
+
     port = args.port
     for _ in range(20):                                  # find a free port
         try:

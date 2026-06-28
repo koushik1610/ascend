@@ -20,7 +20,10 @@ Building 5 packs beats building 15 folders nobody opens.
 ## The CORE apply pack (3 files per `_TEMPLATE.md` §1, §5, §8)
 1. **`resume.md`** — the tailored resume + Delta Log (master entry IDs selected, order, why; verbatim
    JD phrases once each; ATS target; export filename). **Selection only** — a missing bullet is a
-   "MASTER GAP" note (fix the master), never an invention. Then export to ATS-safe PDF (Phase 8).
+   "MASTER GAP" note (fix the master), never an invention. Selected bullets must fit the **one-page
+   content budget** (`../reference/resume-writing-rules.md`). Then run **Phase 8** to emit the
+   `resume.json`, the filled `<name>-resume-<company-role>.html` (builder), and the auto-rendered
+   ATS-safe **PDF** — every pursued job's pack ships with a submittable one-page PDF, not just markdown.
 2. **`outreach.md`** — **referral-first**: pull this company's warm contacts from `network-map.md`
    (Phase 11 — real connections from the user's export, NEVER fabricated; build it first if missing),
    DM drafts flagged *rewrite in your own voice*, and a recruiter-screen script (comp/level anchor, any
@@ -48,6 +51,8 @@ bodies, the metrics bank, or shared prep.
 - 3 core files present and conforming; number-policy grep clean.
 - Every resume bullet cites a real master entry ID; MASTER GAPS noted where selection fell short.
 - `outreach.md` referral names are real (from the network analysis) or honestly absent.
+- `resume.json` + filled builder `.html` + the **one-page** `<Name>-Resume-<Company>.pdf` exist (or the
+  two-click fallback was reported if no render engine is present); PDF text copies out in order.
 
 ## Checkpoint
 Report the packs built, MASTER GAPS surfaced (fix in `master-resume.md` — fix the source), and remind

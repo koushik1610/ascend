@@ -10,6 +10,8 @@ Covers the regressions a human won't catch by eye, all fast:
   5. The UI shell scripts pass `bash -n`, server.py compiles, the daily-brief `--check` self-test runs.
   6. The /view reader's scheme allow-list (SEC-CRIT-2) is present and its strict CSP is served.
   7. The phase run-order stays single-sourced (00-orchestrator == CLAUDE.md == spiderui.md).
+  8. On-demand ops stay discoverable on both surfaces (command file ⇄ 00-orchestrator).
+  9. The résumé builder is self-contained + `server.py --render` makes a selectable-text PDF (or fails clean).
 Exits non-zero if anything fails — wired into CI (.github/workflows/ci.yml).
 """
 import http.client, json, re, shutil, subprocess, sys, time
@@ -139,6 +141,72 @@ def test_phase_order():
         check(f"{f} matches the canonical run order", bool(order) and order in txt,
               f"expected {order!r}")
 
+# ── 4c. On-demand ops stay discoverable on every surface ─────────────────────
+def test_op_parity():
+    # Every documented `/spider <op>` must appear in BOTH the command file (canonical op list) and
+    # the orchestrator (so a user reading either surface can find it). Catches the kind of menu drift
+    # where an op exists in one place but not the other. Case-insensitive substring match.
+    print("op parity (command ⇄ orchestrator)")
+    OPS = ["resume", "job add", "prep", "network", "answers", "today",
+           "score", "export", "maintenance", "job rebuild", "build-resume"]
+    cmd = (REPO / ".claude/commands/spider.md").read_text(encoding="utf-8").lower()
+    orch = (REPO / "prompts/00-orchestrator.md").read_text(encoding="utf-8").lower()
+    for op in OPS:
+        check(f"op '{op}' documented in spider.md", op in cmd)
+        check(f"op '{op}' documented in 00-orchestrator.md", op in orch)
+
+# ── 4d. Résumé builder + render path ─────────────────────────────────────────
+def test_resume_builder():
+    print("résumé builder (template + render)")
+    import tempfile, os
+    tpl = REPO / "templates/resume-builder.template.html"
+    check("builder template exists", tpl.is_file())
+    if not tpl.is_file():
+        return
+    html = tpl.read_text(encoding="utf-8")
+    # data island present and parses (empty object at rest)
+    m = re.search(r'<script type="application/json" id="resume-data">(.*?)</script>', html, re.S)
+    check("builder has a resume-data island", bool(m))
+    if m:
+        try:
+            json.loads(m.group(1).strip()); check("data island parses as JSON", True)
+        except Exception as e:
+            check("data island parses as JSON", False, str(e))
+    # self-contained: no external script/style/asset references
+    ext = re.findall(r'(?:src|href)\s*=\s*"(https?:|//)', html)
+    check("builder is self-contained (no external assets)", not ext, "; ".join(set(ext)))
+    # print CSS hides the builder chrome (prints only the résumé)
+    check("print CSS hides the editor chrome",
+          bool(re.search(r'@media print[^}]*\{[^@]*\.editor', html, re.S)) or
+          ".editor, .pagewarn" in html or "display: none !important" in html)
+    check("locked résumé layout present (single-column scope)", '.resume-page' in html and '.resume ' in html)
+
+    # render path through the trusted server (the allowed `python3 ui/server.py*` form)
+    sample = {"basics": {"name": "Test User", "label": "Engineer", "email": "t@example.com",
+                         "location": "Remote", "summary": "One line summary."},
+              "work": [{"company": "Acme", "position": "Engineer", "dates": "2020 - Present",
+                        "highlights": ["Did a measurable thing that improved a number by 20%."]}],
+              "projects": [], "education": [], "skills": ["Python", "Testing"]}
+    d = Path(tempfile.mkdtemp(prefix="spider-resume-"))
+    try:
+        filled = re.sub(r'(<script type="application/json" id="resume-data">)\s*\{\}\s*(</script>)',
+                        lambda mm: mm.group(1) + "\n" + json.dumps(sample) + "\n" + mm.group(2), html, count=1)
+        check("data island is fillable", filled != html)
+        fin = d / "filled.html"; fin.write_text(filled, encoding="utf-8")
+        out = d / "out.pdf"
+        r = subprocess.run([sys.executable, str(REPO / "ui/server.py"), "--render", str(fin), "--out", str(out)],
+                           capture_output=True, text=True, timeout=130)
+        if r.returncode == 0:
+            raw = out.read_bytes() if out.is_file() else b""
+            check("render produced a PDF", out.is_file() and raw[:4] == b"%PDF")
+            check("rendered PDF has selectable text (ATS parse)", b"/Font" in raw and re.search(rb"\b(Tj|TJ)\b", raw) is not None)
+        else:
+            # no Chrome-class engine on this box: must fail gracefully with the manual fallback
+            check("no-engine render fails gracefully with fallback message",
+                  ("Save as PDF" in r.stderr or "print to PDF" in r.stderr), r.stderr.strip()[:120])
+    finally:
+        shutil.rmtree(d, ignore_errors=True)
+
 # ── 5. Scripts compile / lint ────────────────────────────────────────────────
 def test_scripts():
     print("scripts & config")
@@ -174,7 +242,7 @@ def test_scripts():
         print("  – bash not found, skipping shell lint")
 
 if __name__ == "__main__":
-    for t in (test_server, test_html_json, test_gitignore, test_crossrefs, test_phase_order, test_scripts):
+    for t in (test_server, test_html_json, test_gitignore, test_crossrefs, test_phase_order, test_op_parity, test_resume_builder, test_scripts):
         try: t()
         except Exception as e:
             check(f"{t.__name__} raised", False, repr(e))

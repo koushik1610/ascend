@@ -122,7 +122,10 @@ interview prep is generated **on demand**, per job, only when a screen is booked
   `/spider today`.
 - `10-deep-prep.md` — **the deep interview-prep pack** for one job when its screen is booked:
   `/spider prep <NN>`.
-- `08-export-pdf.md` — resume → ATS-safe PDF at apply time.
+- `08-export-pdf.md` — résumé → ATS-safe one-page PDF via the builder (`templates/resume-builder.template.html`).
+  Runs automatically in Phases 3 (master public résumé) and 5 (each pursued job), and on demand.
+- **`build-resume`** — open the standalone résumé builder for ad-hoc résumé creation/editing (not tied
+  to a job): `/spider build-resume`.
 - `09-maintenance.md` — weekly job refresh + diff, outreach cadence, follow-ups, comp research, retro.
 - `02-resume-audit.md` — only if the user wants a standalone audit artifact (otherwise folded into 3).
 
@@ -151,7 +154,7 @@ makes resuming deterministic — never re-derive progress by guessing from `ls`.
   "name": "<slug>", "updated": "<ISO timestamp>", "phase": "5",
   "phases": { "1":"done","2":"done","3":"done","4":"done","6":"done","5":"in-progress","7":"todo" },
   "jobs": [
-    { "slug":"01-acme-staff-engineer", "files_done":["resume.md","prep-doc.md"], "complete": false }
+    { "slug":"01-acme-staff-engineer", "files_done":["resume.md","outreach.md"], "complete": false }
   ]
 }
 ```
@@ -174,11 +177,16 @@ partial ones.
   paths per target company from the user's own `Connections.csv`.
 - **"Build my answer sheet"** / `/spider answers` — build the reusable `answer-bank.md` (+ per-job
   custom screeners) per Phase 12.
-- **"Score this JD: \<paste>"** — run Phase 4's Fit-Score rubric + the §9 tailoring protocol against a
-  pasted JD: report the **0–100 Fit Score** (five sub-scores + reasoning) and the missing-but-claimable
-  keywords, without building a folder.
+- **"Score this JD: \<paste>"** / `/spider score <JD>` — run Phase 4's Fit-Score rubric + the §9
+  tailoring protocol against a pasted JD: report the **0–100 Fit Score** (five sub-scores + reasoning)
+  and the missing-but-claimable keywords, without building a folder.
 - **"SPIDER today"** / `/spider today` — run the **Daily Briefing** (Phase 13): today's 3 actions +
   ghost-detector follow-ups, drafted and ready.
+- **"SPIDER export \<company>"** / `/spider export <company>` — render that job's `resume.md` to a
+  one-page ATS-safe PDF via the builder per `08-export-pdf.md` (auto-renders; falls back to a two-click
+  Save-as-PDF if no engine is present).
+- **"SPIDER build-resume"** / `/spider build-resume` — open the standalone résumé builder for ad-hoc
+  résumé creation/editing (Import a `resume.json` or start from scratch, then Create PDF).
 
 ---
 

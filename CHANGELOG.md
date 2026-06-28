@@ -5,6 +5,24 @@ versioning is [SemVer](https://semver.org/).
 
 ## [Unreleased] — v1.0 hardening
 Working through the v1.0 readiness review (`docs/ROADMAP.md` "Path to v1.0").
+- **Résumé builder + automatic ATS-safe PDFs.** New self-contained `templates/resume-builder.template.html`
+  — a visual builder (form + live preview, the screenshot design) with a **locked, ATS-safe, single-column
+  layout** (web-safe fonts, 10pt body, standard headings, skill spans), a **one-page boundary warning**,
+  and **Create PDF / Sample / Export / Import / Clear**. Data model is **JSON Resume** (`resume.json`).
+  `ui/server.py` gains **`--render <html> --out <pdf>`** (detects a Chrome-class engine, headless
+  print-to-PDF, graceful two-click fallback) and serves the standalone builder at **`/resume-builder`**.
+  `prompts/08-export-pdf.md` is rewritten around the builder as the single renderer (old
+  `resume-print.template.html` retired); Phases **3** (master public résumé) and **5** (each pursued job)
+  now emit `resume.json` + filled builder HTML + the rendered PDF automatically, and a new
+  **`/spider build-resume`** op opens the builder ad-hoc. `reference/resume-writing-rules.md` gains a
+  **calibrated one-page content budget** so the markdown is generated to fit (no font shrinking).
+  Smoke tests cover the template's self-containment, the data island, and the render path.
+- **Industry-analysis framework + Phase 4 "industry scan."** New `reference/industry-analysis-framework.md`
+  — a field-agnostic, 9-step method for reading a hiring market (broad/quantitative frequency analysis +
+  deep/qualitative anchor-JD reads + segmentation + personal gap-mapping). Phase 4 now runs an **industry
+  scan first**, writing `workspace/<name>/industry-insights.md`, so the job queue's Fit Scores, the
+  resume's keyword coverage, and the pre-application blockers are grounded in market evidence rather than
+  guessed. No run-order change (it's a sub-step of Phase 4).
 - **`/spiderui` runs in the browser, not the terminal.** The console now shows **live progress** — a
   phase board *and* an activity feed — instead of telling you to switch to the terminal. The pipeline
   writes `current`/`log` into `.spider-state.json`; the console polls and renders it.

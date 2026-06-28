@@ -1,0 +1,487 @@
+<!doctype html>
+<!--
+  S.P.I.D.E.R. Resume Builder — single self-contained file (no build step, no external assets).
+
+  Three ways it is used:
+    1. Standalone: open this file in a browser, type or Import a resume.json, press "Create PDF".
+    2. Prefilled: SPIDER writes the resume data into the #resume-data island below, saves a copy next
+       to the resume, and the user (or headless Chrome via `ui/server.py --render`) prints it.
+    3. Served: /spiderui serves this file as a route.
+
+  Data model: JSON Resume-based (jsonresume.org), with display date strings. Shape:
+    { "basics": { name, label, email, phone, location, url, summary },
+      "work":      [ { company, position, location, dates, highlights: [..] } ],
+      "projects":  [ { name, role, dates, description } ],
+      "education": [ { institution, studyType, location, dates } ],
+      "skills":    [ "skill", .. ] }
+
+  The résumé preview and the printed PDF share ONE locked CSS block (".resume" scope). That block is
+  the single source of truth for the ATS-safe layout — single column, web-safe fonts, 10pt body,
+  standard headings, no tables/graphics. Keep it that way.
+
+  Prefill: SPIDER replaces the empty object in <script id="resume-data"> with the resume JSON.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>S.P.I.D.E.R. Resume Builder</title>
+<style>
+  :root {
+    --bg: #0f1115; --panel: #161922; --panel-2: #1c2030; --line: #2a2f3d;
+    --text: #e8eaf0; --muted: #98a0b3; --accent: #f5d90a; --danger: #ff5c6c; --ok: #36d399;
+    /* Locked résumé layout tokens (the ATS standard). Change here = change preview AND PDF. */
+    --r-accent: #1d4ed8; --r-ink: #1a1a1a; --r-muted: #555; --r-rule: #c7ccd4;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 14px; line-height: 1.45;
+  }
+
+  /* ---------- builder chrome (hidden in print) ---------- */
+  .app { display: grid; grid-template-columns: minmax(420px, 1fr) minmax(520px, 1.1fr); gap: 0;
+         height: 100vh; }
+  .topbar { grid-column: 1 / -1; display: flex; align-items: center; gap: 12px;
+            padding: 12px 20px; border-bottom: 1px solid var(--line); background: var(--panel); }
+  .topbar h1 { font-size: 18px; margin: 0; letter-spacing: -0.01em; }
+  .topbar .spacer { flex: 1; }
+  .btn { background: var(--panel-2); color: var(--text); border: 1px solid var(--line);
+         border-radius: 8px; padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .btn:hover { border-color: #3a4252; }
+  .btn.primary { background: var(--accent); color: #1a1a1a; border-color: var(--accent); }
+  .btn.danger { color: var(--danger); border-color: #4a2630; }
+  .editor { overflow-y: auto; padding: 18px 20px 80px; border-right: 1px solid var(--line); }
+  .preview-pane { overflow-y: auto; padding: 24px; background: #0b0d12; }
+
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+          padding: 16px; margin-bottom: 16px; }
+  .card > h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted);
+               margin: 0 0 12px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; }
+  label.field { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em;
+                color: var(--muted); margin-bottom: 4px; }
+  input, textarea {
+    width: 100%; background: #0c0e13; color: var(--text); border: 1px solid var(--line);
+    border-radius: 8px; padding: 8px 10px; font: inherit; font-size: 13px; }
+  textarea { resize: vertical; min-height: 64px; }
+  .full { grid-column: 1 / -1; }
+  .subcard { background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px;
+             padding: 14px; margin-bottom: 12px; position: relative; }
+  .subcard .tag { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: var(--accent);
+                  text-transform: uppercase; margin-bottom: 10px; display: block; }
+  .x { position: absolute; top: 10px; right: 10px; background: transparent; color: var(--danger);
+       border: 1px solid #4a2630; border-radius: 6px; padding: 2px 8px; cursor: pointer; font-weight: 700; }
+  .add { width: 100%; background: var(--accent); color: #1a1a1a; border: none; border-radius: 8px;
+         padding: 10px; font-weight: 700; cursor: pointer; }
+  .hint { font-size: 11px; color: var(--muted); margin: 4px 0 0; }
+
+  /* overflow banner */
+  .pagewarn { display: none; margin: 0 auto 14px; max-width: 8.5in; background: #2a1418;
+              color: #ffb3bb; border: 1px solid #5a2630; border-radius: 8px; padding: 10px 14px;
+              font-size: 13px; }
+  .pagewarn.show { display: block; }
+  .pageok { display: none; margin: 0 auto 14px; max-width: 8.5in; color: var(--ok); font-size: 12px;
+            text-align: right; }
+  .pageok.show { display: block; }
+
+  /* ---------- the résumé (LOCKED ATS layout — shared by preview + print) ---------- */
+  .resume-page {
+    width: 8.5in; min-height: 11in; margin: 0 auto; background: #fff; color: var(--r-ink);
+    padding: 0.5in; box-shadow: 0 6px 30px rgba(0,0,0,0.5); position: relative;
+  }
+  .resume {
+    font-family: "Helvetica Neue", Helvetica, Arial, "Calibri", sans-serif;
+    font-size: 10pt; line-height: 1.32; color: var(--r-ink);
+  }
+  .resume .head { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; }
+  .resume .name { font-family: Georgia, "Times New Roman", serif; font-size: 22pt; font-weight: 700;
+                  margin: 0; letter-spacing: -0.01em; line-height: 1.05; }
+  .resume .label { color: var(--r-accent); font-weight: 700; font-size: 11pt; margin: 3pt 0 0; }
+  .resume .contact { text-align: right; font-size: 9pt; color: var(--r-muted); line-height: 1.5;
+                     white-space: nowrap; }
+  .resume .rule { height: 2px; background: var(--r-accent); margin: 8pt 0 2pt; }
+  .resume h2 { font-size: 10pt; text-transform: uppercase; letter-spacing: 0.07em;
+               color: var(--r-accent); border-bottom: 1px solid var(--r-rule);
+               padding-bottom: 2pt; margin: 13pt 0 6pt; }
+  .resume .summary { margin: 0; }
+  .resume .entry { margin: 0 0 7pt; }
+  .resume .entry .row { display: flex; justify-content: space-between; gap: 16px; align-items: baseline; }
+  .resume .entry .title { font-weight: 700; font-size: 10.5pt; margin: 0; }
+  .resume .entry .when { color: var(--r-muted); font-size: 9pt; white-space: nowrap; }
+  .resume .entry .sub { color: var(--r-muted); font-size: 9.5pt; margin: 1pt 0 0; }
+  .resume ul { margin: 3pt 0 0; padding-left: 15pt; }
+  .resume li { margin: 1.5pt 0; }
+  .resume .proj .pdesc { margin: 1pt 0 0; }
+  .resume .skills { display: flex; flex-wrap: wrap; gap: 5pt 6pt; }
+  .resume .skill { border: 1px solid var(--r-rule); border-radius: 10pt; padding: 1.5pt 8pt;
+                   font-size: 9pt; color: #333; }
+  .resume a { color: var(--r-ink); text-decoration: none; }
+  /* keep blocks from splitting awkwardly across printed pages */
+  .resume h2, .resume .entry .row { break-after: avoid; }
+  .resume .entry, .resume li { break-inside: avoid; }
+
+  /* ---------- print: show only the résumé ---------- */
+  @page { size: Letter; margin: 0; }
+  @media print {
+    html, body { background: #fff; }
+    .topbar, .editor, .pagewarn, .pageok { display: none !important; }
+    .app { display: block; height: auto; }
+    .preview-pane { overflow: visible; padding: 0; background: #fff; }
+    .resume-page { width: auto; min-height: auto; margin: 0; padding: 0.5in; box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SPIDER fills this with the resume JSON. Empty = standalone blank builder. -->
+<script type="application/json" id="resume-data">
+{}
+</script>
+
+<div class="app">
+  <div class="topbar">
+    <h1>S.P.I.D.E.R. Resume Builder</h1>
+    <span class="spacer"></span>
+    <button class="btn primary" id="btn-print">Create PDF</button>
+    <button class="btn" id="btn-sample">Sample</button>
+    <button class="btn" id="btn-export">Export</button>
+    <button class="btn" id="btn-import">Import</button>
+    <button class="btn danger" id="btn-clear">Clear</button>
+    <input type="file" id="file-import" accept="application/json,.json" hidden>
+  </div>
+
+  <div class="editor" id="editor"><!-- form injected by JS --></div>
+
+  <div class="preview-pane">
+    <div class="pagewarn" id="pagewarn"></div>
+    <div class="pageok" id="pageok"></div>
+    <div class="resume-page" id="resume-page">
+      <div class="resume" id="resume"><!-- preview injected by JS --></div>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+// ---- model ----------------------------------------------------------------
+const BLANK = () => ({
+  basics: { name: "", label: "", email: "", phone: "", location: "", url: "", summary: "" },
+  work: [], projects: [], education: [], skills: []
+});
+
+const SAMPLE = () => ({
+  basics: {
+    name: "Jane Carter", label: "Senior Product Designer",
+    email: "jane@example.com", phone: "(555) 123-4567",
+    location: "San Francisco, CA", url: "janecarter.com",
+    summary: "Product designer with 8 years of experience turning ambiguous customer problems into shipped, measurable workflows. Strong in research synthesis, systems thinking, prototyping, and partnering with engineering to launch polished products."
+  },
+  work: [
+    { company: "Northstar Labs", position: "Senior Product Designer", location: "Remote", dates: "2022 - Present",
+      highlights: [
+        "Led design for a self-serve analytics product used by 2,400 weekly active customers.",
+        "Reduced report creation time by 38% by redesigning dashboard setup, defaults, and empty states.",
+        "Built a reusable design system with engineering that cut common UI implementation time in half."
+      ] },
+    { company: "Brightpath", position: "Product Designer", location: "San Francisco, CA", dates: "2018 - 2022",
+      highlights: [
+        "Owned end-to-end design for onboarding, billing, and account settings across web and mobile.",
+        "Ran customer interviews and usability tests that shaped a new team permissions model.",
+        "Partnered with PMs to prioritize roadmap bets using support volume, funnel data, and revenue impact."
+      ] }
+  ],
+  projects: [
+    { name: "AI Resume Review", role: "Design lead", dates: "2024",
+      description: "Designed an assistant workflow that helped job seekers rewrite bullet points with stronger metrics and clearer action verbs." }
+  ],
+  education: [
+    { institution: "California College of the Arts", studyType: "BFA, Interaction Design",
+      location: "San Francisco, CA", dates: "2014 - 2018" }
+  ],
+  skills: ["Product strategy", "UX research", "Interaction design", "Design systems", "Prototyping", "Figma", "SQL basics"]
+});
+
+let state = BLANK();
+
+function loadInitial() {
+  try {
+    const raw = document.getElementById("resume-data").textContent.trim();
+    const parsed = raw ? JSON.parse(raw) : null;
+    if (parsed && parsed.basics && Object.keys(parsed.basics).length) {
+      state = normalize(parsed);
+      return;
+    }
+  } catch (e) { console.warn("resume-data parse failed:", e); }
+  state = BLANK();
+}
+
+function normalize(d) {
+  const b = d.basics || {};
+  // tolerate JSON Resume location object and work.name/highlights variants
+  const loc = typeof b.location === "object" && b.location
+    ? [b.location.city || b.location.region, b.location.region].filter(Boolean).join(", ") || (b.location.address || "")
+    : (b.location || "");
+  return {
+    basics: { name: b.name||"", label: b.label||"", email: b.email||"", phone: b.phone||"",
+              location: loc, url: b.url||b.website||"", summary: b.summary||"" },
+    work: (d.work||[]).map(w => ({
+      company: w.company||w.name||"", position: w.position||w.title||"", location: w.location||"",
+      dates: w.dates || [w.startDate, w.endDate].filter(Boolean).join(" - ") || "",
+      highlights: Array.isArray(w.highlights) ? w.highlights.slice()
+                 : (typeof w.highlights === "string" ? w.highlights.split("\n").filter(Boolean) : [])
+    })),
+    projects: (d.projects||[]).map(p => ({
+      name: p.name||"", role: p.role||(Array.isArray(p.roles)?p.roles[0]:"")||"", dates: p.dates||"",
+      description: p.description || (Array.isArray(p.highlights)?p.highlights.join(" "):"") || ""
+    })),
+    education: (d.education||[]).map(e => ({
+      institution: e.institution||"", studyType: e.studyType||e.area||"",
+      location: e.location||"", dates: e.dates || [e.startDate, e.endDate].filter(Boolean).join(" - ") || ""
+    })),
+    skills: Array.isArray(d.skills)
+      ? d.skills.map(s => typeof s === "string" ? s : (s && s.name) || "").filter(Boolean)
+      : []
+  };
+}
+
+// ---- form rendering -------------------------------------------------------
+const el = (tag, attrs={}, ...kids) => {
+  const n = document.createElement(tag);
+  for (const [k,v] of Object.entries(attrs)) {
+    if (k === "class") n.className = v;
+    else if (k.startsWith("on")) n.addEventListener(k.slice(2), v);
+    else if (v !== null && v !== undefined) n.setAttribute(k, v);
+  }
+  for (const c of kids) n.append(c.nodeType ? c : document.createTextNode(c));
+  return n;
+};
+
+function input(value, oninput, attrs={}) {
+  const n = el("input", attrs); n.value = value || ""; n.addEventListener("input", e => oninput(e.target.value));
+  return n;
+}
+function textarea(value, oninput, attrs={}) {
+  const n = el("textarea", attrs); n.value = value || ""; n.addEventListener("input", e => oninput(e.target.value));
+  return n;
+}
+function field(labelText, control) {     // grid cell: label + control (full-width items are built inline)
+  return el("div", {}, el("label", { class: "field" }, labelText), control);
+}
+
+function renderEditor() {
+  const ed = document.getElementById("editor");
+  ed.innerHTML = "";
+  const b = state.basics;
+
+  // Profile
+  const profile = el("div", { class: "card" }, el("h2", {}, "Profile"));
+  const pg = el("div", { class: "grid2" });
+  pg.append(
+    field("Full name", input(b.name, v => { b.name = v; renderPreview(); })),
+    field("Target role", input(b.label, v => { b.label = v; renderPreview(); })),
+    field("Email", input(b.email, v => { b.email = v; renderPreview(); })),
+    field("Phone", input(b.phone, v => { b.phone = v; renderPreview(); })),
+    field("Location", input(b.location, v => { b.location = v; renderPreview(); })),
+    field("Website", input(b.url, v => { b.url = v; renderPreview(); }))
+  );
+  const sumWrap = el("div", { class: "full" }, el("label", { class: "field" }, "Summary"),
+    textarea(b.summary, v => { b.summary = v; renderPreview(); }));
+  profile.append(pg, sumWrap);
+  ed.append(profile);
+
+  // Experience
+  ed.append(repeatable("Experience", state.work, i => {
+    const w = state.work[i];
+    const g = el("div", { class: "grid2" });
+    g.append(
+      field("Company", input(w.company, v => { w.company = v; renderPreview(); })),
+      field("Title", input(w.position, v => { w.position = v; renderPreview(); })),
+      field("Location", input(w.location, v => { w.location = v; renderPreview(); })),
+      field("Dates", input(w.dates, v => { w.dates = v; renderPreview(); }))
+    );
+    const bl = el("div", { class: "full" }, el("label", { class: "field" }, "Bullets (one per line)"),
+      textarea(w.highlights.join("\n"), v => { w.highlights = v.split("\n").map(s=>s.trimEnd()).filter(s=>s.trim()); renderPreview(); },
+        { style: "min-height:96px" }));
+    return [g, bl];
+  }, () => state.work.push({ company:"", position:"", location:"", dates:"", highlights:[] }), "Experience"));
+
+  // Projects
+  ed.append(repeatable("Projects", state.projects, i => {
+    const p = state.projects[i];
+    const g = el("div", { class: "grid2" });
+    g.append(
+      field("Project", input(p.name, v => { p.name = v; renderPreview(); })),
+      field("Role", input(p.role, v => { p.role = v; renderPreview(); })),
+      field("Dates", input(p.dates, v => { p.dates = v; renderPreview(); }))
+    );
+    const d = el("div", { class: "full" }, el("label", { class: "field" }, "Description"),
+      textarea(p.description, v => { p.description = v; renderPreview(); }));
+    return [g, d];
+  }, () => state.projects.push({ name:"", role:"", dates:"", description:"" }), "Project"));
+
+  // Education
+  ed.append(repeatable("Education", state.education, i => {
+    const e = state.education[i];
+    const g = el("div", { class: "grid2" });
+    g.append(
+      field("School", input(e.institution, v => { e.institution = v; renderPreview(); })),
+      field("Degree", input(e.studyType, v => { e.studyType = v; renderPreview(); })),
+      field("Location", input(e.location, v => { e.location = v; renderPreview(); })),
+      field("Dates", input(e.dates, v => { e.dates = v; renderPreview(); }))
+    );
+    return [g];
+  }, () => state.education.push({ institution:"", studyType:"", location:"", dates:"" }), "Education"));
+
+  // Skills
+  const skillsCard = el("div", { class: "card" }, el("h2", {}, "Skills"));
+  const sIn = el("div", {}, el("label", { class: "field" }, "Skills (comma-separated)"),
+    textarea(state.skills.join(", "),
+      v => { state.skills = v.split(",").map(s=>s.trim()).filter(Boolean); renderPreview(); },
+      { style:"min-height:56px" }));
+  skillsCard.append(sIn);
+  ed.append(skillsCard);
+}
+
+function repeatable(title, arr, bodyFn, addFn, itemLabel) {
+  const card = el("div", { class: "card" }, el("h2", {}, title));
+  arr.forEach((_, i) => {
+    const sub = el("div", { class: "subcard" });
+    sub.append(el("span", { class: "tag" }, itemLabel + " " + (i+1)));
+    sub.append(el("button", { class: "x", onclick: () => { arr.splice(i,1); render(); } }, "✕"));
+    for (const part of bodyFn(i)) sub.append(part);
+    card.append(sub);
+  });
+  card.append(el("button", { class: "add", onclick: () => { addFn(); render(); } }, "Add " + itemLabel));
+  return card;
+}
+
+// ---- preview rendering ----------------------------------------------------
+function renderPreview() {
+  const r = document.getElementById("resume");
+  const b = state.basics;
+  r.innerHTML = "";
+
+  const contactBits = [b.email, b.phone, b.location, b.url].filter(Boolean);
+  const head = el("div", { class: "head" },
+    el("div", {},
+      el("h1", { class: "name" }, b.name || "Your Name"),
+      b.label ? el("p", { class: "label" }, b.label) : el("span")),
+    el("div", { class: "contact" }, ...contactBits.flatMap((c,i) =>
+      i ? [el("br"), document.createTextNode(c)] : [document.createTextNode(c)]))
+  );
+  r.append(head, el("div", { class: "rule" }));
+
+  if (b.summary) {
+    r.append(el("h2", {}, "Summary"), el("p", { class: "summary" }, b.summary));
+  }
+
+  if (state.work.length) {
+    r.append(el("h2", {}, "Experience"));
+    for (const w of state.work) {
+      const entry = el("div", { class: "entry" });
+      entry.append(el("div", { class: "row" },
+        el("p", { class: "title" }, w.position || w.company),
+        w.dates ? el("span", { class: "when" }, w.dates) : el("span")));
+      const sub = [w.company, w.location].filter(Boolean).join(" | ");
+      if (sub) entry.append(el("p", { class: "sub" }, sub));
+      if (w.highlights.length) {
+        const ul = el("ul");
+        for (const h of w.highlights) ul.append(el("li", {}, h));
+        entry.append(ul);
+      }
+      r.append(entry);
+    }
+  }
+
+  if (state.projects.length) {
+    r.append(el("h2", {}, "Projects"));
+    for (const p of state.projects) {
+      const entry = el("div", { class: "entry proj" });
+      entry.append(el("div", { class: "row" },
+        el("p", { class: "title" }, p.name),
+        p.dates ? el("span", { class: "when" }, p.dates) : el("span")));
+      if (p.role) entry.append(el("p", { class: "sub" }, p.role));
+      if (p.description) entry.append(el("p", { class: "pdesc" }, p.description));
+      r.append(entry);
+    }
+  }
+
+  if (state.education.length) {
+    r.append(el("h2", {}, "Education"));
+    for (const e of state.education) {
+      const entry = el("div", { class: "entry" });
+      entry.append(el("div", { class: "row" },
+        el("p", { class: "title" }, e.institution),
+        e.dates ? el("span", { class: "when" }, e.dates) : el("span")));
+      const sub = [e.studyType, e.location].filter(Boolean).join(" | ");
+      if (sub) entry.append(el("p", { class: "sub" }, sub));
+      r.append(entry);
+    }
+  }
+
+  if (state.skills.length) {
+    r.append(el("h2", {}, "Skills"));
+    const sk = el("div", { class: "skills" });
+    for (const s of state.skills) sk.append(el("span", { class: "skill" }, s));
+    r.append(sk);
+  }
+
+  checkOverflow();
+}
+
+// one-page check: inner content height vs page height minus padding (US Letter @ 96dpi)
+function checkOverflow() {
+  const page = document.getElementById("resume-page");
+  const warn = document.getElementById("pagewarn");
+  const ok = document.getElementById("pageok");
+  const PAGE_INNER_PX = 11 * 96 - 2 * (0.5 * 96); // 10in usable
+  const contentPx = document.getElementById("resume").scrollHeight;
+  const pages = Math.max(1, Math.ceil(contentPx / PAGE_INNER_PX));
+  if (contentPx > PAGE_INNER_PX + 2) {
+    const over = Math.round(contentPx - PAGE_INNER_PX);
+    warn.textContent = "Content runs " + over + "px past one page (" + pages + " pages). Trim bullets, summary, or skills to fit one page.";
+    warn.classList.add("show"); ok.classList.remove("show");
+  } else {
+    warn.classList.remove("show");
+    ok.textContent = "Fits on one page ✓"; ok.classList.add("show");
+  }
+}
+
+function render() { renderEditor(); renderPreview(); }
+
+// ---- actions --------------------------------------------------------------
+function download(filename, text) {
+  const a = el("a", { href: URL.createObjectURL(new Blob([text], { type: "application/json" })), download: filename });
+  document.body.append(a); a.click(); a.remove();
+}
+
+document.getElementById("btn-print").addEventListener("click", () => window.print());
+document.getElementById("btn-sample").addEventListener("click", () => { state = SAMPLE(); render(); });
+document.getElementById("btn-clear").addEventListener("click", () => {
+  if (confirm("Clear all fields?")) { state = BLANK(); render(); }
+});
+document.getElementById("btn-export").addEventListener("click", () => {
+  const name = (state.basics.name || "resume").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  download(name + ".resume.json", JSON.stringify(state, null, 2));
+});
+document.getElementById("btn-import").addEventListener("click", () => document.getElementById("file-import").click());
+document.getElementById("file-import").addEventListener("change", e => {
+  const f = e.target.files[0]; if (!f) return;
+  const reader = new FileReader();
+  reader.onload = () => { try { state = normalize(JSON.parse(reader.result)); render(); }
+    catch (err) { alert("Could not read that JSON: " + err.message); } };
+  reader.readAsText(f);
+  e.target.value = "";
+});
+
+// ---- boot -----------------------------------------------------------------
+loadInitial();
+render();
+window.addEventListener("resize", checkOverflow);
+</script>
+</body>
+</html>

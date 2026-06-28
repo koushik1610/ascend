@@ -63,12 +63,23 @@ Fill every section with this user's real content:
   but claimable" keyword, add the substantiating bullet here (this is where the keyword gap gets fixed
   at the source).
 
+## Master public résumé PDF
+After `master-resume.md` is built, also produce a **public, generic-default résumé PDF** from it (a
+real résumé the user can use when no specific JD applies — not the private superset). Select the
+primary-lane summary and the strongest standard bullets, swap every metric to its **public** value, and
+exclude the private sections (metrics bank, story bank, conflicts log, INTERNAL pairs). Then run
+**Phase 8** to emit `master.resume.json`, the filled builder `.html`, and the rendered PDF. The master
+public résumé is the one exception to the one-page default: **up to 2 pages**, page 1 strongest.
+
 ## Verify
 - Every metric/claim traces to the resume, the LinkedIn export, or an intake answer.
 - Every experience entry has an ID, a standard bullet, and a public-value form.
 - The honest-gap list exists and the positioning summaries lead with a real differentiator.
 - The Conflicts log exists (even if empty).
+- `master.resume.json` + the master public résumé PDF exist and carry **no** INTERNAL/sanitized values
+  (number-policy grep clean).
 
 ## Checkpoint
-Tell the user where the file is, how many experience entries/bullets it holds, and confirm the
-positioning summaries sound like them. This file is the source of truth for Phases 4–6.
+Tell the user where the file is, how many experience entries/bullets it holds, confirm the positioning
+summaries sound like them, and point them at the master public résumé PDF. This file is the source of
+truth for Phases 4–6.

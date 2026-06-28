@@ -1,6 +1,7 @@
 # START HERE — run S.P.I.D.E.R. in 3 steps
 
-The 60-second version. Full details in [`README.md`](README.md).
+The 60-second version. Full details in [`README.md`](README.md); the path through every command
+(and when to use each) is in [`WORKFLOW.md`](WORKFLOW.md).
 
 ### 1. Get your inputs ready
 - **LinkedIn export:** LinkedIn → *Settings → Data Privacy → Get a copy of your data → "The works."*

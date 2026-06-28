@@ -11,9 +11,27 @@ folders (Phase 5) are built from.
 
 **Read first:** `workspace/<name>/intake.md`, `master-resume.md` (§2 summaries + the **§4 keyword set**
 already derived in Phase 3 — reuse it, don't re-derive), `../templates/job-queue-template.md`,
-`../reference/ats-and-keywords.md`.
+`../reference/ats-and-keywords.md`, `../reference/industry-analysis-framework.md`.
 
 ---
+
+## Step 0 — Industry scan (run first) → `industry-insights.md`
+Before hunting individual jobs, take one read of the **market** the user is entering, so the queue's Fit
+Scores and per-job resume deltas are evidence-based, not guessed. Follow
+`../reference/industry-analysis-framework.md` (the 9-step method) and write
+`workspace/<name>/industry-insights.md` to its output template. In short:
+- **Broad tier:** sample widely (aggregators/ATS boards; published market surveys corroborate but don't
+  replace your own look) for frequency stats — which skills/tools/certs are true **must-haves** vs noise.
+- **Deep tier:** read 6–10 anchor JDs at the user's exact target companies/levels for vocabulary + what
+  they actually screen for.
+- **Segment** the data (esp. by company type and work-mode — that's where the comp gap and the
+  "remote = country-locked" reality surface), then **map it to the user**: aligned strengths, urgent
+  gaps (→ feed the blockers list below), optional gaps.
+- Cite source + N + date; keep observed data separate from inference; flag any reconciliation gaps.
+
+The must-haves you surface here feed the **Fit-Score "skills match"** dimension; the verbatim phrases
+strengthen the resume's keyword coverage; the gap map seeds the pre-application blockers. Checkpoint this
+mini-report with the user before the job hunt if the run is interactive.
 
 ## Find the jobs (live web research)
 Use web search/fetch to find **15+ currently-open postings** that fit the user's roles, seniority,
@@ -85,6 +103,8 @@ Also write, at the top of the file:
 - Apply the sanitization rule from `intake.md` to anything that will appear on a sendable surface.
 
 ## Verify
+- `industry-insights.md` exists, written to the framework's template, with **source + sample-N + date**
+  cited and the must-haves visibly informing the Fit-Score skills dimension and the blockers list.
 - ≥15 candidate entries, each with a link-status (`✅ verified-live` / `⚠ unverified` / `⚠ find-the-link`)
   and a real rank rationale. Report the count split: *N candidates, M independently link-verified.*
 - No fabricated req IDs or URLs.

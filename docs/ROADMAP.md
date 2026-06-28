@@ -18,7 +18,7 @@ model: **no fabrication, no auto-apply, no scraping, no real-time interview copi
 | **0.2.0** | Simpler + outcome-targeted | **Tiered job folders** (CORE apply pack now, deep prep on demand) so a first run is ~25–30 files, not ~100; résumé audit folded into the master résumé; default order 1→3→4→6→5→7. Navigator **weekly action loop + funnel scoreboard**, **referral-first hard gate**, mock-interview drill. Modern README + hand-authored SVG banner. |
 | **0.3.0** | P1 first cut (research-driven) | **Explainable Fit Score 0–100** (P1 #3), **Warm-Network Mapper** from your `Connections.csv` (#1), **Application Answer Sheet** (#8), **Daily Briefing + ghost-detector follow-ups** (#9 + #12). `docs/ROADMAP.md` itself. |
 | **0.4.0** | Graphical console | **`/spiderui`** — a local Jarvis-style browser wizard (Python-stdlib server, native folder picker, live progress, optional daily-brief cron that auto-detects claude/gemini/codex). |
-| **Unreleased** | v1.0 hardening | Server **CSRF / DNS-rebinding hardening** (verified live); **beta labels + Known Limitations** honesty pass; dead-link fix; **smoke-test harness + CI**. 2026-06-15 **council review** (architecture · competitive · security) documented; the two new security gates (**SEC-CRIT-1 prompt-injection**, **SEC-CRIT-2 reader XSS**) plus SEC-HIGH-3 **fixed 2026-06-16** and smoke-tested. (See *Path to v1.0* + *Council review*.) |
+| **Unreleased** | v1.0 hardening | Server **CSRF / DNS-rebinding hardening** (verified live); **beta labels + Known Limitations** honesty pass; dead-link fix; **smoke-test harness + CI**. 2026-06-15 **council review** (architecture · competitive · security) documented; the two new security gates (**SEC-CRIT-1 prompt-injection**, **SEC-CRIT-2 reader XSS**) plus SEC-HIGH-3 **fixed 2026-06-16** and smoke-tested. **Résumé builder** — a self-contained live-preview builder (`templates/resume-builder.template.html`) with a locked ATS-safe one-page layout, JSON Resume data model, and headless auto-render to PDF via `ui/server.py --render`; wired into Phases 3 (master public résumé) and 5 (per-job), plus a standalone `build-resume` op. Closes the competitive "live-preview builder" + JSON-export gaps. (See *Path to v1.0* + *Council review*.) |
 
 ---
 
@@ -90,17 +90,18 @@ security work:** SEC-MED-5 (per-slug auth) is accepted for the single-user model
 
 SPIDER uniquely **combines** four things no peer does together: the end-to-end pipeline, real interview
 prep + mock drills, the warm-network referral mapper (no scraping — mines the `Connections.csv` you
-already exported), and explicit honesty gates. It **lacks** four table-stakes items, tracked in the
-backlog: traction/community, a live-preview résumé builder, **DOCX/JSON export** (only Markdown→PDF today —
-P2 #19), and real job aggregation (P2 #17). Peers referenced: Reactive-Resume (~35k★), AIHawk (~30k★),
-Resume-Matcher (~9k★), OpenResume (~8.6k★), JobSpy (~3.6k★).
+already exported), and explicit honesty gates. The **live-preview résumé builder** and **JSON-Resume
+export** shipped (Unreleased), so the remaining table-stakes gaps are: traction/community, **DOCX
+export** (P2 #19), and real job aggregation (P2 #17). Peers referenced: Reactive-Resume (~35k★),
+AIHawk (~30k★), Resume-Matcher (~9k★), OpenResume (~8.6k★), JobSpy (~3.6k★).
 
 ### Path to a production *product* (beyond the v1.0 local tool)
 
 The panels converged on a phased path — don't jump straight to SaaS:
 
 - **v1.0 — trustworthy local tool (closest).** Land the security fixes above, then the remaining gate:
-  one real end-to-end run on real data. Add DOCX/JSON-Resume export, a published demo, push `ci.yml`.
+  one real end-to-end run on real data. (Résumé builder + JSON-Resume export shipped.) Add DOCX export,
+  a published demo, push `ci.yml`.
 - **v1.5 — engine independence + packaging.** Embed the **Claude Agent SDK** so output quality is
   reproducible instead of "whatever CLI you have"; package via `pipx`/`npx` (later Tauri); add **eval
   tests** that score sample outputs so prompt edits can't silently regress; structured logging.
@@ -169,7 +170,7 @@ layers the research ranked first — #2 Networking CRM, #4 Achievement-Mining In
 | 16 | Voice Mock Interview | Spoken practice + delivery scoring (pace, fillers, structure) — opt-in | L |
 | 17 | Honest Job Aggregation | Pull from **official** Greenhouse/Lever/Ashby public JSON + RSS (not scraping) | M |
 | 18 | ATS Parse-Preview | Show the stripped-text view of how an ATS reads the PDF | S |
-| 19 | Multi-Format Export | DOCX + JSON beyond the ATS PDF | S |
+| 19 | Multi-Format Export | **JSON Resume export shipped** (Unreleased, via the builder); **DOCX** still planned | S |
 | 20 | Signature STAR Bank + Reuse | Canonical 5–7 stories tagged to question types; auto-inject across surfaces | M |
 | 21 | Adaptive Weak-Spot Study Loop | Track missed topics → map to concepts → targeted practice in difficulty order | M |
 | 22 | Pipeline Analytics + Résumé A/B | Conversion funnel math + which résumé variant correlates with callbacks | S–M |
