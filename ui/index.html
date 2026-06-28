@@ -200,16 +200,27 @@ function grab4(){ for(const k of ["comp","differentiators","gaps","sanitization"
 function s5_daily(){
   const agentOpts = AGENTS.length ? AGENTS.map(a=>`<option value="${a.cli}">${a.label}</option>`).join("")
     : `<option value="">no agent CLI found</option>`;
-  step("Step 5 of 5 · daily briefing", `
-    <div class="line">Want a daily briefing? I'll schedule a short morning loop — today's 3 actions + any follow-ups due.</div>
-    <div class="row" style="margin-top:14px">
-      <div><label>Time (24h, local)</label><input id="brief" type="time" value="08:30"></div>
-      <div><label>Run it with</label><select id="agent">${agentOpts}</select></div>
-    </div>
-    <div class="muted" style="margin-top:8px">Schedules a local cron job (macOS/Linux). Turn it off anytime. Leave blank to skip.</div>
-    <div class="btns">
-      <button class="primary" onclick="finish(true)">Schedule &amp; start</button>
-      <button class="ghost" onclick="finish(false)">No daily brief — just start</button>
+  step("Step 5 of 5 · daily briefing (optional)", `
+    <div class="line">Almost done. The daily briefing is <b>off by default</b>. You can always run it on demand by
+      saying <b>"Ascend today"</b> in Claude Code — same briefing, with you watching.</div>
+    <details style="margin-top:14px">
+      <summary style="cursor:pointer">Schedule an unattended daily brief instead (beta)</summary>
+      <div class="warn" style="margin:10px 0;padding:10px 12px;border:1px solid #6b4a14;border-radius:8px;background:#241a08">
+        ⚠ <b>Beta — runs unattended.</b> This installs a local cron job that runs your agent CLI on a
+        timer, with no human watching, on web/file content it fetches. It hasn't been proven end-to-end
+        on real data. Prefer "Ascend today" on demand. Only schedule this if you understand the trade-off.
+      </div>
+      <div class="row">
+        <div><label>Time (24h, local)</label><input id="brief" type="time" value="08:30"></div>
+        <div><label>Run it with</label><select id="agent">${agentOpts}</select></div>
+      </div>
+      <div class="muted" style="margin-top:8px">Local cron (macOS/Linux). Turn it off anytime with <code>crontab -e</code>.</div>
+      <div class="btns" style="margin-top:10px">
+        <button class="ghost" onclick="finish(true)">Schedule the unattended brief &amp; start</button>
+      </div>
+    </details>
+    <div class="btns" style="margin-top:16px">
+      <button class="primary" onclick="finish(false)">Start — no daily brief</button>
       <button class="ghost" onclick="s4_calibrate()">Back</button>
     </div>`);
 }

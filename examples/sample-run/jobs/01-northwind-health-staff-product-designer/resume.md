@@ -8,14 +8,17 @@ DELTA LOG — selection record (not a rewrite)
 - ATS target: Greenhouse · constraints: single-column, standard section names, no tables in body, PDF.
 - Master entries selected, in order, and why:
     Summary A (design-systems / B2B SaaS lane) — role is explicitly DS-led.
-    E1 (DS build + adoption) → E3 (WCAG + design-eng) → E2 (DS governance) → E4 (data-informed B2B)
-      → E9 (IC leadership) → E5 (0→1 range). Leads with DS pillar to match the JD's #1 ask.
+    E1 (DS build + adoption) → E3 (WCAG + design-eng) → E2 (DS governance) → E4 (data-informed B2B,
+      with E9 IC-leadership folded into the same bullet) → E5 (0→1 range). Leads with DS pillar to match
+      the JD's #1 ask.
     Projects: P1 (design system) selected; P2/P3 omitted to keep one page focused on systems.
 - Verbatim JD phrases inserted ONCE each: "design system at scale", "accessibility-first",
     "design-engineering partnership".
 - Number policy: all metrics swapped to public/sanitized values (M3 "~32%", M4 "roughly in half",
     M12 "~44%"). Grep for raw internals over this file: PASS (no "31.6", "39,800", "−54", "Keystone").
-- Export filename: jordan-rivera-resume-northwind-health-staff.pdf
+- Data model + export: parsed to `resume.json` (JSON Resume), filled into the résumé builder, and
+    auto-rendered one-page via `python3 ui/server.py --render`.
+- Export filename: Jordan-Rivera-Resume-Northwind-Health.pdf
 - MASTER GAPS: none — every bullet below traces to a master entry ID.
 -->
 
@@ -37,13 +40,12 @@ ownership.
 *Sole design-systems owner across a 6-team, ~28-person product org (consumer fintech + B2B dashboard).*
 - Built Beacon's design system from scratch — 120 tokenized Figma components plus a Storybook library —
   adopted by 5 product teams and lifting new-feature adoption ~32%. *(E1)*
-- Brought the component library to WCAG 2.1 AA and drove a **design-engineering partnership** through
-  implementation, cutting design-to-eng spec-drift defects ~44%. *(E3)*
-- Established the design-system governance and contribution model, consolidating 40+ ad-hoc patterns
-  into shared components so teams extend the system instead of forking it. *(E2)*
-- Redesigned the B2B partner dashboard using funnel and survey data, lifting product NPS from 22 to 41
-  over two quarters. *(E4)*
-- Mentors 3–4 designers and facilitates design crits — IC leadership without a manager title. *(E9)*
+- Brought the library to WCAG 2.1 AA and drove a **design-engineering partnership** through
+  implementation, cutting spec-drift defects ~44%. *(E3)*
+- Established design-system governance and a contribution model, consolidating 40+ ad-hoc patterns into
+  shared components so teams extend the system instead of forking it. *(E2)*
+- Redesigned the B2B partner dashboard from funnel and survey data, lifting product NPS from 22 to 41;
+  mentors 3–4 designers and runs crits — IC leadership without a manager title. *(E4, E9)*
 
 **Atlas Mobility — Product Designer** · Austin, TX (hybrid) · Jun 2018 – Feb 2021
 *Two-sided mobility marketplace; design team of 4; consumer mobile + web.*

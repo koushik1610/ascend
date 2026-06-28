@@ -33,20 +33,25 @@ hybrid). Targeting **Staff / Lead Product Designer** roles at consumer and B2B S
 |---|---|
 | `intake.md` | The intake summary — the run's source of truth |
 | `linkedin-analysis.html` | Phase 1 dashboard: findability score, keyword gaps, 10 next steps (open in a browser) |
-| `resume-audit.md` | Phase 2: ATS audit of Jordan's "current resume" — score, keyword gaps, sample rewrites |
-| `master-resume.md` | Phase 3: the private superset every per-job resume is *selected* from |
-| `job-queue.md` | Phase 4: 5 ranked fictional jobs (a real run has 15+) |
+| `master-resume.md` | Phase 3: the private superset every per-job resume is *selected* from (the ATS/keyword audit is folded in — there's no separate audit file). |
+| `master-resume.json` · `Jordan-Rivera-Resume.pdf` | The public master résumé as JSON Resume data + a one-page ATS-safe PDF rendered from the builder (the generic default). |
+| `job-queue.md` | Phase 4: **15 ranked fictional jobs**, each with an explainable Fit Score (0–100) + a watch list. |
 | `interview-packet/` | Phase 6: STAR stories, portfolio deep-dives, metrics cheat-sheet |
-| `jobs/01-…`, `jobs/02-…` | Phase 5: two fully built job folders (all 8 files each) |
+| `jobs/01-…/` | Phase 5: a **CORE apply pack** (`resume.md` · `outreach.md` · `application-log.md`) **plus** the on-demand **deep-prep pack** (`prep-doc` · `interview-questions` · `interview-prep` · `company-research` · `signal`) — what a job looks like once a screen books. Also carries `resume.json` + a rendered one-page PDF. |
+| `jobs/02-…/` | Phase 5: a **CORE apply pack only** (the 3 files) — what a committed job looks like before a screen is booked. Deep prep isn't built speculatively. |
 | `start-here.html` | Phase 7: the navigator / front door (open in a browser) |
 
 ## How to read it
 
 1. Open **`start-here.html`** in a browser — it's the front door and links to everything.
 2. Open **`linkedin-analysis.html`** to see the Phase 1 dashboard.
-3. Read **`master-resume.md`** to see the superset, then open a job folder's **`resume.md`** to see
-   how a per-job resume is *selected* from it (the Delta Log cites the master entry IDs `E#`).
-4. The two HTML files are self-contained and render offline — no build step, no network.
+3. Read **`master-resume.md`** to see the superset, then open **`jobs/01-…/resume.md`** to see how a
+   per-job resume is *selected* from it (the Delta Log cites the master entry IDs `E#`). The same job's
+   **`resume.json`** + **`Jordan-Rivera-Resume-Northwind-Health.pdf`** show the JSON Resume data model
+   and the one-page ATS-safe PDF the builder renders.
+4. Compare **`jobs/01-…/`** (full: CORE + deep prep, the post-screen state) with **`jobs/02-…/`**
+   (CORE only, the pre-screen state) to see the lazy two-tier model.
+5. The HTML files are self-contained and render offline — no build step, no network.
 
 ## A note on the numbers
 

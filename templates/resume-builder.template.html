@@ -434,11 +434,14 @@ function renderPreview() {
 }
 
 // one-page check: inner content height vs page height minus padding (US Letter @ 96dpi)
+const PAGE_INNER_PX = 11 * 96 - 2 * (0.5 * 96); // 10in usable
+function isOverflowing() {
+  return document.getElementById("resume").scrollHeight > PAGE_INNER_PX + 2;
+}
 function checkOverflow() {
   const page = document.getElementById("resume-page");
   const warn = document.getElementById("pagewarn");
   const ok = document.getElementById("pageok");
-  const PAGE_INNER_PX = 11 * 96 - 2 * (0.5 * 96); // 10in usable
   const contentPx = document.getElementById("resume").scrollHeight;
   const pages = Math.max(1, Math.ceil(contentPx / PAGE_INNER_PX));
   if (contentPx > PAGE_INNER_PX + 2) {
@@ -459,7 +462,15 @@ function download(filename, text) {
   document.body.append(a); a.click(); a.remove();
 }
 
-document.getElementById("btn-print").addEventListener("click", () => window.print());
+document.getElementById("btn-print").addEventListener("click", () => {
+  // Enforce the one-page promise: refuse a multi-page export unless the user explicitly overrides.
+  // ATS-safe résumés fit one page; the honest fix is trimming content, not shrinking the font.
+  if (isOverflowing() && !confirm(
+        "This résumé runs past one page. A one-page, ATS-safe PDF is the goal — trim bullets, the " +
+        "summary, or skills to fit.\n\nPress OK to export it as multiple pages anyway, or Cancel to keep editing."))
+    return;
+  window.print();
+});
 document.getElementById("btn-sample").addEventListener("click", () => { state = SAMPLE(); render(); });
 document.getElementById("btn-clear").addEventListener("click", () => {
   if (confirm("Clear all fields?")) { state = BLANK(); render(); }

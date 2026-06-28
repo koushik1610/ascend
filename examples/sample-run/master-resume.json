@@ -1,0 +1,74 @@
+{
+  "basics": {
+    "name": "Jordan Rivera",
+    "label": "Senior Product Designer — Design Systems & 0→1",
+    "email": "jordan.rivera@example.com",
+    "phone": "(512) 555-0147",
+    "location": "Austin, TX (remote-first / hybrid-OK)",
+    "url": "https://example.com/jordanrivera",
+    "summary": "Senior Product Designer, 8 years across fintech, marketplace, and agency work, who builds design systems engineering actually adopts and ships 0→1 products end-to-end. Shipped a 120-component system across 5 product teams, lifting feature adoption ~32%, and led an onboarding redesign that cut first-week drop-off from 41% to 24%. Research-driven, eng-fluent IC who mentors without a manager title."
+  },
+  "work": [
+    {
+      "company": "Beacon Financial",
+      "position": "Senior Product Designer",
+      "location": "Austin, TX (remote)",
+      "dates": "Mar 2021 – Present",
+      "highlights": [
+        "Built Beacon's design system from scratch — 120 tokenized Figma components + a Storybook library — adopted by 5 product teams and lifting new-feature adoption ~32%.",
+        "Brought the library to WCAG 2.1 AA and drove a design-engineering partnership through implementation, cutting spec-drift defects ~44%.",
+        "Established design-system governance and a contribution model, consolidating 40+ ad-hoc patterns so teams extend the system instead of forking it.",
+        "Redesigned the B2B partner dashboard from funnel and survey data, lifting product NPS from 22 to 41; mentors 3–4 designers and runs crits."
+      ]
+    },
+    {
+      "company": "Atlas Mobility",
+      "position": "Product Designer",
+      "location": "Austin, TX (hybrid)",
+      "dates": "Jun 2018 – Feb 2021",
+      "highlights": [
+        "Designed the driver-onboarding flow 0→1 (research through ship), cutting first-week drop-off from 41% to 24% across ~40k monthly signups.",
+        "Ran 130+ moderated usability sessions over three years to steer marketplace roadmap decisions."
+      ]
+    },
+    {
+      "company": "Verdant Labs",
+      "position": "UX Designer",
+      "location": "Austin, TX",
+      "dates": "Jul 2016 – May 2018",
+      "highlights": [
+        "Delivered 0→1 designs for 7 agency client engagements across SaaS, retail, and healthcare; a retail self-checkout concept shipped to pilot."
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "name": "Beacon Design System",
+      "role": "Design-systems owner",
+      "dates": "2021 – Present",
+      "description": "120 components, tokens, Storybook, WCAG 2.1 AA; ~32% adoption lift on adopting teams."
+    }
+  ],
+  "education": [
+    {
+      "institution": "Atlas State University",
+      "studyType": "B.F.A., Communication Design",
+      "location": "Austin, TX",
+      "dates": "2016"
+    }
+  ],
+  "skills": [
+    "Design systems",
+    "Design tokens",
+    "Component libraries",
+    "Figma",
+    "Storybook",
+    "0→1 product design",
+    "Accessibility (WCAG 2.1 AA)",
+    "Design-engineering collaboration",
+    "Interaction design",
+    "Prototyping",
+    "User research",
+    "Data-informed design"
+  ]
+}

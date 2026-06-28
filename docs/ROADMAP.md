@@ -24,35 +24,66 @@ model: **no fabrication, no auto-apply, no scraping, no real-time interview copi
 
 ## Path to v1.0
 
-**Definition of Done (gate the 1.0 tag on all):** ① one real end-to-end run on real LinkedIn data,
-archived as proof, honesty gates verified · ② each shipped on-demand op run once or labeled beta ·
-③ `/ascendui` security-hardened + run end-to-end once, or beta · ④ smoke harness + CI green · ⑤ no dead
-links, phase list consistent · ⑥ README/CHANGELOG represent maturity honestly · ⑦ tag `v1.0.0`.
+> **Where we are: v0.5.0 is cut now.** It captures the **Ascend** rebrand, the résumé builder +
+> auto-PDF, and the security hardening (allow-list-only Bash, reader/builder CSP, prompt-injection
+> quarantine). The one thing between v0.5.0 and **v1.0** is real-data validation: the pipeline has been
+> code-checked exhaustively but not yet run end-to-end on real LinkedIn data. The **2026-06-28 readiness
+> council** ([`V1-READINESS.md`](V1-READINESS.md)) is the authority; this section is reconciled to it. The
+> earlier "one checkbox away" framing was optimistic — the runs are the work.
 
-**Blockers (from the v1.0 readiness council):**
+**Definition of Done (gate the 1.0 tag on ALL):**
+① **2–3 real end-to-end runs** on real LinkedIn data, spanning (a) with-résumé in a technical field,
+(b) no-résumé cold start *or* a non-technical field, and (c) one resume-after-interruption — each
+archived as a **redacted run-log** with a per-run honesty-gate spot-check and a dated sign-off in the
+log below · ② each shipped on-demand op run once or labeled beta · ③ `/ascendui` run end-to-end once, or
+fenced as beta · ④ smoke harness + CI green **on the remote** · ⑤ no dead links, phase list consistent ·
+⑥ README/CHANGELOG/badge represent maturity honestly · ⑦ tag `v1.0.0`.
+
+**Run pass/fail rubric (apply to each archived run; a run failing any line is fixed and re-run before it counts):**
+- **Honesty** — the résumé DELTA LOG cites only master entry IDs (selection, not invention); no
+  fabricated metric / title / cert / skill / referral; the number-policy grep over every sendable is
+  clean (zero never-publish hits). *Any fiction = FAIL.*
+- **Grounding** — every claim traces to the LinkedIn export, résumé, or an intake answer; a missing
+  bullet is a MASTER GAP note, never invented.
+- **Completeness** — the run produces the expected lean output (master, 15+ queue with Fit Scores, thin
+  packet, CORE packs for committed jobs, a rendered one-page PDF) and resumes cleanly after an interrupt.
+- **Privacy** — nothing personal staged for commit; `git check-ignore` confirms the workspace is ignored.
+
+**Sign-off log (fill as runs complete):**
+| Run | Case | Date | Honesty | Grounding | Completeness | Privacy | Signed off |
+|---|---|---|---|---|---|---|---|
+| 1 | with-résumé · tech | — | — | — | — | — | — |
+| 2 | no-résumé or non-tech | — | — | — | — | — | — |
+| 3 | resume-after-interruption | — | — | — | — | — | — |
+
+> Run each on a **clean `workspace/<name>/`** (no stale `.ascend-state.json` from a prior run) so the
+> archived proof reflects a true cold start. Accepted single-user risks logged for 1.0: **SEC-MED-4**
+> (session token in the page DOM, mitigated by the CRIT-2 nonce-CSP) and **SEC-MED-5** (no per-slug auth
+> on `/view`) — revisit both at multi-user.
+
+**Blockers (reconciled to the 2026-06-28 council):**
 
 | # | Blocker | Status |
 |---|---|---|
-| 1 | Local-server CSRF / DNS-rebinding hardening | 🟢 done (Unreleased) — Host allowlist + per-session token + Origin check, verified live |
-| 4 | Dead `resume-audit.md` link + stale prompt refs | 🟢 done (Unreleased) |
-| 6 | Honest maturity labels (beta surfaces, Known Limitations) | 🟢 done (Unreleased) |
-| 5 | Smoke-test harness + CI | 🟢 done (Unreleased) — `tests/smoke.py`; CI workflow added, push needs the `workflow` OAuth scope |
-| 7 | **Stored XSS in the `/view` Markdown reader** (SEC-CRIT-2 below) | 🟢 done — scheme allow-list + nonce CSP, smoke-tested |
-| 8 | **Prompt-injection hardening of the agent layer** (SEC-CRIT-1 below) | 🟢 done — quarantine policy + per-prompt banners + tightened deny-list, smoke-tested |
-| 2 | **One real end-to-end run on real data** | ⬜ **pending — the remaining gate** (needs a real LinkedIn export) |
+| 1 | Local-server CSRF / DNS-rebinding hardening | 🟢 done — Host allowlist + per-session token + Origin check, verified live |
+| 4 | Dead `resume-audit.md` link + stale prompt refs | 🟢 done |
+| 6 | Honest maturity labels (beta surfaces, Known Limitations) | 🟢 done |
+| 7 | **Stored XSS in the `/view` Markdown reader** (SEC-CRIT-2) | 🟢 done — scheme allow-list + nonce CSP, smoke-tested |
+| 8 | **Prompt-injection hardening of the agent layer** (SEC-CRIT-1) | 🟢 done — quarantine policy + per-prompt banners + deny-list, smoke-tested |
+| 9 | **Bash boundary was an enumerable deny-list with bypasses** (council 2026-06-28) | 🟢 done (v0.5.0) — converted to **allow-list-only**; `python3 file.py`/`bash -c`/`env`/`xargs`/`find -exec` blocked; `Bash(python3 *)` removed from local settings; negative smoke test |
+| 10 | Stale `examples/sample-run/` (v0.1 architecture, no `resume.json`/PDF) | 🟢 done (v0.5.0) — regenerated to 3-file CORE packs + one deep-prep pack, audit folded in, 15-job queue with Fit Scores, `resume.json` + rendered one-page PDF |
+| 11 | `/resume-builder` had no CSP; one-page PDF unenforced; daily-brief on by default; node unpinned in CI; CSV claim over-broad | 🟢 done (v0.5.0) — builder CSP added; Create-PDF refuses multi-page + page-count smoke assertion; scheduled brief **off by default** (opt-in, loud notice); `setup-node`/`setup-python` pinned; README CSV claim softened |
+| 12 | Honesty value-claim untested | 🟢 done (v0.5.0) — smoke test asserts the committed sample's sendables carry no internal-number/codename leak and no fiction marker |
+| 3 | **Real-run gate widened** to 2–3 runs + rubric + sign-off | 🟢 done (v0.5.0) — defined above |
+| 2 | **2–3 real end-to-end runs on real data** | ⬜ **pending — the remaining gate** (needs a real LinkedIn export; demo GIF + green-on-remote CI ride along) |
 
-> Both security gates were surfaced by the 2026-06-15 council and verified against source. See
-> [**Security review**](#security-review--council-2026-06-15) for the findings and fixes. They gate the
-> 1.0 tag because `/ascendui` runs untrusted web content through a pre-approved, broadly-permissioned agent.
+> The security gates were surfaced by the 2026-06-15 and 2026-06-28 councils and verified against source.
+> See [**Security review**](#security-review--council-2026-06-15) for findings/fixes. They gate the 1.0 tag
+> because `/ascendui` runs untrusted web content through a pre-approved agent.
 
-**Should-fix before 1.0 (not hard gates):** ✅ done. The hardening pass covered ready-flag-clears-on-pickup,
-`read_status` error surfacing, the `relative_to` traversal guard, and console error handling. The
-2026-06-16 pass closed the rest: the **phase run-order is single-sourced** (canonical in
-`00-orchestrator.md`; `CLAUDE.md` + `ascendui.md` restate it and `tests/smoke.py` asserts all three match);
-the **folder picker returns a status** (`ok`/`cancelled`/`unavailable`/`error`) so the console shows a
-*"no native picker — paste the path"* hint on Linux without `zenity`/`kdialog`; and the **daily-brief
-wrapper gained a `--check` self-test** (agent detection + prompt assembly, no agent call) wired into the
-smoke suite — full end-to-end verification still rides along with the one real run (gate #2).
+**Beta-surface scope for v1.0 (council P0-5):** SemVer 1.0 is a stability promise, so the lede fences it
+explicitly — **the `/ascend` text pipeline is the 1.0 core; `/ascendui`, the scheduled brief, and the
+on-demand ops (`network`/`answers`/`today`/`prep`) are 1.0-beta** until the real runs above exercise them.
 
 ---
 
@@ -91,17 +122,17 @@ security work:** SEC-MED-5 (per-slug auth) is accepted for the single-user model
 Ascend uniquely **combines** four things no peer does together: the end-to-end pipeline, real interview
 prep + mock drills, the warm-network referral mapper (no scraping — mines the `Connections.csv` you
 already exported), and explicit honesty gates. The **live-preview résumé builder** and **JSON-Resume
-export** shipped (Unreleased), so the remaining table-stakes gaps are: traction/community, **DOCX
-export** (P2 #19), and real job aggregation (P2 #17). Peers referenced: Reactive-Resume (~35k★),
-AIHawk (~30k★), Resume-Matcher (~9k★), OpenResume (~8.6k★), JobSpy (~3.6k★).
+export** shipped, and **DOCX export** (P2 #19) + **official ATS aggregation** (P2 #17) shipped in v0.5.0
+(beta), so the remaining table-stakes gap is traction/community. Peers referenced: Reactive-Resume
+(~35k★), AIHawk (~30k★), Resume-Matcher (~9k★), OpenResume (~8.6k★), JobSpy (~3.6k★).
 
 ### Path to a production *product* (beyond the v1.0 local tool)
 
 The panels converged on a phased path — don't jump straight to SaaS:
 
-- **v1.0 — trustworthy local tool (closest).** Land the security fixes above, then the remaining gate:
-  one real end-to-end run on real data. (Résumé builder + JSON-Resume export shipped.) Add DOCX export,
-  a published demo, push `ci.yml`.
+- **v1.0 — trustworthy local tool (closest).** Security fixes landed; résumé builder, JSON-Resume +
+  DOCX export, and ATS aggregation shipped (v0.5.0). The remaining gate is the **2–3 real end-to-end
+  runs** on real data, plus a published demo and green CI on the remote.
 - **v1.5 — engine independence + packaging.** Embed the **Claude Agent SDK** so output quality is
   reproducible instead of "whatever CLI you have"; package via `pipx`/`npx` (later Tauri); add **eval
   tests** that score sample outputs so prompt edits can't silently regress; structured logging.
@@ -143,12 +174,12 @@ privacy model are all confirmed correct. The whitespace is the **relationship + 
 | # | Feature | What it is | Why (signal) | Effort | Status |
 |---|---|---|---|---|---|
 | 1 | **Warm-Network Mapper + Contact Finder** | From the `Connections.csv` in the LinkedIn export, surface warm contacts at each target company; identify likely recruiter/HM; rank by referral reachability | Referrals 35×; "Insider Connections" is Jobright's marquee paid feature; all 5 panels | M | 🟢 v0.3.0 |
-| 2 | **Networking CRM** | Track contacts, last-touch, coffee-chat status, dormant-thread nudges, thank-yous | Relationships rank #1; "dormant referral conversations" | M | ⚪ |
+| 2 | **Networking CRM** | Track contacts, last-touch, coffee-chat status, dormant-thread nudges, thank-yous | Relationships rank #1; "dormant referral conversations" | M | 🟢 v0.5.0 (`/ascend crm`, beta) |
 | 3 | **Explainable Job Match Score (0–100)** | Transparent composite per JD (skills/seniority/comp/keyword/excitement) **with reasoning** | Table stakes (Jobright, OphyAI, Resume-Matcher) | S–M | 🟢 v0.3.0 |
-| 4 | **Achievement-Mining Interview** | Conversational, one-question-at-a-time intake that extracts quantified wins into the bullet DB | Highest-value technique across blogs | M | ⚪ |
-| 5 | **Interactive "Interview Me" Drill** | Live text drill: ask → wait → score → swap stories → ratchet difficulty | Recurs everywhere; current drill is static | M | ⚪ |
-| 6 | **De-Genericizer / "Sounds-Human" Gate** | Score any résumé/cover/outreach for AI-tells; rewrite in the user's real voice before sending | #1 recruiter complaint; 80% of HMs view obvious AI letters negatively | M | ⚪ |
-| 7 | **Salary Negotiation Studio** | Comp → leveling band (P25/50/75, base vs equity) → counter scripts + objection drills | Discrete high-ROI step others monetize | S | ⚪ |
+| 4 | **Achievement-Mining Interview** | Conversational, one-question-at-a-time intake that extracts quantified wins into the bullet DB | Highest-value technique across blogs | M | 🟢 v0.5.0 (`/ascend mine`, beta) |
+| 5 | **Interactive "Interview Me" Drill** | Live text drill: ask → wait → score → swap stories → ratchet difficulty | Recurs everywhere; current drill is static | M | 🟢 v0.5.0 (`/ascend drill`, beta) |
+| 6 | **De-Genericizer / "Sounds-Human" Gate** | Score any résumé/cover/outreach for AI-tells; rewrite in the user's real voice before sending | #1 recruiter complaint; 80% of HMs view obvious AI letters negatively | M | 🟢 v0.5.0 (`/ascend degenericize`, beta) |
+| 7 | **Salary Negotiation Studio** | Comp → leveling band (P25/50/75, base vs equity) → counter scripts + objection drills | Discrete high-ROI step others monetize | S | 🟢 v0.5.0 (`/ascend negotiate`, beta) |
 | 8 | **Application Answer Sheet** | Reusable **varied** honest answers to common app questions (why-us, EEO, work-auth, salary, screeners) to copy-paste | The honest substitute for paywalled autofill; identical answers are a top tell | S | 🟢 v0.3.0 |
 | 9 | **Daily Briefing Mode** | ~20-min daily scan + rank + 3 actions, alongside weekly maintenance | Aakash OS signature; market cadence | S | 🟢 v0.3.0 |
 | 10 | **Standing Job-Match Feed** | Scheduled re-search → ranked, deduped, **verified + fit-scored** feed | #1 stickiness driver (Jobright/Sorce) | M | ⚪ |
@@ -158,19 +189,20 @@ privacy model are all confirmed correct. The whitespace is the **relationship + 
 | 14 | **Résumé PDF Parser Intake** | Extract structured fields from an existing résumé PDF to seed the master résumé | Smooths onboarding; #1 bug class in OSS tools | M | ⚪ |
 | 15 | **Personal-Brand Content Engine** | Honest post drafts mined from the bullet DB (wins/learnings/build-in-public), 80/20, 3–5/wk | Active brands get 47% more inbound, 8× engagement | M | ⚪ |
 
-**Up next (post-1.0):** the highest-leverage pending P1 items cluster in the **relationship + interactivity**
-layers the research ranked first — #2 Networking CRM, #4 Achievement-Mining Interview, #5 interactive
-"Interview Me" drill, #6 De-Genericizer, #7 Salary Negotiation Studio. These come *after* the v1.0 gate
-(one real run); the project freezes scope for 1.0 rather than adding surface.
+**Shipped in v0.5.0 (beta):** the **relationship + interactivity** cluster the research ranked first —
+#2 Networking CRM, #4 Achievement-Mining Interview, #5 interactive "Interview Me" drill, #6
+De-Genericizer, #7 Salary Negotiation Studio — plus P2 #17 ATS aggregation and #19 DOCX export. They ship
+**beta**: built and code-checked, proven on real data alongside the v1.0 run gate. Still pending here:
+#10 standing match feed, #11 coffee-chat kit, #13 JD→résumé diff, #14 PDF-parser intake, #15 brand engine.
 
 ## P2 — next 15 (planned)
 
 | # | Feature | One-liner | Effort |
 |---|---|---|---|
 | 16 | Voice Mock Interview | Spoken practice + delivery scoring (pace, fillers, structure) — opt-in | L |
-| 17 | Honest Job Aggregation | Pull from **official** Greenhouse/Lever/Ashby public JSON + RSS (not scraping) | M |
+| 17 | Honest Job Aggregation | Pull from **official** Greenhouse/Lever/Ashby public JSON + RSS (not scraping) — **shipped v0.5.0** (`/ascend aggregate`, beta) | M |
 | 18 | ATS Parse-Preview | Show the stripped-text view of how an ATS reads the PDF | S |
-| 19 | Multi-Format Export | **JSON Resume export shipped** (Unreleased, via the builder); **DOCX** still planned | S |
+| 19 | Multi-Format Export | **JSON Resume export shipped** (via the builder); **DOCX shipped v0.5.0** (`/ascend export-docx`, via pandoc) | S |
 | 20 | Signature STAR Bank + Reuse | Canonical 5–7 stories tagged to question types; auto-inject across surfaces | M |
 | 21 | Adaptive Weak-Spot Study Loop | Track missed topics → map to concepts → targeted practice in difficulty order | M |
 | 22 | Pipeline Analytics + Résumé A/B | Conversion funnel math + which résumé variant correlates with callbacks | S–M |

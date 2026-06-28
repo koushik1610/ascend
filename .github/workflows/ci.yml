@@ -11,6 +11,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Pin Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Pin Node (for the JS syntax check below)
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
       - name: Smoke tests (server + reader security, perms, dashboards, gitignore, cross-refs, phase-order, scripts)
         run: python3 tests/smoke.py
 

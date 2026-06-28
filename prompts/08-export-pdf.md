@@ -60,6 +60,28 @@ output, two clicks. The standalone builder's **Create PDF** button does exactly 
 
 ---
 
+## Optional — DOCX export (`/ascend export-docx <company>`)
+Some ATS portals and recruiters still ask for a Word file. The PDF is the default and the one to submit
+when you can; produce a `.docx` only on request, from the **same finalized `resume.md`** so the two never
+drift.
+
+1. Strip the leading Delta-Log HTML comment (everything in `<!-- … -->`) — only the résumé body converts.
+2. Convert with the allow-listed `pandoc`:
+   ```bash
+   pandoc "<path>/resume.body.md" -o "<path>/<Name>-Resume-<Company>.docx"
+   ```
+   (Write the body to a temp `resume.body.md` under the same folder first; `pandoc` is the only
+   converter in the Bash allow-list — never shell out to anything else.)
+3. **ATS-safe DOCX rules:** single column, standard heading styles, no text boxes / tables / images,
+   no headers/footers. pandoc's default reference doc satisfies this; don't pass a custom template that
+   adds columns or graphics.
+4. Re-run the number-policy grep over the `.docx`'s source body — a DOCX is sendable, so public/sanitized
+   values only, same as the PDF. Filename: `<Name>-Resume-<Company>.docx`.
+5. Tell the user the `.docx` is a convenience copy and the PDF remains the preferred submission; eyeball
+   both. (Generated `*.docx` is gitignored as personal output.)
+
+---
+
 ## Honesty & format checklist (always)
 - Single column, standard headings, selectable text (not an image), certs honest (no "Active" unless
   true).

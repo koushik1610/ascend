@@ -6,7 +6,7 @@
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-5b9dff?style=flat-square)
 &nbsp;![Built for Claude Code](https://img.shields.io/badge/built%20for-Claude%20Code-5b9dff?style=flat-square)
-&nbsp;![Version](https://img.shields.io/badge/version-v0.4.0-8b97a7?style=flat-square)
+&nbsp;![Version](https://img.shields.io/badge/version-v0.5.0-8b97a7?style=flat-square)
 
 **Your entire job search, run by an agent that doesn't make things up.**
 From your LinkedIn export to tailored applications and interview prep — one command, zero fabrication.
@@ -23,10 +23,12 @@ Works for any field: engineering, design, product, marketing, ops.
 
 ---
 
-> **Status — pre-1.0.** The text pipeline (`/ascend`) is the stable path. The graphical console
-> (`/ascendui`), the scheduled daily brief, and the newer on-demand ops are **beta** — built and
-> code-checked, but not yet proven end-to-end on real data. See **[Known limitations](#known-limitations)**;
-> version history and what's next live in **[`docs/ROADMAP.md`](docs/ROADMAP.md)**.
+> **Status — v0.5.0, on the path to 1.0.** The **`/ascend` text pipeline is the stable core** — that's
+> what earns the 1.0 tag. The graphical console (`/ascendui`), the scheduled daily brief, and the
+> on-demand ops (`network`, `answers`, `today`, `prep`) are **1.0-beta**: built and code-checked, but not
+> yet proven end-to-end on real data, and they stay beta until they are. The 1.0 tag itself waits on 2–3
+> archived real runs (**[`docs/ROADMAP.md`](docs/ROADMAP.md)** → Path to v1.0). See
+> **[Known limitations](#known-limitations)**.
 
 ## Quickstart
 
@@ -88,6 +90,15 @@ Everything lands in `workspace/<your-name>/`, which is **gitignored** — it nev
   export     Résumé → one-page ATS-safe PDF (builder) ...... 08-export-pdf.md
   build-resume  Standalone résumé builder (ad-hoc) ........ templates/resume-builder.template.html
   maintenance Weekly refresh, follow-ups, retros ........... 09-maintenance.md
+
+  More on demand (beta):
+  aggregate   Pull open roles from Greenhouse/Lever/Ashby ... 14-ats-aggregation.md
+  crm         Keep warm referral relationships alive ........ 15-network-crm.md
+  mine        Interview that mines real achievements ........ 16-achievement-mining.md
+  drill <NN>  Live mock interview with rubric feedback ...... 17-interview-me.md
+  degenericize  Specificity pass on sendable text .......... 18-degenericizer.md
+  negotiate   Grounded salary-negotiation plan + scripts .... 19-salary-studio.md
+  export-docx Also emit an ATS-safe Word copy (pandoc) ...... 08-export-pdf.md
 ```
 
 **Lazy by design.** A first run produces **~25–30 files** — a master resume, a 15-job queue, a thin
@@ -117,14 +128,21 @@ Ascend resume"* later.
 | `/ascend` / "Run Ascend" | Full run from the intake interview (text) |
 | "Run Ascend Phase 1" | Just the LinkedIn analysis (cheap first taste) |
 | "Run Ascend resume" | Resume an interrupted run where it stopped |
-| "Ascend today" | **Daily briefing** — today's 3 actions + ghost-detector follow-ups, drafted |
-| "Ascend network" | **Warm-network map** — who you already know at each target company |
-| "Ascend answers" | Reusable, varied answers to common application questions |
+| "Ascend today" *(beta)* | **Daily briefing** — today's 3 actions + ghost-detector follow-ups, drafted |
+| "Ascend network" *(beta)* | **Warm-network map** — who you already know at each target company |
+| "Ascend answers" *(beta)* | Reusable, varied answers to common application questions |
 | "Ascend job add \<url>" | Add + build an apply pack for a job you found |
-| "Ascend prep 03" | Build deep interview prep for job #3 (when a screen books) + mock drill |
+| "Ascend prep 03" *(beta)* | Build deep interview prep for job #3 (when a screen books) + mock drill |
 | "Ascend score \<paste a JD>" | 0–100 Fit Score + missing keywords, no files built |
 | "Ascend export Acme" | Render a job's résumé to a one-page ATS-safe PDF (résumé builder) |
 | "Ascend build-resume" | Open the standalone résumé builder (form + live preview + Create PDF) |
+| "Ascend export-docx Acme" | Also emit an ATS-safe **Word** copy (pandoc) — PDF stays the default |
+| "Ascend aggregate" *(beta)* | Pull open roles from Greenhouse/Lever/Ashby public boards into the queue |
+| "Ascend crm" *(beta)* | **Networking CRM** — keep warm referral relationships alive + follow-ups due |
+| "Ascend mine" *(beta)* | **Achievement-mining interview** — extract real wins into the master résumé |
+| "Ascend drill 03" *(beta)* | **Interview Me** — live mock interview with evidence-grounded feedback |
+| "Ascend degenericize" *(beta)* | **De-genericizer** — swap generic text for your real evidence |
+| "Ascend negotiate Acme" *(beta)* | **Salary studio** — market anchors + your numbers + scripts |
 | "Run Ascend maintenance" | Weekly: new/closed jobs, follow-ups due, retro patterns |
 
 Every job also gets an explainable **Fit Score (0–100)** so you work the best matches first. For the
@@ -156,8 +174,10 @@ interviews; tailored documents are just the ammunition.
 <summary><b>Privacy &amp; honesty</b></summary>
 
 **Privacy.** Everything personal lives in `workspace/<name>/` and is **gitignored** — your LinkedIn
-export, résumés, job folders, and dashboards are never committed. The `.gitignore` also blocks
-résumés and LinkedIn CSVs anywhere in the tree as a backstop, and both dashboards carry a "contains
+export, résumés, job folders, and dashboards are never committed. As a backstop the `.gitignore` also
+ignores everything under `workspace/`, plus résumés and the standard LinkedIn export filenames
+(`Connections.csv`, `Profile.csv`, …) anywhere in the tree — a *renamed* export outside `workspace/`
+is only caught by the `workspace/` rule, so keep exports there. Both dashboards carry a "contains
 personal data — keep it local" banner. Run it for more than one person and each gets their own
 `workspace/<name>/`; delete a folder to wipe that person entirely.
 

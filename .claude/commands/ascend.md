@@ -32,6 +32,22 @@ and `workspace/<name>/.ascend-state.json` first, then:
   an existing `resume.json`, or build from scratch and Create PDF. Not tied to any job folder.
 - **`score <paste JD>`** → report the **0–100 Fit Score** (Phase 4 rubric: skills/seniority/comp/
   location/excitement + reasoning) and the missing-but-claimable keywords; build nothing.
+- **`export-docx <company>`** → also emit an ATS-safe Word copy from the same `resume.md` via the
+  allow-listed `pandoc` (`prompts/08-export-pdf.md` → DOCX section). The PDF stays the default.
+- **`aggregate`** → **ATS Job Aggregation** (`prompts/14-ats-aggregation.md`): pull currently-open roles
+  straight from Greenhouse/Lever/Ashby public JSON + RSS for target companies; de-dupe + Fit-score into
+  the queue.
+- **`crm`** → **Networking CRM** (`prompts/15-network-crm.md`): keep warm referral relationships alive —
+  a tracker of contacts, touchpoints, and due follow-ups, seeded from `network-map.md`.
+- **`mine`** → **Achievement-Mining Interview** (`prompts/16-achievement-mining.md`): a guided interview
+  that extracts real, quantified accomplishments into new `master-resume.md` entries (extract, never invent).
+- **`drill [NN|track]`** → **"Interview Me" Drill** (`prompts/17-interview-me.md`): a live mock interview
+  — one question at a time with rubric feedback grounded in the user's real stories.
+- **`degenericize [file]`** → **De-Genericizer** (`prompts/18-degenericizer.md`): a specificity pass that
+  replaces generic/AI-flavored text with the user's real evidence (tightens what's true; adds nothing).
+- **`negotiate [company]`** → **Salary Negotiation Studio** (`prompts/19-salary-studio.md`): a grounded
+  per-offer plan — researched market anchors, the user's three numbers, and rehearsed scripts (no
+  dishonest tactics).
 
 Honor the binding rules in `CLAUDE.md`: person-agnostic, honesty gates absolute, selection-not-invention,
 all personal output under `workspace/` only, never commit personal data. Update `.ascend-state.json`

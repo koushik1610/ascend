@@ -128,6 +128,19 @@ interview prep is generated **on demand**, per job, only when a screen is booked
   to a job): `/ascend build-resume`.
 - `09-maintenance.md` — weekly job refresh + diff, outreach cadence, follow-ups, comp research, retro.
 - `02-resume-audit.md` — only if the user wants a standalone audit artifact (otherwise folded into 3).
+- `08-export-pdf.md` (DOCX section) — also emit an ATS-safe Word copy via `pandoc`: `/ascend export-docx <company>`.
+- `14-ats-aggregation.md` — **ATS Job Aggregation**: pull open roles from Greenhouse/Lever/Ashby public
+  JSON + RSS for target companies, de-dupe + Fit-score into the queue: `/ascend aggregate`.
+- `15-network-crm.md` — **Networking CRM**: keep warm referral relationships alive (contacts, touchpoints,
+  due follow-ups), seeded from `network-map.md`: `/ascend crm`.
+- `16-achievement-mining.md` — **Achievement-Mining Interview**: extract real quantified accomplishments
+  into new master-résumé entries (extract, never invent): `/ascend mine`.
+- `17-interview-me.md` — **"Interview Me" Drill**: a live mock interview, one question at a time with
+  evidence-grounded rubric feedback: `/ascend drill [NN]`.
+- `18-degenericizer.md` — **De-Genericizer**: a specificity pass that swaps generic/AI-flavored text for
+  the user's real evidence (adds nothing): `/ascend degenericize [file]`.
+- `19-salary-studio.md` — **Salary Negotiation Studio**: a grounded per-offer plan — market anchors, the
+  user's three numbers, rehearsed scripts (no dishonest tactics): `/ascend negotiate [company]`.
 
 ---
 
