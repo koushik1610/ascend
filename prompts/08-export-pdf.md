@@ -1,51 +1,78 @@
-# Export → ATS-safe PDF (for a job's resume.md / signal.md)
+# Export → ATS-safe PDF (the résumé builder)
 
-**Goal:** turn a tailored `resume.md` (or `signal.md`) into a clean, ATS-safe **PDF** the user can
-actually submit — without making them figure out Markdown→PDF themselves. This closes the system's
-biggest manual dead-end.
+**Goal:** turn a tailored `resume.md` (or the master resume) into a clean, ATS-safe **PDF** the user
+can submit — in the locked builder layout, fitted to one page. This closes the system's biggest manual
+dead-end.
 
-**When:** run per job right after its `resume.md` is finalized (or on request: "export the Acme
-resume"). Also works for `signal.md`.
+**When:** automatically, per job, right after a `resume.md` is finalized in Phase 5; for the master
+public résumé in Phase 3; or on request (`/spider export <company>`, `/spider build-resume`).
 
----
-
-## Method A — print-to-PDF (default; zero install, works everywhere)
-1. Convert the Markdown to simple HTML and drop it into a copy of
-   `../templates/resume-print.template.html` as `<main id="doc">…</main>`:
-   - `# Name` → `<h1>`, the contact line → `<p class="contact">`, `## Section` → `<h2>`,
-     role line → `<h3>Company — Title <span class="meta">dates · location</span></h3>`,
-     bullets → `<ul><li>…</li></ul>`, the summary → `<p class="summary">`.
-   - No tables, no columns, no graphics — the template is already single-column and ATS-safe.
-2. Save it next to the resume as `<name>-resume-<company-role>.print.html` in the job folder.
-3. Tell the user: **open that file in a browser and press Cmd/Ctrl-P → "Save as PDF"** (set margins to
-   Default, "Background graphics" off). Name it `<Name>-Resume-<Company>.pdf`.
-4. Sanity-check: 1–2 pages, single column, standard font, selectable text (not an image), no clipped
-   content.
-
-## Method B — pandoc (one command, if the user has it / wants automation)
-If `pandoc` + a PDF engine are available:
-```
-pandoc resume.md -o "<Name>-Resume-<Company>.pdf" \
-  -V geometry:margin=0.6in -V fontsize=10.5pt -V mainfont="Calibri" --pdf-engine=weasyprint
-```
-(Use `wkhtmltopdf` or `--pdf-engine=tectonic`/`xelatex` if weasyprint isn't installed; xelatex needs
-the `--variable` font present.) Verify the same checklist as Method A.
-
-## Method C — headless Chrome (fully scripted, if Node/Chrome present)
-Render the print HTML from Method A and print it headless:
-```
-chrome --headless --disable-gpu --print-to-pdf="<Name>-Resume-<Company>.pdf" \
-  --no-pdf-header-footer "<file>.print.html"
-```
+**One renderer.** Everything goes through `../templates/resume-builder.template.html` (the locked,
+single-column, ATS-safe layout). There is no separate print template anymore.
 
 ---
 
-## Honesty & format
-- The PDF must be **single column, standard headings, selectable text, ≤2 pages, certs honest**
-  (no "Active" unless true). Re-run the number-policy grep on the final text — the export must not
-  reintroduce any sanitized internal number.
-- Filename convention: `<Name>-Resume-<Company>.pdf` (recruiters search download folders).
+## Step 1 — resume.md → resume.json (JSON Resume schema)
+Parse the finalized `resume.md` into `resume.json` next to it, using the builder's data model
+(JSON Resume-based):
+
+```json
+{
+  "basics":   { "name": "", "label": "<target role>", "email": "", "phone": "",
+                "location": "City, ST", "url": "<portfolio/linkedin>", "summary": "" },
+  "work":     [ { "company": "", "position": "", "location": "", "dates": "Mon YYYY - Present",
+                  "highlights": ["bullet", "bullet"] } ],
+  "projects": [ { "name": "", "role": "", "dates": "", "description": "" } ],
+  "education":[ { "institution": "", "studyType": "", "location": "", "dates": "" } ],
+  "skills":   [ "skill", "skill" ]
+}
+```
+
+Use **public/sanitized** values only (per `../reference/number-and-honesty-policy.md`). Honor the
+**one-page content budget** in `../reference/resume-writing-rules.md` — if the selected bullets exceed
+it, cut by JD-relevance before rendering, never shrink type. Re-run the number-policy grep over
+`resume.json` before rendering: it must not reintroduce any sanitized internal number.
+
+## Step 2 — fill the builder template
+Copy `../templates/resume-builder.template.html` into the job folder as
+`<name>-resume-<company-role>.html` and replace the empty data island with the JSON from Step 1:
+
+```html
+<script type="application/json" id="resume-data">
+{ ...resume.json... }
+</script>
+```
+
+Everything else in the template stays untouched.
+
+## Step 3 — render the PDF (automatic)
+Render headless via the already-trusted server (no extra permissions needed):
+
+```
+python3 ui/server.py --render "<path>/<name>-resume-<company-role>.html" \
+  --out "<path>/<Name>-Resume-<Company>.pdf"
+```
+
+It detects a Chrome-class engine and prints to PDF using the template's print CSS (résumé only,
+single column, selectable text). **Fallback:** if it reports no engine found, tell the user to open the
+filled `.html` in a browser and press **Cmd/Ctrl-P → Save as PDF** (Background graphics off) — same
+output, two clicks. The standalone builder's **Create PDF** button does exactly this.
+
+---
+
+## Honesty & format checklist (always)
+- Single column, standard headings, selectable text (not an image), certs honest (no "Active" unless
+  true).
+- **Per-job résumé: one page.** Master public résumé: ≤ 2 pages.
+- Filename: `<Name>-Resume-<Company>.pdf` (recruiters search download folders).
+- The render must not reintroduce any sanitized internal number (grep the final `resume.json`).
+
+## Verify
+- The `.html` opens with the form prefilled and the preview showing the résumé.
+- The PDF exists, is the expected page count, and its text copies out in order (the ATS parse test:
+  paste into plain text, confirm name → titles → dates → bullets read top-to-bottom).
 
 ## Checkpoint
-Tell the user which method you used, where the file is, and the 2-click save step if Method A. Remind
-them to **eyeball the PDF** before submitting (the one manual verification that always matters).
+Tell the user where the `resume.json`, filled `.html`, and `.pdf` are, and whether it auto-rendered or
+needs the two-click save. Remind them to **eyeball the PDF** before submitting (the one manual
+verification that always matters).

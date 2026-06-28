@@ -43,6 +43,28 @@ Every bullet should answer: *what did you do, how big was it, and what changed b
   them). PDF unless the portal demands .docx.
 - File name: `<Name>-Resume[-<Company>].pdf` (recruiters search download folders).
 
+## One-page content budget (the builder standard)
+Per-job resumes default to **exactly one page**. The page is not made to fit by shrinking type (10pt is
+the ATS floor); the *content* is generated to fit the fixed layout. The layout is the locked CSS in
+`../templates/resume-builder.template.html` (US-Letter, 0.5in margins, serif name, 10pt body). These
+budgets were calibrated against that template (a résumé at the ceiling renders to one page; aim a notch
+under it for white space):
+
+- **Summary:** ≤ 3 lines (~40–50 words).
+- **Experience:** 2–4 roles; **≤ 12 bullets total** across all roles (13 is the hard ceiling).
+- **Bullet:** ≤ 2 printed lines each (~140 characters / ~22 words).
+- **Projects:** 0–2 entries, ≤ 1–2 lines each (omit on a dense resume to protect the one page).
+- **Education:** 1–2 entries, one line each.
+- **Skills:** ≤ ~16 items.
+
+When selecting bullets for a per-job resume, cut to this budget by relevance to the JD (lead with the
+audience-default set), not by truncating mid-thought. If everything genuinely earns its place and still
+overflows, drop the lowest-relevance role's weakest bullets or a Project before touching font size. The
+builder shows a live overflow warning as the backstop; the budget above is the real control.
+
+The **master public resume** (rendered from `master-resume.md` for a generic default) is exempt from
+the one-page default — up to 2 pages, page 1 carrying the strongest material.
+
 ## Summaries
 - 2–3 sentences: role + scope/years → 1–2 biggest quantified wins → the differentiator. No "seeking
   opportunities" (that's an objective, not a summary). Include the target-role keywords.

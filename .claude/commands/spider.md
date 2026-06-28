@@ -25,7 +25,11 @@ and `workspace/<name>/.spider-state.json` first, then:
 - **`job rebuild <NN>`** → regenerate that job folder, preserving its `application-log.md` status.
 - **`refresh`** / **`maintenance`** → run `prompts/09-maintenance.md` (weekly job-diff, comp research,
   outreach cadence, retro digest).
-- **`export <company>`** → run `prompts/08-export-pdf.md` for that job's resume.
+- **`export <company>`** → run `prompts/08-export-pdf.md` for that job's resume: emit `resume.json`,
+  the filled builder HTML, and the auto-rendered one-page ATS-safe PDF.
+- **`build-resume`** → open the standalone résumé builder (`templates/resume-builder.template.html`,
+  also served at `/resume-builder` when the UI server runs) for ad-hoc résumé creation/editing: Import
+  an existing `resume.json`, or build from scratch and Create PDF. Not tied to any job folder.
 - **`score <paste JD>`** → report the **0–100 Fit Score** (Phase 4 rubric: skills/seniority/comp/
   location/excitement + reasoning) and the missing-but-claimable keywords; build nothing.
 

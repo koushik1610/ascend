@@ -72,8 +72,21 @@ removing the `# SPIDER-DAILY-BRIEF-<you>` line from `crontab -e`.
 The console is optional sugar. The text flow (`/spider`) does everything the same way in chat, and is
 the better path if you like the terminal or are on a platform where the GUI bits don't apply.
 
+## The résumé builder
+The server does double duty as the résumé PDF engine. Two entry points:
+
+- **`python3 ui/server.py --render <filled.html> --out <Name>-Resume-<Company>.pdf`** — a one-shot
+  headless render (no server started). It detects a Chrome-class engine (Chrome/Chromium/Edge/Brave)
+  and prints the résumé to a one-page, ATS-safe, text-selectable PDF using the template's own print CSS.
+  If no engine is found it exits with the two-click "open and Save as PDF" fallback. This is what
+  `prompts/08-export-pdf.md` calls automatically in Phases 3 and 5.
+- **`/resume-builder`** (served while the console runs) or just opening
+  `templates/resume-builder.template.html` in a browser — the **standalone builder**: a form with a
+  live preview, a one-page boundary warning, and **Create PDF / Sample / Export / Import / Clear**. Data
+  round-trips as `resume.json` (JSON Resume schema). Reachable via `/spider build-resume`.
+
 ## Files here
-- `server.py` — the local control server (stdlib only).
+- `server.py` — the local control server + résumé PDF renderer (stdlib only; shells to Chrome for `--render`).
 - `index.html` — the console UI (self-contained; talks only to the local server).
 - `run-daily-brief.sh` — the cron wrapper that runs the daily brief with your agent CLI.
 - `.port` — runtime file with the chosen port (gitignored).

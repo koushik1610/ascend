@@ -58,7 +58,8 @@ Endorsement*.csv
 **/*-resume.docx
 **/*-resume-*.pdf
 **/*-signal-*.pdf
-**/*.print.html
+**/*-resume-*.html
+**/*.resume.json
 **/application-log.md
 **/job-queue.md
 **/intake.md

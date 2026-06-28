@@ -15,7 +15,7 @@
 From your LinkedIn export to tailored applications and interview prep — one command, zero fabrication.
 Works for any field: engineering, design, product, marketing, ops.
 
-[**▶ See a full fictional run**](examples/sample-run/) &nbsp;·&nbsp; [Quickstart](#quickstart) &nbsp;·&nbsp; [How it works](#how-it-works) &nbsp;·&nbsp; [Setup for non-coders](docs/SETUP.md)
+[**▶ See a full fictional run**](examples/sample-run/) &nbsp;·&nbsp; [Quickstart](#quickstart) &nbsp;·&nbsp; [How it works](#how-it-works) &nbsp;·&nbsp; [User journeys](WORKFLOW.md) &nbsp;·&nbsp; [Setup for non-coders](docs/SETUP.md)
 
 </div>
 
@@ -59,9 +59,9 @@ agent CLI for the analysis. See [`ui/README.md`](ui/README.md).
 | Output | What it is |
 |---|---|
 | **`linkedin-analysis.html`** | A visual audit of your LinkedIn presence (findability score, keyword gaps, network, activity) **+ 10 ranked next steps** to grow reach and recruiter exposure. |
-| **`master-resume.md`** | Your superset resume — every achievement, tagged, with a metrics bank. Every per-job resume is *selected* from it, never rewritten. (The ATS/keyword audit is folded in.) |
+| **`master-resume.md`** | Your superset resume — every achievement, tagged, with a metrics bank. Every per-job resume is *selected* from it, never rewritten. (The ATS/keyword audit is folded in.) Also rendered to a public **master résumé PDF** as a generic default. |
 | **`job-queue.md`** | 15+ ranked candidate jobs matched to your profile, each link fetched and marked verified/unverified (postings rot — you re-open before applying). |
-| **`jobs/<NN-company-role>/`** | A tailored **apply pack** per job you pursue — résumé, referral-first outreach, application log. Deep interview prep is generated **on demand** when a screen gets booked. |
+| **`jobs/<NN-company-role>/`** | A tailored **apply pack** per job you pursue — résumé (markdown + `resume.json` + a clean one-page **ATS-safe PDF** from the résumé builder), referral-first outreach, application log. Deep interview prep is generated **on demand** when a screen gets booked. |
 | **`interview-packet/`** | Cross-job prep reused everywhere: STAR stories, positioning hooks, metrics cheat-sheet. |
 | **`start-here.html`** | The front door — a dashboard with your weekly action loop, application scoreboard, and every job. **Open this first.** |
 
@@ -86,7 +86,8 @@ Everything lands in `workspace/<your-name>/`, which is **gitignored** — it nev
   answers    Reusable answers to application questions ..... 12-answer-sheet.md
   today      Daily briefing + follow-up nudges ............. 13-daily-briefing.md
   prep <NN>  Deep interview prep when a screen books ...... 10-deep-prep.md
-  export     Résumé → ATS-safe PDF ......................... 08-export-pdf.md
+  export     Résumé → one-page ATS-safe PDF (builder) ...... 08-export-pdf.md
+  build-resume  Standalone résumé builder (ad-hoc) ........ templates/resume-builder.template.html
   maintenance Weekly refresh, follow-ups, retros ........... 09-maintenance.md
 ```
 
@@ -124,11 +125,14 @@ SPIDER resume"* later.
 | "SPIDER job add \<url>" | Add + build an apply pack for a job you found |
 | "SPIDER prep 03" | Build deep interview prep for job #3 (when a screen books) + mock drill |
 | "SPIDER score \<paste a JD>" | 0–100 Fit Score + missing keywords, no files built |
-| "SPIDER export Acme" | Turn a job's résumé into an ATS-safe PDF |
+| "SPIDER export Acme" | Render a job's résumé to a one-page ATS-safe PDF (résumé builder) |
+| "SPIDER build-resume" | Open the standalone résumé builder (form + live preview + Create PDF) |
 | "Run SPIDER maintenance" | Weekly: new/closed jobs, follow-ups due, retro patterns |
 
-Every job also gets an explainable **Fit Score (0–100)** so you work the best matches first, and the
-**roadmap** ([`docs/ROADMAP.md`](docs/ROADMAP.md)) tracks what's next.
+Every job also gets an explainable **Fit Score (0–100)** so you work the best matches first. For the
+full picture of who uses each command and when — what you start with and the path through each one —
+see **[`WORKFLOW.md`](WORKFLOW.md)**. The **roadmap** ([`docs/ROADMAP.md`](docs/ROADMAP.md)) tracks
+what's next.
 
 **The objective is action, not paperwork.** The dashboard leads with a weekly *apply N / ask N
 referrals* loop and a funnel scoreboard — applications sent and referrals asked are what get you
@@ -143,7 +147,8 @@ interviews; tailored documents are just the ammunition.
 - **A full run is long:** live web research for 15+ roles + the generated files often means **1–3+
   hours** of Claude working, across several check-ins. Sample it first ("Run SPIDER Phase 1", or "only
   find 3 jobs and build apply packs for 2").
-- **The PDF step is automated** (`08-export-pdf`), but you press "Save as PDF" once and eyeball it.
+- **The PDF step is automated** (`08-export-pdf` renders headless via the résumé builder + Chrome). If
+  no Chrome-class browser is found it falls back to a two-click "Save as PDF". Eyeball it either way.
 - **Platform:** developed on macOS; works on Linux; on **Windows** use WSL or Git Bash (see
   [`docs/SETUP.md`](docs/SETUP.md)).
 - **See output for free:** open the fictional [`examples/sample-run/start-here.html`](examples/sample-run/).
@@ -214,16 +219,17 @@ Honest about what's proven vs. still beta (and the path to 1.0 is tracked in [`d
 
 ```
 spider/
-├── README.md · START-HERE.md · CLAUDE.md · CONTRIBUTING.md · CHANGELOG.md · LICENSE (MIT)
+├── README.md · START-HERE.md · WORKFLOW.md · CLAUDE.md · CONTRIBUTING.md · CHANGELOG.md · LICENSE (MIT)
 ├── .gitignore                       privacy backstop (ignores all personal data + output)
 ├── .claude/commands/                the /spider + /spiderui slash commands
-├── ui/                              the graphical console: server.py, index.html, run-daily-brief.sh
+├── ui/                              the graphical console: server.py (also `--render` → PDF), index.html, run-daily-brief.sh
 ├── assets/spider-banner.svg         the brand banner (+ a slot for a demo.gif)
 ├── docs/                            SETUP.md (first-run guide) · ROADMAP.md (versions + what's next)
 ├── prompts/                         00-orchestrator + phases 01–07; on-demand 08–13
 │                                    (export, maintenance, deep-prep, network-map, answer-sheet, daily-briefing)
 ├── templates/                       job-folder (tiered spec), master-resume, signal, job-queue,
-│                                    interview-packet, resume-print, linkedin-analysis + start-here (HTML)
+│                                    interview-packet, resume-builder (the PDF builder),
+│                                    linkedin-analysis + start-here (HTML)
 ├── reference/                       binding rules: ATS/keywords, résumé writing, numbers/honesty,
 │                                    interview-prep framework
 ├── tests/smoke.py                   stdlib smoke tests (server, dashboards, gitignore, cross-refs)
