@@ -57,8 +57,11 @@ own tab.
   scheduling work with just Python; the *intelligence* needs a local agent CLI.
 
 ## The daily brief
-If you pick a time, the server installs a **cron job** (macOS/Linux) that runs
-`ui/run-daily-brief.sh <you>` at that time. The wrapper detects your agent CLI and runs the
+**Off by default (beta).** The preferred path is on demand: say **"Ascend today"** in Claude Code for
+the same briefing with you watching. The unattended scheduler is opt-in behind a notice in Step 5 — it
+runs your agent CLI on a timer with no human in the loop, on content it fetches, and isn't proven
+end-to-end on real data yet. If you opt in, the server installs a **cron job** (macOS/Linux) that runs
+`ui/run-daily-brief.sh <you>` at the time you pick. The wrapper detects your agent CLI and runs the
 **Daily Briefing** (Phase 13) headlessly, writing `workspace/<you>/daily-briefing.md`. Turn it off by
 removing the `# Ascend-DAILY-BRIEF-<you>` line from `crontab -e`.
 

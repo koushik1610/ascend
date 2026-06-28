@@ -6,8 +6,66 @@ versioning is [SemVer](https://semver.org/).
 > **Renamed.** This project was previously called **S.P.I.D.E.R.** (and the `/spider` command). It is
 > now **Ascend**, with `/ascend` and `/ascendui` commands; earlier entries below use the old name.
 
-## [Unreleased] — v1.0 hardening
-Working through the v1.0 readiness review (`docs/ROADMAP.md` "Path to v1.0").
+## [Unreleased]
+_Working toward v1.0. The remaining gate is **2–3 real end-to-end runs on real LinkedIn data** with
+honesty spot-checks + a green CI run on the remote + a demo GIF (see `docs/ROADMAP.md` → Path to v1.0)._
+
+## [0.5.0] — 2026-06-28 — Ascend rebrand · résumé builder · security hardening
+Cuts a release that captures the **S.P.I.D.E.R. → Ascend** rebrand, the résumé builder + auto-PDF, and
+the **2026-06-28 v1.0 readiness-council** pass. The honest framing (per the council): the periphery is
+hardened and the feature set is broad, but the core pipeline hasn't yet run end-to-end on real data — so
+this is **0.5.0**, not 1.0. The text `/ascend` pipeline is the stable core; the UI, scheduling, and the
+on-demand ops are **beta**.
+
+### Security & permissions (2026-06-28 council — P0)
+- **Bash boundary converted to allow-list-only.** The old enumerable deny-list had verified bypasses
+  (`bash -c`, `python3 file.py`, `env`/`xargs`/`find -exec`). Now only a few pinned forms run
+  (`python3 ui/server.py…`, `mkdir`/`rm -f` under `workspace/`, `git check-ignore`, `pandoc`); everything
+  else is refused, and the deny-list adds shell-bypass closers as defense-in-depth. `Bash(python3 *)`
+  removed from `.claude/settings.local.json`. New **negative smoke test** asserts the bypasses are blocked
+  and the pipeline's own commands still run.
+- **`/resume-builder` now serves a strict CSP** (`default-src 'none'` + `connect-src 'none'`) — it was the
+  one served page with none; a malicious `resume.json` renders as DOM text and can't phone home.
+
+### Honesty, docs & release mechanics (P0/P1)
+- **Sample run regenerated to the current architecture.** `examples/sample-run/` was frozen at the v0.1
+  shape (8-file job folders, a standalone `resume-audit.md`, no `resume.json`/PDF, a 5-job queue). Now:
+  **3-file CORE apply packs** + a **deep-prep pack for one job only**, the audit folded into the master,
+  a **15-job queue with explainable Fit Scores**, and a real **`resume.json` + rendered one-page PDF**
+  (job 01 + a public master résumé PDF). The sample README, navigator, and parent `examples/README.md`
+  are reconciled to it.
+- **Real-run gate widened.** The v1.0 DoD now requires **2–3 archived runs** (with-résumé tech /
+  no-résumé or non-tech / resume-after-interruption) with an explicit pass/fail rubric and a sign-off log.
+- **Beta surfaces fenced** in the README lede + Day-to-day table: the `/ascend` text pipeline is the 1.0
+  core; `/ascendui`, the scheduled brief, and the on-demand ops are 1.0-beta until the runs prove them.
+- **One-page PDF enforced.** The builder's *Create PDF* refuses a multi-page export unless the user
+  explicitly overrides; the smoke suite asserts the rendered sample is exactly one page.
+- **Scheduled daily brief is OFF by default** — opt-in behind a loud "beta, runs unattended" notice in
+  the console (prefer "Ascend today" on demand).
+- **Honesty smoke check** — asserts the committed sample's sendables carry no internal-number/codename
+  leak and no fiction marker (selection, not invention).
+- **CI pinned** (`setup-node`/`setup-python`) so it no longer depends on an unpinned `node`; README's
+  gitignore CSV-backstop claim softened to match what the rules actually catch.
+
+### Added — relationship + interactivity layer + export (P2, beta)
+- **Networking CRM** (`/ascend crm`, `prompts/15-network-crm.md`) — keep warm referral relationships
+  alive: contacts, touchpoints, due follow-ups, seeded from the network map.
+- **Achievement-Mining Interview** (`/ascend mine`, `prompts/16-achievement-mining.md`) — a guided
+  interview that extracts real quantified wins into new master-résumé entries (extract, never invent).
+- **"Interview Me" Drill** (`/ascend drill`, `prompts/17-interview-me.md`) — a live mock interview, one
+  question at a time, with rubric feedback grounded in the user's real stories.
+- **De-Genericizer** (`/ascend degenericize`, `prompts/18-degenericizer.md`) — a specificity pass that
+  swaps generic/AI-flavored text for the user's real evidence (tightens what's true; adds nothing).
+- **Salary Negotiation Studio** (`/ascend negotiate`, `prompts/19-salary-studio.md`) — a grounded
+  per-offer plan: researched market anchors, the user's three numbers, rehearsed scripts (no dishonest
+  tactics).
+- **ATS Job Aggregation** (`/ascend aggregate`, `prompts/14-ats-aggregation.md`) — pull currently-open
+  roles from **official** Greenhouse/Lever/Ashby public JSON + RSS, de-duped and Fit-scored into the
+  queue (no scraping).
+- **DOCX export** (`/ascend export-docx`) — an ATS-safe Word copy from the same `resume.md` via the
+  allow-listed `pandoc`; the PDF stays the default.
+
+### Earlier in this release (the rebrand + builder + first hardening pass)
 - **Résumé builder + automatic ATS-safe PDFs.** New self-contained `templates/resume-builder.template.html`
   — a visual builder (form + live preview, the screenshot design) with a **locked, ATS-safe, single-column
   layout** (web-safe fonts, 10pt body, standard headings, skill spans), a **one-page boundary warning**,

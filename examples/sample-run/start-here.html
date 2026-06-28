@@ -84,7 +84,7 @@
   <h2>The Job Board</h2>
   <div class="panel" style="padding:0;overflow:auto">
     <table>
-      <thead><tr><th>#</th><th>Company / Role</th><th>Location</th><th>Comp</th><th>ATS</th><th>Status</th><th>Files</th></tr></thead>
+      <thead><tr><th>#</th><th>Company / Role</th><th>Fit</th><th>Location</th><th>Comp</th><th>ATS</th><th>Status</th><th>Files</th></tr></thead>
       <tbody id="jobs"></tbody>
     </table>
   </div>
@@ -128,23 +128,43 @@
     {"t":"Pin the design-system case study to LinkedIn Featured", "note":"your strongest Staff-scope evidence is invisible; fix before recruiters click through"}
   ],
   "jobs":[
-    { "rank":1, "company":"Northwind Health", "role":"Staff Product Designer", "loc":"Remote (US) · Austin HQ", "comp":"$205k–$245k", "ats":"Greenhouse",
-      "status":"not-started", "folder":"./jobs/01-northwind-health-staff-product-designer/", "deadline":null, "nextAction":"referral sweep then apply" },
-    { "rank":2, "company":"Lumen Retail", "role":"Lead Product Designer", "loc":"Hybrid · Austin (3d/wk)", "comp":"$195k–$230k", "ats":"Lever",
-      "status":"not-started", "folder":"./jobs/02-lumen-retail-lead-product-designer/", "deadline":null, "nextAction":"prep take-home, then apply" },
-    { "rank":3, "company":"Atlas Mobility", "role":"Staff Product Designer, Growth", "loc":"Remote (US)", "comp":"$200k–$238k", "ats":"Ashby",
-      "status":"not-started", "folder":"./job-queue.md", "deadline":null, "nextAction":"folder not built in sample — see queue #3" },
-    { "rank":4, "company":"Verdant Labs", "role":"Senior/Staff Product Designer, Platform", "loc":"Remote (US)", "comp":"$190k–$225k", "ats":"Workday",
-      "status":"not-started", "folder":"./job-queue.md", "deadline":null, "nextAction":"folder not built in sample — see queue #4" },
-    { "rank":5, "company":"Beacon Financial", "role":"Lead Product Designer, Consumer", "loc":"Hybrid · Austin", "comp":"$200k–$240k", "ats":"Greenhouse",
-      "status":"not-started", "folder":"./job-queue.md", "deadline":null, "nextAction":"folder not built in sample — see queue #5" }
+    { "rank":1, "company":"Northwind Health", "role":"Staff Product Designer", "loc":"Remote (US) · Austin HQ", "comp":"$205k–$245k", "ats":"Greenhouse", "fit":92,
+      "status":"not-started", "folder":"./jobs/01-northwind-health-staff-product-designer/", "hasPrep":true, "deadline":null, "nextAction":"referral sweep then apply" },
+    { "rank":2, "company":"Lumen Retail", "role":"Lead Product Designer", "loc":"Hybrid · Austin (3d/wk)", "comp":"$195k–$230k", "ats":"Lever", "fit":87,
+      "status":"not-started", "folder":"./jobs/02-lumen-retail-lead-product-designer/", "hasPrep":false, "deadline":null, "nextAction":"CORE pack built; deep prep when a screen books" },
+    { "rank":3, "company":"Atlas Mobility", "role":"Staff Product Designer, Growth", "loc":"Remote (US)", "comp":"$200k–$238k", "ats":"Ashby", "fit":83,
+      "status":"not-started", "folder":"./job-queue.md", "hasPrep":false, "deadline":null, "nextAction":"lead — build a pack on commit (see queue #3)" },
+    { "rank":4, "company":"Verdant Labs", "role":"Senior/Staff Product Designer, Platform", "loc":"Remote (US)", "comp":"$190k–$225k", "ats":"Workday", "fit":79,
+      "status":"not-started", "folder":"./job-queue.md", "hasPrep":false, "deadline":null, "nextAction":"lead — see queue #4" },
+    { "rank":5, "company":"Beacon Financial", "role":"Lead Product Designer, Consumer", "loc":"Hybrid · Austin", "comp":"$200k–$240k", "ats":"Greenhouse", "fit":76,
+      "status":"not-started", "folder":"./job-queue.md", "hasPrep":false, "deadline":null, "nextAction":"lead — see queue #5" },
+    { "rank":6, "company":"Cobalt Health", "role":"Senior Product Designer, Design Systems", "loc":"Remote (US)", "comp":"$180k–$210k", "ats":"Greenhouse", "fit":74,
+      "status":"not-started", "folder":"./job-queue.md", "hasPrep":false, "deadline":null, "nextAction":"lead — see queue #6" },
+    { "rank":7, "company":"Solstice Commerce", "role":"Staff Product Designer", "loc":"Hybrid · Austin (2d/wk)", "comp":"$198k–$232k", "ats":"Ashby", "fit":72,
+      "status":"not-started", "folder":"./job-queue.md", "hasPrep":false, "deadline":null, "nextAction":"lead — see queue #7" },
+    { "rank":8, "company":"Meridian AI", "role":"Senior Product Designer, Platform", "loc":"Remote (US)", "comp":"$185k–$220k", "ats":"Lever", "fit":70,
+      "status":"not-started", "folder":"./job-queue.md", "hasPrep":false, "deadline":null, "nextAction":"lead — see queue #8" },
+    { "rank":9, "company":"Harborview Bank", "role":"Lead Product Designer", "loc":"Hybrid · Austin (3d/wk)", "comp":"$190k–$224k", "ats":"Workday", "fit":69,
+      "status":"not-started", "folder":"./job-queue.md", "hasPrep":false, "deadline":null, "nextAction":"lead — verify IC-track (see queue #9)" },
+    { "rank":10, "company":"Pinecrest Software", "role":"Staff Product Designer, Design Systems", "loc":"Remote (US)", "comp":"$195k–$230k", "ats":"Greenhouse", "fit":68,
+      "status":"not-started", "folder":"./job-queue.md", "hasPrep":false, "deadline":null, "nextAction":"lead — verify runway (see queue #10)" },
+    { "rank":11, "company":"Vantage Logistics", "role":"Senior Product Designer", "loc":"Remote (US)", "comp":"$172k–$205k", "ats":"Ashby", "fit":66,
+      "status":"not-started", "folder":"./job-queue.md", "hasPrep":false, "deadline":null, "nextAction":"lead — see queue #11" },
+    { "rank":12, "company":"Briarwood Education", "role":"Lead Product Designer", "loc":"Remote (US)", "comp":"$178k–$208k", "ats":"Lever", "fit":64,
+      "status":"not-started", "folder":"./job-queue.md", "hasPrep":false, "deadline":null, "nextAction":"lead — mission-fit check (see queue #12)" },
+    { "rank":13, "company":"Quill & Co", "role":"Senior Product Designer", "loc":"Remote (US)", "comp":"$170k–$200k", "ats":"Greenhouse", "fit":62,
+      "status":"not-started", "folder":"./job-queue.md", "hasPrep":false, "deadline":null, "nextAction":"lead — see queue #13" },
+    { "rank":14, "company":"Northstar Energy", "role":"Senior Product Designer", "loc":"Hybrid · Austin (4d/wk)", "comp":"$168k–$198k", "ats":"Workday", "fit":60,
+      "status":"not-started", "folder":"./job-queue.md", "hasPrep":false, "deadline":null, "nextAction":"lead — RTO friction (see queue #14)" },
+    { "rank":15, "company":"Tideline Media", "role":"Staff Product Designer, Growth", "loc":"Remote (US)", "comp":"$190k–$222k", "ats":"Ashby", "fit":58,
+      "status":"not-started", "folder":"./job-queue.md", "hasPrep":false, "deadline":null, "nextAction":"lead — see queue #15" }
   ],
   "packet":[
     {"t":"STAR stories (S1–S5)", "link":"./interview-packet/star-stories.md"},
     {"t":"Portfolio deep-dives (D1–D3)", "link":"./interview-packet/project-deep-dives.md"},
     {"t":"Metrics cheat-sheet", "link":"./interview-packet/metrics-cheatsheet.md"}
   ],
-  "howto":"🧪 Fictional sample. Open the #1 job folder, clear the blockers above, run the referral sweep, then apply. Prep with that folder's interview-prep.md and prep-doc.md. Folders for jobs #3–#5 aren't built in this light sample — they link to the queue. Re-run Phase 4 weekly for fresh postings; update each job's application-log.md as you go (status here reflects those)."
+  "howto":"🧪 Fictional sample. 15 ranked jobs, each with a Fit Score. Apply packs are built only for the jobs you commit to: #1 shows a full pack (CORE + on-demand deep prep), #2 shows a CORE-only pack (deep prep is built when a screen books). Jobs #3–#15 are leads — their links go to the queue until you commit. Open #1, clear the blockers above, run the referral sweep, then apply. Re-run Phase 4 weekly for fresh postings; update each job's application-log.md as you go (status here reflects those)."
 }
 </script>
 <script>
@@ -160,7 +180,7 @@ DATA.phases.forEach(p=>$("#phases").appendChild(el("div","phase",
 DATA.blockers.forEach(b=>$("#blockers").appendChild(el("li",null,`<b>${b.t}</b> <span class="sub">— ${b.note||""}</span>`)));
 /* Reminders: any job with a deadline or a pending next action, soonest deadline first. */
 const today=new Date(); today.setHours(0,0,0,0);
-const rem=DATA.jobs.filter(j=>j.deadline||j.nextAction)
+const rem=DATA.jobs.filter(j=>j.folder.startsWith("./jobs/") && (j.deadline||j.nextAction))
   .sort((a,b)=>(a.deadline||"9999").localeCompare(b.deadline||"9999"));
 if(rem.length===0){ $("#reminders").appendChild(el("li",null,`<span class="sub">No deadlines or follow-ups logged yet. Add <code>deadline</code> / <code>nextAction</code> to a job in the JSON as you apply.</span>`)); }
 rem.forEach(j=>{
@@ -179,10 +199,17 @@ const f={total:DATA.jobs.length,
   .forEach(([l,v])=>$("#funnel").appendChild(el("div","step",`<div class="v">${v}</div><div class="l">${l}</div>`)));
 DATA.jobs.forEach(j=>{
   const tr=el("tr"); const label=j.status.replace("-"," ");
+  const built=j.folder.startsWith("./jobs/");
+  // Built CORE pack → resume + log; deep prep only if it exists. Leads → a single link to the queue.
+  const links = built
+    ? `<a href="${j.folder}resume.md">resume</a>`
+      + (j.hasPrep?`<a href="${j.folder}prep-doc.md">prep</a>`:``)
+      + `<a href="${j.folder}application-log.md">log</a>`
+    : `<a href="${j.folder}">queue</a>`;
   tr.innerHTML=`<td>${j.rank}</td><td><a href="${j.folder}"><b>${j.company}</b></a><div class="sub">${j.role}</div></td>
-    <td>${j.loc}</td><td>${j.comp}</td><td>${j.ats}</td>
+    <td>${j.fit!=null?j.fit:"—"}</td><td>${j.loc}</td><td>${j.comp}</td><td>${j.ats}</td>
     <td><span class="st st-${j.status}">${label}</span></td>
-    <td class="links"><a href="${j.folder}resume.md">resume</a><a href="${j.folder}prep-doc.md">prep</a><a href="${j.folder}application-log.md">log</a></td>`;
+    <td class="links">${links}</td>`;
   $("#jobs").appendChild(tr);
 });
 DATA.packet.forEach(p=>$("#packet").appendChild(el("a",null,p.t)).setAttribute("href",p.link));

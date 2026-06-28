@@ -360,7 +360,15 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, html, "text/html; charset=utf-8")
         if u.path in ("/resume-builder", "/resume-builder.html"):     # standalone builder (blank)
             html = (TEMPLATES / "resume-builder.template.html").read_text(encoding="utf-8")
-            return self._send(200, html, "text/html; charset=utf-8")
+            # Same default-src 'none' posture as /view. The builder is dual-use (also opened straight
+            # off disk as a file://), so it can't rely on a server-substituted nonce — its own inline
+            # script/style run via 'unsafe-inline'. The load-bearing control is connect-src 'none':
+            # a malicious résumé.json renders as DOM text and still can't phone home.
+            csp = ("default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; "
+                   "script-src 'unsafe-inline'; connect-src 'none'; base-uri 'none'; form-action 'none'")
+            return self._send(200, html, "text/html; charset=utf-8",
+                              {"Content-Security-Policy": csp, "X-Content-Type-Options": "nosniff",
+                               "Referrer-Policy": "no-referrer"})
         if u.path.startswith("/api/") and not self._token_ok():
             return self._send(403, {"error": "forbidden"})
         if u.path == "/api/agents":

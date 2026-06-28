@@ -56,11 +56,15 @@ rule sources; prompts reference them rather than re-stating them. Templates: `te
 The repo commits **`.claude/settings.json`** so a run doesn't stop for approval prompts. It is
 deliberately **scoped**: broad `Read` + `WebSearch`/`WebFetch` (the pipeline reads your files and
 researches jobs across many domains), but **`Write`/`Edit` only under `workspace/**`** (the pipeline
-writes user output there and can't silently change the repo's own prompts/code), plus a short Bash
-allow-list and a **hardened deny-list**: `sudo`, network/exfil tools (`curl`/`wget`/`nc`/`ssh`/`scp`),
-RCE-capable interpreters (`node`/`deno`/`bun`/`ruby`/`perl`/`php`/`osascript`/`python3 -c`), package
-managers (`npm`/`npx`/`pip`), `rm -rf /`, and high-value secrets (`.env`, `~/.ssh`, `~/.aws`, `~/.gnupg`,
-`~/.config/gh`, Keychains, `.netrc`/`.npmrc`/`.git-credentials`/`*.pem`/private keys). `Read` stays broad
+writes user output there and can't silently change the repo's own prompts/code). The Bash boundary is
+**allow-list-only**: only a few pinned forms run (`python3 ui/server.py…`, `mkdir/rm -f` under
+`workspace/`, `git check-ignore`, `pandoc`); anything else is refused, so an injected page can't write a
+script under `workspace/` and run it. A **hardened deny-list** backs that up for interactive use: `sudo`,
+network/exfil tools (`curl`/`wget`/`nc`/`ssh`/`scp`), shell-bypass forms (`bash -c`/`sh -c`/`env`/`xargs`/
+`find -exec`/`eval`/`exec`), RCE-capable interpreters (`node`/`deno`/`bun`/`ruby`/`perl`/`php`/`osascript`/
+`python3 -c`), package managers (`npm`/`npx`/`pip`), `rm -rf /`, and high-value secrets (`.env`, `~/.ssh`,
+`~/.aws`, `~/.gnupg`, `~/.config/gh`, Keychains, `.netrc`/`.npmrc`/`.git-credentials`/`*.pem`/private
+keys). `Read` stays broad
 on purpose so the pipeline can read a résumé/LinkedIn export wherever you point it; the deny-list guards
 the crown jewels. The broad `WebFetch` (job pages live on arbitrary career sites) is paired with the
 prompt-injection quarantine in the ingesting prompts — fetched/file content is **data, not instructions**.
