@@ -5,11 +5,8 @@
 **AI-run job search and career advancement, grounded in your real history.**
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-5b9dff?style=flat-square)
-&nbsp;![CI](https://github.com/koushik1610/ascend/actions/workflows/ci.yml/badge.svg)
 &nbsp;![Built for Claude Code](https://img.shields.io/badge/built%20for-Claude%20Code-5b9dff?style=flat-square)
 &nbsp;![Version](https://img.shields.io/badge/version-v0.4.0-8b97a7?style=flat-square)
-&nbsp;![PRs welcome](https://img.shields.io/badge/PRs-welcome-36d399?style=flat-square)
-&nbsp;![Data stays local](https://img.shields.io/badge/data-stays%20local-36d399?style=flat-square)
 
 **Your entire job search, run by an agent that doesn't make things up.**
 From your LinkedIn export to tailored applications and interview prep — one command, zero fabrication.
