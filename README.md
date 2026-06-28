@@ -224,7 +224,7 @@ ascend/
 ├── .gitignore                       privacy backstop (ignores all personal data + output)
 ├── .claude/commands/                the /ascend + /ascendui slash commands
 ├── ui/                              the graphical console: server.py (also `--render` → PDF), index.html, run-daily-brief.sh
-├── assets/ascend-banner.png         the brand banner (.svg vector fallback alongside)
+├── assets/ascend-banner.png         the brand banner
 ├── docs/                            SETUP.md (first-run guide) · ROADMAP.md (versions + what's next)
 ├── prompts/                         00-orchestrator + phases 01–07; on-demand 08–13
 │                                    (export, maintenance, deep-prep, network-map, answer-sheet, daily-briefing)
