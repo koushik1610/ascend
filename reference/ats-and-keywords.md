@@ -47,7 +47,7 @@ Field-agnostic — the *method* is universal; the *keywords* come from the user'
 - Two pages is correct for 10+ years; page 1 carries the strongest material (screeners weight it).
 - Standard dates (`Feb 2022 – Present`); legal company name where verification matters.
 - One master resume + a per-application keyword pass beats maintaining many divergent versions — which
-  is exactly the SPIDER model (master resume → select per job).
+  is exactly the Ascend model (master resume → select per job).
 
 ## Field note
 For non-ATS-heavy paths (small companies, referral-first, creative fields with portfolio review), the

@@ -1,14 +1,14 @@
-# CLAUDE.md — S.P.I.D.E.R. (project instructions)
+# CLAUDE.md — Ascend (project instructions)
 
-You are running inside the **S.P.I.D.E.R.** repo (*Strategic Profile Intelligence & Direct Employment
-Routing*) — a reusable, AI-driven job-search system that runs end-to-end in Claude Code for ONE user
+You are running inside the **Ascend** repo (*an evidence-grounded job-search and career-advancement
+system*) — a reusable, AI-driven job-search system that runs end-to-end in Claude Code for ONE user
 at a time.
 
-## When the user says "Run SPIDER" / `/spider` / "start the job search"
+## When the user says "Run Ascend" / `/ascend` / "start the job search"
 Follow **`prompts/00-orchestrator.md`** exactly. Begin with the intake interview — do not pre-explain
 the whole system; ask the questions, then build the workspace and run the phases with checkpoints.
 
-If they say "Run SPIDER Phase N" (or name a phase), jump to that phase's prompt in `prompts/`,
+If they say "Run Ascend Phase N" (or name a phase), jump to that phase's prompt in `prompts/`,
 re-reading `workspace/<name>/intake.md` first for context.
 
 ## The pipeline
@@ -21,7 +21,7 @@ interview prep is on demand: `prompts/10-deep-prep.md` per job when a screen boo
 `11-network-map` (warm referral paths from the user's `Connections.csv`), `12-answer-sheet` (reusable
 app answers), `13-daily-briefing` (~20-min action loop + ghost-detector follow-ups), `08-export-pdf`,
 `09-maintenance`, `02-resume-audit`. Phase 4 gives every job an explainable 0–100 **Fit Score**. Outputs
-go to `workspace/<name>/`; the orchestrator updates `workspace/<name>/.spider-state.json` so runs are
+go to `workspace/<name>/`; the orchestrator updates `workspace/<name>/.ascend-state.json` so runs are
 resumable.
 
 ## Binding rules (always)
@@ -52,7 +52,7 @@ rule sources; prompts reference them rather than re-stating them. Templates: `te
 `_TEMPLATE.md` is the binding tiered spec — CORE apply pack + on-demand prep pack). Derive the
 **keyword set once** (Phase 3, into master §4) and reuse it downstream — don't re-derive per phase.
 
-## Permissions (pre-approved so `/spiderui` runs uninterrupted)
+## Permissions (pre-approved so `/ascendui` runs uninterrupted)
 The repo commits **`.claude/settings.json`** so a run doesn't stop for approval prompts. It is
 deliberately **scoped**: broad `Read` + `WebSearch`/`WebFetch` (the pipeline reads your files and
 researches jobs across many domains), but **`Write`/`Edit` only under `workspace/**`** (the pipeline

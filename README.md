@@ -1,11 +1,14 @@
 <div align="center">
 
-![S.P.I.D.E.R.](assets/spider-banner.svg)
+<!-- Banner: the SVG below is the on-brand fallback. Once you generate the raster banner,
+     save it as assets/ascend-banner.png and swap the next line to:
+     ![Ascend](assets/ascend-banner.png) -->
+![Ascend](assets/ascend-banner.svg)
 
-**Strategic Profile Intelligence & Direct Employment Routing**
+**AI-run job search and career advancement, grounded in your real history.**
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-5b9dff?style=flat-square)
-&nbsp;![CI](https://github.com/koushik1610/spider/actions/workflows/ci.yml/badge.svg)
+&nbsp;![CI](https://github.com/koushik1610/ascend/actions/workflows/ci.yml/badge.svg)
 &nbsp;![Built for Claude Code](https://img.shields.io/badge/built%20for-Claude%20Code-5b9dff?style=flat-square)
 &nbsp;![Version](https://img.shields.io/badge/version-v0.4.0-8b97a7?style=flat-square)
 &nbsp;![PRs welcome](https://img.shields.io/badge/PRs-welcome-36d399?style=flat-square)
@@ -19,35 +22,35 @@ Works for any field: engineering, design, product, marketing, ops.
 
 </div>
 
-<!-- DEMO: record a 10–15s clip of `/spider` → intake → a phase completing → opening start-here.html.
+<!-- DEMO: record a 10–15s clip of `/ascend` → intake → a phase completing → opening start-here.html.
      Export GIF ≤8MB ≤1200px wide → commit to assets/demo.gif → replace this comment with:
-     <div align="center"><img src="assets/demo.gif" alt="SPIDER demo" width="900"></div>
+     <div align="center"><img src="assets/demo.gif" alt="Ascend demo" width="900"></div>
      Until then, the fictional examples/sample-run/start-here.html is the "see it" link above. -->
 
 ---
 
-> **Status — pre-1.0.** The text pipeline (`/spider`) is the stable path. The graphical console
-> (`/spiderui`), the scheduled daily brief, and the newer on-demand ops are **beta** — built and
+> **Status — pre-1.0.** The text pipeline (`/ascend`) is the stable path. The graphical console
+> (`/ascendui`), the scheduled daily brief, and the newer on-demand ops are **beta** — built and
 > code-checked, but not yet proven end-to-end on real data. See **[Known limitations](#known-limitations)**;
 > version history and what's next live in **[`docs/ROADMAP.md`](docs/ROADMAP.md)**.
 
 ## Quickstart
 
 ```bash
-git clone https://github.com/koushik1610/spider.git
-cd spider
+git clone https://github.com/koushik1610/ascend.git
+cd ascend
 # Unzip your LinkedIn export; note the folder path + your resume's path.
 claude          # open Claude Code in this folder
 ```
 
-Then type **`/spider`** (or *"Run SPIDER"*). It interviews you — name, where your LinkedIn export and
+Then type **`/ascend`** (or *"Run Ascend"*). It interviews you — name, where your LinkedIn export and
 resume are, what jobs you want — builds a private `workspace/<your-name>/`, and runs the pipeline,
 checking in after each step. When it's done, open **`workspace/<your-name>/start-here.html`**.
 
 > New to terminals? **[`docs/SETUP.md`](docs/SETUP.md)** walks through it step by step.
-> Want to sample it cheaply first? Say *"Run SPIDER Phase 1"* (just the LinkedIn analysis).
+> Want to sample it cheaply first? Say *"Run Ascend Phase 1"* (just the LinkedIn analysis).
 
-**Prefer clicking to typing?** Run **`/spiderui`** instead — it opens a graphical, Jarvis-style console
+**Prefer clicking to typing?** Run **`/ascendui`** instead — it opens a graphical, Jarvis-style console
 in your browser that walks you through everything (folder picker, target roles, an optional daily-brief
 time) and shows the pipeline running live. It needs only Python 3 (preinstalled on macOS/Linux) plus an
 agent CLI for the analysis. See [`ui/README.md`](ui/README.md).
@@ -94,18 +97,17 @@ Everything lands in `workspace/<your-name>/`, which is **gitignored** — it nev
 **Lazy by design.** A first run produces **~25–30 files** — a master resume, a 15-job queue, a thin
 packet, and a 3-file apply pack for the few jobs you commit to — *not* 100 speculative prep files for
 leads that never call back. Deep interview prep is built per job, exactly when it converts. A run
-manifest (`.spider-state.json`) makes everything **resumable** — close your laptop mid-run, say *"Run
-SPIDER resume"* later.
+manifest (`.ascend-state.json`) makes everything **resumable** — close your laptop mid-run, say *"Run
+Ascend resume"* later.
 
 <details>
-<summary><b>🕸️ the ASCII spider, for the terminal-romantics</b></summary>
+<summary><b>the ASCII sunrise, for the terminal-romantics</b></summary>
 
 ```
-        |
-      \ | /
-   ----(•)----     S.P.I.D.E.R.
-      / | \        find · tailor · apply · prep
-        |
+        \   |   /
+         \  |  /
+   - - - ( ● ) - - -     Ascend
+  ___________________    find · tailor · apply · rise
 ```
 </details>
 
@@ -115,19 +117,19 @@ SPIDER resume"* later.
 
 | Say this | What it does |
 |---|---|
-| `/spiderui` *(beta)* | **Graphical console** — browser intake wizard + live progress + daily-brief scheduling |
-| `/spider` / "Run SPIDER" | Full run from the intake interview (text) |
-| "Run SPIDER Phase 1" | Just the LinkedIn analysis (cheap first taste) |
-| "Run SPIDER resume" | Resume an interrupted run where it stopped |
-| "SPIDER today" | **Daily briefing** — today's 3 actions + ghost-detector follow-ups, drafted |
-| "SPIDER network" | **Warm-network map** — who you already know at each target company |
-| "SPIDER answers" | Reusable, varied answers to common application questions |
-| "SPIDER job add \<url>" | Add + build an apply pack for a job you found |
-| "SPIDER prep 03" | Build deep interview prep for job #3 (when a screen books) + mock drill |
-| "SPIDER score \<paste a JD>" | 0–100 Fit Score + missing keywords, no files built |
-| "SPIDER export Acme" | Render a job's résumé to a one-page ATS-safe PDF (résumé builder) |
-| "SPIDER build-resume" | Open the standalone résumé builder (form + live preview + Create PDF) |
-| "Run SPIDER maintenance" | Weekly: new/closed jobs, follow-ups due, retro patterns |
+| `/ascendui` *(beta)* | **Graphical console** — browser intake wizard + live progress + daily-brief scheduling |
+| `/ascend` / "Run Ascend" | Full run from the intake interview (text) |
+| "Run Ascend Phase 1" | Just the LinkedIn analysis (cheap first taste) |
+| "Run Ascend resume" | Resume an interrupted run where it stopped |
+| "Ascend today" | **Daily briefing** — today's 3 actions + ghost-detector follow-ups, drafted |
+| "Ascend network" | **Warm-network map** — who you already know at each target company |
+| "Ascend answers" | Reusable, varied answers to common application questions |
+| "Ascend job add \<url>" | Add + build an apply pack for a job you found |
+| "Ascend prep 03" | Build deep interview prep for job #3 (when a screen books) + mock drill |
+| "Ascend score \<paste a JD>" | 0–100 Fit Score + missing keywords, no files built |
+| "Ascend export Acme" | Render a job's résumé to a one-page ATS-safe PDF (résumé builder) |
+| "Ascend build-resume" | Open the standalone résumé builder (form + live preview + Create PDF) |
+| "Run Ascend maintenance" | Weekly: new/closed jobs, follow-ups due, retro patterns |
 
 Every job also gets an explainable **Fit Score (0–100)** so you work the best matches first. For the
 full picture of who uses each command and when — what you start with and the path through each one —
@@ -145,7 +147,7 @@ interviews; tailored documents are just the ammunition.
 
 - **You need a Claude subscription / API access** — this runs inside Claude Code and uses tokens.
 - **A full run is long:** live web research for 15+ roles + the generated files often means **1–3+
-  hours** of Claude working, across several check-ins. Sample it first ("Run SPIDER Phase 1", or "only
+  hours** of Claude working, across several check-ins. Sample it first ("Run Ascend Phase 1", or "only
   find 3 jobs and build apply packs for 2").
 - **The PDF step is automated** (`08-export-pdf` renders headless via the résumé builder + Chrome). If
   no Chrome-class browser is found it falls back to a two-click "Save as PDF". Eyeball it either way.
@@ -163,7 +165,7 @@ résumés and LinkedIn CSVs anywhere in the tree as a backstop, and both dashboa
 personal data — keep it local" banner. Run it for more than one person and each gets their own
 `workspace/<name>/`; delete a folder to wipe that person entirely.
 
-**Honesty.** SPIDER never fabricates. Every claim traces to your LinkedIn export, your résumé, or an
+**Honesty.** Ascend never fabricates. Every claim traces to your LinkedIn export, your résumé, or an
 answer you gave — no invented metrics, titles, certs, skills, or referral contacts. A role wants
 something you don't have? That's a **gap with honest handling**, not a bluff. Personal "why this
 company" essays come out as honest *outlines* for you to write in your voice — never as finished prose.
@@ -197,11 +199,11 @@ session). Nothing is committed to git; nothing is published.
 
 Honest about what's proven vs. still beta (and the path to 1.0 is tracked in [`docs/ROADMAP.md`](docs/ROADMAP.md)):
 
-- **Beta surfaces** — `/spiderui`, the scheduled daily brief, and the newer on-demand ops (`network`,
+- **Beta surfaces** — `/ascendui`, the scheduled daily brief, and the newer on-demand ops (`network`,
   `answers`, `today`, `prep`) are built and code-checked but **not yet verified end-to-end on real
-  data**. The text `/spider` pipeline is the stable path.
+  data**. The text `/ascend` pipeline is the stable path.
 - **Scheduled daily brief** — the cron runs your agent CLI headlessly, which may need it configured for
-  non-interactive use (permissions/flags). If a scheduled run doesn't complete, just say **"Run SPIDER
+  non-interactive use (permissions/flags). If a scheduled run doesn't complete, just say **"Run Ascend
   today"** in Claude Code for the same briefing. Detecting a CLI (`claude`/`gemini`/`codex`) does not
   guarantee it completes a multi-file run unattended.
 - **Platform** — the daily-brief scheduler uses cron (**macOS/Linux**); **native Windows is not
@@ -218,12 +220,12 @@ Honest about what's proven vs. still beta (and the path to 1.0 is tracked in [`d
 <summary><b>Repo map</b></summary>
 
 ```
-spider/
+ascend/
 ├── README.md · START-HERE.md · WORKFLOW.md · CLAUDE.md · CONTRIBUTING.md · CHANGELOG.md · LICENSE (MIT)
 ├── .gitignore                       privacy backstop (ignores all personal data + output)
-├── .claude/commands/                the /spider + /spiderui slash commands
+├── .claude/commands/                the /ascend + /ascendui slash commands
 ├── ui/                              the graphical console: server.py (also `--render` → PDF), index.html, run-daily-brief.sh
-├── assets/spider-banner.svg         the brand banner (+ a slot for a demo.gif)
+├── assets/ascend-banner.svg         the brand banner (+ a slot for a demo.gif)
 ├── docs/                            SETUP.md (first-run guide) · ROADMAP.md (versions + what's next)
 ├── prompts/                         00-orchestrator + phases 01–07; on-demand 08–13
 │                                    (export, maintenance, deep-prep, network-map, answer-sheet, daily-briefing)
@@ -244,6 +246,6 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) to add field packs, polish the dashboar
 
 <div align="center">
 
-**MIT** — see [`LICENSE`](LICENSE). Use it, fork it, run it for your friends and family. 🕸️
+**MIT** — see [`LICENSE`](LICENSE). Use it, fork it, run it for your friends and family.
 
 </div>

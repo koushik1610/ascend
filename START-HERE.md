@@ -1,4 +1,4 @@
-# START HERE — run S.P.I.D.E.R. in 3 steps
+# START HERE — run Ascend in 3 steps
 
 The 60-second version. Full details in [`README.md`](README.md); the path through every command
 (and when to use each) is in [`WORKFLOW.md`](WORKFLOW.md).
@@ -6,13 +6,13 @@ The 60-second version. Full details in [`README.md`](README.md); the path throug
 ### 1. Get your inputs ready
 - **LinkedIn export:** LinkedIn → *Settings → Data Privacy → Get a copy of your data → "The works."*
   You'll get a zip by email. **Unzip it** and note the folder path.
-- **Your resume:** note its path (PDF/.docx/.md). Don't have one? That's fine — SPIDER will build one.
+- **Your resume:** note its path (PDF/.docx/.md). Don't have one? That's fine — Ascend will build one.
 
 ### 2. Open Claude Code in this repo and start
 ```
-/spider
+/ascend
 ```
-or just say **"Run SPIDER."** Answer the intake interview (name · where your LinkedIn folder is ·
+or just say **"Run Ascend."** Answer the intake interview (name · where your LinkedIn folder is ·
 where your resume is · what jobs you want · location/remote · any honest gaps). Then let it run — it
 checkpoints after each phase so you stay in control.
 
@@ -23,6 +23,6 @@ When it finishes, open **`workspace/<your-name>/start-here.html`** in a browser.
 ---
 
 **Privacy:** everything about you lands in `workspace/<your-name>/` and is gitignored — never committed,
-never published. **Honesty:** SPIDER never fabricates; every claim traces to your own data.
+never published. **Honesty:** Ascend never fabricates; every claim traces to your own data.
 
-Re-run anytime: *"Run SPIDER Phase 4"* refreshes your job list with new postings.
+Re-run anytime: *"Run Ascend Phase 4"* refreshes your job list with new postings.

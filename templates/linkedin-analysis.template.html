@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  S.P.I.D.E.R. — LinkedIn Analysis dashboard TEMPLATE.
+  Ascend — LinkedIn Analysis dashboard TEMPLATE.
   HOW TO USE (Phase 1): fill the `DATA` object below with the user's real numbers computed from their
   LinkedIn export, then write the result to workspace/<name>/linkedin-analysis.html. The page renders
   entirely from DATA via vanilla JS + inline SVG — no network, no build, opens offline in any browser.
@@ -124,7 +124,7 @@
   Phase 1 MUST validate it parses (e.g. `node -e "JSON.parse(require('fs').readFileSync(0,'utf8'))"`)
   before declaring done — a JSON syntax error here is the one thing that blanks the whole dashboard.
 -->
-<script type="application/json" id="spider-data">
+<script type="application/json" id="ascend-data">
 {
   "name": "<Full Name>",
   "asOf": "<YYYY-MM-DD>",
@@ -158,7 +158,7 @@
 </script>
 <script>
 /* Phase 1 fills the JSON above; this script renders from it. Editing data = edit the JSON, not here. */
-const DATA = JSON.parse(document.getElementById("spider-data").textContent);
+const DATA = JSON.parse(document.getElementById("ascend-data").textContent);
 
 /* ---- render ---- */
 const $=s=>document.querySelector(s), el=(t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e};

@@ -23,4 +23,4 @@ jobs:
           done
 
       - name: Validate SVG banner is well-formed XML
-        run: python3 -c "import xml.dom.minidom; xml.dom.minidom.parse('assets/spider-banner.svg'); print('SVG ok')"
+        run: python3 -c "import xml.dom.minidom; xml.dom.minidom.parse('assets/ascend-banner.svg'); print('SVG ok')"

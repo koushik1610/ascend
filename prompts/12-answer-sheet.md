@@ -3,7 +3,7 @@
 **Goal:** kill the most tedious, error-prone part of applying — the open-ended application questions —
 without a ToS-violating autofill bot. Generate an honest, **reusable** answer bank the user copy-pastes,
 with **varied phrasings** so 15 applications don't carry the identical paste-able paragraph that
-recruiters now flag instantly. Run on request: *"build my answer sheet,"* `/spider answers`, or per job
+recruiters now flag instantly. Run on request: *"build my answer sheet,"* `/ascend answers`, or per job
 when a posting has custom screener questions.
 
 **Read first:** `workspace/<name>/intake.md`, `master-resume.md` (the real evidence to draw from),

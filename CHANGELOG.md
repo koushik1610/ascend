@@ -1,7 +1,10 @@
 # Changelog
 
-All notable changes to S.P.I.D.E.R. Format loosely follows [Keep a Changelog](https://keepachangelog.com/);
+All notable changes to Ascend. Format loosely follows [Keep a Changelog](https://keepachangelog.com/);
 versioning is [SemVer](https://semver.org/).
+
+> **Renamed.** This project was previously called **S.P.I.D.E.R.** (and the `/spider` command). It is
+> now **Ascend**, with `/ascend` and `/ascendui` commands; earlier entries below use the old name.
 
 ## [Unreleased] — v1.0 hardening
 Working through the v1.0 readiness review (`docs/ROADMAP.md` "Path to v1.0").
@@ -14,7 +17,7 @@ Working through the v1.0 readiness review (`docs/ROADMAP.md` "Path to v1.0").
   `prompts/08-export-pdf.md` is rewritten around the builder as the single renderer (old
   `resume-print.template.html` retired); Phases **3** (master public résumé) and **5** (each pursued job)
   now emit `resume.json` + filled builder HTML + the rendered PDF automatically, and a new
-  **`/spider build-resume`** op opens the builder ad-hoc. `reference/resume-writing-rules.md` gains a
+  **`/ascend build-resume`** op opens the builder ad-hoc. `reference/resume-writing-rules.md` gains a
   **calibrated one-page content budget** so the markdown is generated to fit (no font shrinking).
   Smoke tests cover the template's self-containment, the data island, and the render path.
 - **Industry-analysis framework + Phase 4 "industry scan."** New `reference/industry-analysis-framework.md`
@@ -23,9 +26,9 @@ Working through the v1.0 readiness review (`docs/ROADMAP.md` "Path to v1.0").
   scan first**, writing `workspace/<name>/industry-insights.md`, so the job queue's Fit Scores, the
   resume's keyword coverage, and the pre-application blockers are grounded in market evidence rather than
   guessed. No run-order change (it's a sub-step of Phase 4).
-- **`/spiderui` runs in the browser, not the terminal.** The console now shows **live progress** — a
+- **`/ascendui` runs in the browser, not the terminal.** The console now shows **live progress** — a
   phase board *and* an activity feed — instead of telling you to switch to the terminal. The pipeline
-  writes `current`/`log` into `.spider-state.json`; the console polls and renders it.
+  writes `current`/`log` into `.ascend-state.json`; the console polls and renders it.
 - **Results display in the console.** When the run finishes it opens an in-app **results browser** — a
   nav of every output (Start here → LinkedIn analysis → Master résumé → Job queue → Interview packet →
   apply packs) with a reading pane. New server routes: `/api/results` (the output tree) and `/view/`
@@ -41,10 +44,10 @@ Working through the v1.0 readiness review (`docs/ROADMAP.md` "Path to v1.0").
 - **v1.0 polish (should-fix items).** The folder/file picker now returns a **status**
   (`ok`/`cancelled`/`unavailable`/`error`) so the console shows a *"no native picker — paste the path"*
   hint on Linux without `zenity`/`kdialog` (instead of a silent no-op). The phase **run-order is
-  single-sourced** — canonical in `00-orchestrator.md`, restated in `CLAUDE.md`/`spiderui.md`, with a
+  single-sourced** — canonical in `00-orchestrator.md`, restated in `CLAUDE.md`/`ascendui.md`, with a
   smoke-test asserting all three match. The daily-brief wrapper gained a **`--check`** self-test (agent
   detection + prompt assembly, no agent call / no quota) wired into the smoke suite.
-- **Security:** hardened the `/spiderui` local server against CSRF + DNS-rebinding (Host allowlist,
+- **Security:** hardened the `/ascendui` local server against CSRF + DNS-rebinding (Host allowlist,
   per-session token on `/api/*`, Origin check on POST, stricter path-traversal guard). Verified live.
 - **Security (council 2026-06-15, fixed 2026-06-16):** closed the two CRITICALs the council found.
   **(SEC-CRIT-2)** the in-app Markdown reader now sanitizes link schemes (`http`/`https`/`mailto`/relative
@@ -59,20 +62,20 @@ Working through the v1.0 readiness review (`docs/ROADMAP.md` "Path to v1.0").
   deny-list. The unattended daily-brief restates the quarantine inline. New `tests/smoke.py` checks guard
   all three. Full write-up in `docs/ROADMAP.md → Council review → Security review`.
 - **Honesty:** added a **Project status** + **Known limitations** section and marked beta the surfaces
-  that haven't been run end-to-end on real data (`/spiderui`, the cron daily-brief, and the newer
+  that haven't been run end-to-end on real data (`/ascendui`, the cron daily-brief, and the newer
   on-demand ops). Softened "validated JSON" wording (the generator checks it parses; there's no
   separate validator).
 - **Fixes:** removed a dead `resume-audit.md` link from the default dashboard and stale prompt refs
   (the résumé audit is folded into the master résumé); the bridge now clears the `.ui-ready` flag on
   pickup so a stale flag can't mis-route a run.
-- Console gets a subtle spider-web backdrop (`images/spider_unsplash2.jpg`, Unsplash-licensed) served
+- Console gets a subtle web-texture backdrop (`images/spider_unsplash2.jpg`, Unsplash-licensed) served
   via a new `/images/` route; `images/` is gitignored with a cleared-file allow-list.
 
 ## [0.4.0] — 2026-06-14
-A graphical front end so starting SPIDER is point-and-click, not typing.
+A graphical front end so starting Ascend is point-and-click, not typing.
 
 ### Added
-- **`/spiderui` — the SPIDER console.** A local, Jarvis-style browser wizard: typewriter intro → 5-step
+- **`/ascendui` — the Ascend console.** A local, Jarvis-style browser wizard: typewriter intro → 5-step
   intake (LinkedIn *"yes (pick folder) / no (show me how)"*, résumé, target roles, honest calibration,
   optional daily-brief time) → live pipeline progress board → **Open my dashboard**.
 - **`ui/server.py`** — a dependency-free (Python 3 stdlib) localhost-only control server: native
@@ -86,7 +89,7 @@ A graphical front end so starting SPIDER is point-and-click, not typing.
   tier can't read local files; you need a local agent CLI; the UI + scheduling need only Python).
 
 ### Notes
-- The console is optional sugar — the text `/spider` flow does the same thing in chat.
+- The console is optional sugar — the text `/ascend` flow does the same thing in chat.
 
 ## [0.3.0] — 2026-06-14
 First cut of the market-research roadmap (`docs/ROADMAP.md`, built from a 5-surface council on how
@@ -97,13 +100,13 @@ on-demand, keeping the default run lean.
 - **Explainable Job Match Score (0–100)** on every job (skills / seniority / comp / location /
   excitement, each 0–20, with reasoning). Shows on the queue, the navigator job board, and the
   `score <JD>` op. (P1 #3)
-- **Warm-Network Mapper** (`prompts/11-network-map.md`, `/spider network`) — mines the `Connections.csv`
+- **Warm-Network Mapper** (`prompts/11-network-map.md`, `/ascend network`) — mines the `Connections.csv`
   already in the LinkedIn export to surface real warm referral paths per target company and the likely
   recruiter/HM; feeds referral-first outreach. No scraping, no invented contacts. (P1 #1)
-- **Application Answer Sheet** (`prompts/12-answer-sheet.md`, `/spider answers`) — reusable, **varied**
+- **Application Answer Sheet** (`prompts/12-answer-sheet.md`, `/ascend answers`) — reusable, **varied**
   honest answers to common application questions + per-job custom screeners. The honest substitute for
   paywalled autofill; avoids the identical-answer "AI applicant" tell. (P1 #8)
-- **Daily Briefing** (`prompts/13-daily-briefing.md`, `/spider today`) — a ~20-min action loop, plus a
+- **Daily Briefing** (`prompts/13-daily-briefing.md`, `/ascend today`) — a ~20-min action loop, plus a
   **ghost-detector + follow-up engine**: per-application aging timers that draft the follow-up (or call
   "move on" and replace the target). (P1 #9 + #12)
 - `docs/ROADMAP.md` — the full P1/P2 backlog with sources and a "deliberately not building" list.
@@ -119,7 +122,7 @@ speculative output, and a modern README.
 ### Changed — leaner workflow (the headline)
 - **Tiered job folders.** A folder is now a **CORE apply pack** (`resume.md` · `outreach.md` ·
   `application-log.md`) built only for the **top 3–5 jobs you commit to**, plus a **deep interview-prep
-  pack** built **on demand** when a screen is booked (`prompts/10-deep-prep.md`, `/spider prep <NN>`).
+  pack** built **on demand** when a screen is booked (`prompts/10-deep-prep.md`, `/ascend prep <NN>`).
   A first run now produces ~25–30 files instead of ~100 — no deep prep for leads that never call back.
 - **Resume audit folded into the master resume** (was a standalone Phase 2). Keyword set is derived
   once (master §4) and reused downstream instead of re-computed per phase.
@@ -127,15 +130,15 @@ speculative output, and a modern README.
 
 ### Added — targeting the real objective (interviews, not paperwork)
 - **Weekly action loop + scoreboard** on the navigator: apply-N / ask-N-referrals targets and a
-  referrals→applied→screening→onsite→offers funnel up top; `"SPIDER today"` action list.
+  referrals→applied→screening→onsite→offers funnel up top; `"Ascend today"` action list.
 - **Referral-first hard gate** in `application-log.md` — can't mark "applied" until a referral was
   attempted or explicitly waived.
 - **Mock-interview drill** in the on-demand prep pack (reps, not just reading).
 - Single-source job status (`application-log.md` → navigator JSON) to prevent drift.
 
 ### Added — brand & docs
-- `assets/spider-banner.svg` (static, dashboard-token brand mark) and a modernized README: banner,
-  badges, tagline, demo-GIF slot, collapsible sections, ASCII spider, "see a fictional run" link.
+- `assets/ascend-banner.svg` (static, dashboard-token brand mark) and a modernized README: banner,
+  badges, tagline, demo-GIF slot, collapsible sections, ASCII ascend, "see a fictional run" link.
 
 ## [0.1.0] — 2026-06-13
 First public version. A reusable, Claude Code-driven job-search pipeline.
@@ -150,8 +153,8 @@ First public version. A reusable, Claude Code-driven job-search pipeline.
   `resume-print` (ATS-safe print shell), and two self-contained dashboards (linkedin-analysis,
   start-here) driven by a JSON data block the generator checks parses.
 - **Reference rules:** ATS/keywords, resume-writing, number-&-honesty policy, interview-prep framework.
-- **Resumability:** `.spider-state.json` run manifest + `resume`, `job add`, `job rebuild`, `score`,
-  `export`, `maintenance` operations via the `/spider` command.
+- **Resumability:** `.ascend-state.json` run manifest + `resume`, `job add`, `job rebuild`, `score`,
+  `export`, `maintenance` operations via the `/ascend` command.
 - **Privacy model:** everything personal under gitignored `workspace/`; PII banners on both dashboards;
   a fictional worked example under `examples/sample-run/`.
 - **Docs:** comprehensive `README`, `START-HERE`, non-technical `docs/SETUP.md`, `CONTRIBUTING`,

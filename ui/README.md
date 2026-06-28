@@ -1,20 +1,20 @@
-# The SPIDER console (`/spiderui`)
+# The Ascend console (`/ascendui`)
 
-A graphical, no-typing way to start SPIDER. Open Claude Code in the repo and run:
+A graphical, no-typing way to start Ascend. Open Claude Code in the repo and run:
 
 ```
-/spiderui
+/ascendui
 ```
 
 A small local server starts and your browser opens a **Jarvis-style console**: it greets you, then
 walks you through a 5-step intake — *did you download your LinkedIn data?* (yes → native folder picker,
 or **No → show me how**), your résumé, target roles, an honest calibration step, and an optional
-**daily-brief time**. When you finish, SPIDER runs the whole pipeline and the console shows each phase
+**daily-brief time**. When you finish, Ascend runs the whole pipeline and the console shows each phase
 completing, ending with an **Open my dashboard** button.
 
 ## How it actually works (and why a server)
 A browser tab can't, on its own, read your folders, run an AI, or schedule a job — browsers sandbox all
-of that for safety. So `/spiderui` starts **`ui/server.py`**, a tiny server built on the Python 3
+of that for safety. So `/ascendui` starts **`ui/server.py`**, a tiny server built on the Python 3
 **standard library only** (no installs), bound to **`127.0.0.1` (your machine only)**. It does the
 real work the browser can't: native folder/file pickers, writing your `intake.md`, installing the
 daily-brief schedule, reporting pipeline progress, and serving your dashboard. Nothing leaves your
@@ -27,9 +27,9 @@ the console page (a random website can't read that token, so it can't drive the 
 headers, so other origins can't read your `workspace` files either.
 
 ```
-/spiderui ──► Claude Code starts ui/server.py (localhost) ──► browser opens the console
+/ascendui ──► Claude Code starts ui/server.py (localhost) ──► browser opens the console
    console wizard ──► server writes workspace/<you>/intake.md + a "ready" flag
-   Claude Code sees the flag ──► runs the pipeline ──► writes progress to .spider-state.json
+   Claude Code sees the flag ──► runs the pipeline ──► writes progress to .ascend-state.json
    console shows it LIVE (phase board + activity feed) ──► "Open my dashboard" ──► start-here.html
 ```
 
@@ -52,7 +52,7 @@ own tab.
   analysis. **Claude Code** is the reference. The console and the daily brief also **auto-detect
   `gemini` (Gemini CLI) and `codex` (Codex CLI)** and use whatever you have.
 - ⚠️ **A free *web-chat* tier (claude.ai / chatgpt.com / gemini.google.com) cannot drive this** — those
-  websites can't read your local files (a browser security limit, not a SPIDER choice). The closest
+  websites can't read your local files (a browser security limit, not an Ascend choice). The closest
   free path is a free **CLI** tier (e.g., Gemini CLI's free tier). The UI, folder picker, and
   scheduling work with just Python; the *intelligence* needs a local agent CLI.
 
@@ -60,16 +60,16 @@ own tab.
 If you pick a time, the server installs a **cron job** (macOS/Linux) that runs
 `ui/run-daily-brief.sh <you>` at that time. The wrapper detects your agent CLI and runs the
 **Daily Briefing** (Phase 13) headlessly, writing `workspace/<you>/daily-briefing.md`. Turn it off by
-removing the `# SPIDER-DAILY-BRIEF-<you>` line from `crontab -e`.
+removing the `# Ascend-DAILY-BRIEF-<you>` line from `crontab -e`.
 
 - **Headless runs vary by CLI.** Non-interactive agent runs that touch files/web may need the CLI
   configured for that (permissions/flags). If the scheduled run can't complete, just open Claude Code
-  and say **"Run SPIDER today"** — same briefing, manually.
+  and say **"Run Ascend today"** — same briefing, manually.
 - **Windows** has no cron: the console will show the command to register in **Task Scheduler** instead,
-  or run the brief manually with "Run SPIDER today."
+  or run the brief manually with "Run Ascend today."
 
-## Prefer typing? Use `/spider`
-The console is optional sugar. The text flow (`/spider`) does everything the same way in chat, and is
+## Prefer typing? Use `/ascend`
+The console is optional sugar. The text flow (`/ascend`) does everything the same way in chat, and is
 the better path if you like the terminal or are on a platform where the GUI bits don't apply.
 
 ## The résumé builder
@@ -83,7 +83,7 @@ The server does double duty as the résumé PDF engine. Two entry points:
 - **`/resume-builder`** (served while the console runs) or just opening
   `templates/resume-builder.template.html` in a browser — the **standalone builder**: a form with a
   live preview, a one-page boundary warning, and **Create PDF / Sample / Export / Import / Clear**. Data
-  round-trips as `resume.json` (JSON Resume schema). Reachable via `/spider build-resume`.
+  round-trips as `resume.json` (JSON Resume schema). Reachable via `/ascend build-resume`.
 
 ## Files here
 - `server.py` — the local control server + résumé PDF renderer (stdlib only; shells to Chrome for `--render`).

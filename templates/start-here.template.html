@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  S.P.I.D.E.R. — START-HERE navigator TEMPLATE (the front door to the whole job search).
+  Ascend — START-HERE navigator TEMPLATE (the front door to the whole job search).
   HOW TO USE (Phase 7): fill the `DATA` object with the user's real pipeline + jobs, then write the
   result to workspace/<name>/start-here.html. Relative links resolve from that folder. Self-contained,
   offline, vanilla JS. To refresh job status later, edit DATA.jobs[*].status and re-open — or re-run
@@ -106,7 +106,7 @@
   "deadline" (YYYY-MM-DD) and "nextAction" surface in the Reminders strip. To refresh status, edit the
   JSON and re-open, or re-run Phase 7. Phase 7 MUST confirm this JSON parses before declaring done.
 -->
-<script type="application/json" id="spider-data">
+<script type="application/json" id="ascend-data">
 {
   "name":"<Full Name>", "role":"<target role(s)>", "positioning":"<one-line positioning>", "asOf":"<YYYY-MM-DD>",
   "thisWeek":[ {"t":"<highest-leverage action — 3 to 5>", "note":"<why>"} ],
@@ -137,7 +137,7 @@
 </script>
 <script>
 /* Phase 7 fills the JSON above; this script renders from it. Editing data = edit the JSON, not here. */
-const DATA = JSON.parse(document.getElementById("spider-data").textContent);
+const DATA = JSON.parse(document.getElementById("ascend-data").textContent);
 
 const $=s=>document.querySelector(s), el=(t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e};
 $("#hName").textContent=`${DATA.name} — Job Search HQ`;

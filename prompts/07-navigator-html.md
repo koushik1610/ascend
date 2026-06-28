@@ -29,12 +29,12 @@ master-resume.md, job-queue.md, jobs/*, interview-packet/*) and
    from `job-queue.md`)**, location, comp, ATS, and **status read from each `application-log.md`** — `application-log.md` is the single source of
    truth for status; Phase 7 copies it into the JSON (don't let the two drift — re-read on refresh).
 8. **Interview packet** — links to each packet file.
-9. **How to use this system** — a short note + pointer to the README maintenance loop ("Run SPIDER
-   maintenance" weekly; "/spider prep \<NN>" when a screen books; update application-logs as you go).
+9. **How to use this system** — a short note + pointer to the README maintenance loop ("Run Ascend
+   maintenance" weekly; "/ascend prep \<NN>" when a screen books; update application-logs as you go).
 
 ## Build requirements
 - Start from `../templates/start-here.template.html`. Fill the **`<script type="application/json"
-  id="spider-data">` block** (strict JSON — double-quoted, no comments, no trailing commas); the page
+  id="ascend-data">` block** (strict JSON — double-quoted, no comments, no trailing commas); the page
   renders from it via `JSON.parse`. Per job you may set `status`, and optionally `deadline`
   (`YYYY-MM-DD`) and `nextAction` (these surface in the Deadlines & Follow-ups strip). **Validate the
   JSON parses** before declaring done — a syntax error blanks the dashboard. Don't edit the render JS.

@@ -1,16 +1,16 @@
 ---
-description: Start the S.P.I.D.E.R. job-search pipeline (intake interview → LinkedIn analysis → resume audit → master resume → 15+ jobs → per-job folders → navigator)
+description: Start the Ascend job-search pipeline (intake interview → LinkedIn analysis → resume audit → master resume → 15+ jobs → per-job folders → navigator)
 ---
 
-Run S.P.I.D.E.R. Follow `prompts/00-orchestrator.md` from the top: begin with the intake interview
+Run Ascend Follow `prompts/00-orchestrator.md` from the top: begin with the intake interview
 (name, LinkedIn export location, resume location, target roles/companies/location/comp, differentiators,
 honest gaps, any sanitization needs), reflect back an Intake Summary for confirmation, then build
 `workspace/<name>/` and drive phases 1–7, pausing at a checkpoint after each.
 
 `$ARGUMENTS` may select a specific operation instead of a full run — read `workspace/<name>/intake.md`
-and `workspace/<name>/.spider-state.json` first, then:
+and `workspace/<name>/.ascend-state.json` first, then:
 - **`Phase N`** (or a phase name) → run that phase directly from its `prompts/0N-*.md` file.
-- **`resume`** → read `.spider-state.json`, tell the user where it stopped, and continue from the first
+- **`resume`** → read `.ascend-state.json`, tell the user where it stopped, and continue from the first
   incomplete unit (skip completed phases/folders).
 - **`job add <url-or-description>`** → fetch/verify the posting, append it to `job-queue.md`, build its
   **CORE apply pack** per `prompts/05-job-folders.md`. Don't rebuild the queue.
@@ -34,5 +34,5 @@ and `workspace/<name>/.spider-state.json` first, then:
   location/excitement + reasoning) and the missing-but-claimable keywords; build nothing.
 
 Honor the binding rules in `CLAUDE.md`: person-agnostic, honesty gates absolute, selection-not-invention,
-all personal output under `workspace/` only, never commit personal data. Update `.spider-state.json`
+all personal output under `workspace/` only, never commit personal data. Update `.ascend-state.json`
 after each phase and each job folder so the run is always resumable.

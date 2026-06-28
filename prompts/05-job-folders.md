@@ -14,7 +14,7 @@ files per pursued job; deep interview prep is built later, on demand, only when 
 ## Which jobs get a pack
 Ask the user (or use the ranking): build apply packs for the **top 3–5 jobs they commit to applying to
 now**. Jobs further down the queue stay as **queue rows** ("activate to build") until the user commits
-to them — then build their pack with `/spider job rebuild <NN>` or just "build the pack for #N."
+to them — then build their pack with `/ascend job rebuild <NN>` or just "build the pack for #N."
 Building 5 packs beats building 15 folders nobody opens.
 
 ## The CORE apply pack (3 files per `_TEMPLATE.md` §1, §5, §8)
@@ -57,4 +57,4 @@ bodies, the metrics bank, or shared prep.
 ## Checkpoint
 Report the packs built, MASTER GAPS surfaced (fix in `master-resume.md` — fix the source), and remind
 the user: **deep interview prep is generated on demand** — when a screen gets booked, run
-`/spider prep <NN>` (Phase 10). Then Phase 7 (navigator).
+`/ascend prep <NN>` (Phase 10). Then Phase 7 (navigator).

@@ -56,7 +56,7 @@ from `../reference/ats-and-keywords.md`. Mark any step that depends on a fact yo
 
 ## Build the HTML
 Start from `../templates/linkedin-analysis.template.html`. Fill the **`<script type="application/json"
-id="spider-data">` block** with this user's real numbers — it is strict JSON (double-quoted keys, no
+id="ascend-data">` block** with this user's real numbers — it is strict JSON (double-quoted keys, no
 comments, no trailing commas), and the page renders from it via `JSON.parse`. **`steps` must hold
 exactly 10 objects.** After writing, **validate the JSON parses** (extract the block and run it through
 a JSON parser) — a syntax error there blanks the entire dashboard. Don't edit the render `<script>`.

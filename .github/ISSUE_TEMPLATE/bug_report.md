@@ -15,7 +15,7 @@ labels: bug
 - [ ] Docs / setup
 
 **What you did**
-The command/prompt you ran (e.g., "Run SPIDER Phase 4").
+The command/prompt you ran (e.g., "Run Ascend Phase 4").
 
 **What you expected**
 

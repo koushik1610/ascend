@@ -1,8 +1,8 @@
 ---
-description: Launch the graphical S.P.I.D.E.R. console — a local Jarvis-style intake wizard that collects your info, schedules the daily brief, and shows the pipeline running. Then run the pipeline from what it captured.
+description: Launch the graphical Ascend console — a local Jarvis-style intake wizard that collects your info, schedules the daily brief, and shows the pipeline running. Then run the pipeline from what it captured.
 ---
 
-Launch the **SPIDER console** (the graphical front end) and then drive the pipeline from what it
+Launch the **Ascend console** (the graphical front end) and then drive the pipeline from what it
 collects. Do this in order:
 
 ## 1. Start the local console server (background)
@@ -11,11 +11,11 @@ Run the server in the background so it keeps serving while you continue:
 python3 ui/server.py
 ```
 Use the Bash tool with `run_in_background: true`. The server binds to `127.0.0.1`, finds a free port,
-writes it to `ui/.port`, prints `SPIDER console → http://127.0.0.1:<port>/`, and **opens the browser
+writes it to `ui/.port`, prints `Ascend console → http://127.0.0.1:<port>/`, and **opens the browser
 automatically**. (Requires Python 3 — preinstalled on macOS/Linux. If `python3` is missing, tell the
-user to install it or use the text flow `/spider` instead.)
+user to install it or use the text flow `/ascend` instead.)
 
-Then tell the user: *"Your SPIDER console is open in the browser — complete the short intake there
+Then tell the user: *"Your Ascend console is open in the browser — complete the short intake there
 (name, LinkedIn folder, target roles, daily-brief time). I'll start working the moment you finish."*
 
 ## 2. Wait for the intake (don't ask the questions again in chat)
@@ -38,7 +38,7 @@ console, don't ask the user to switch back. UI-mode adjustments:
   the pipeline's tools (workspace writes + web research + a few commands), so run **straight through**
   without pausing for approval or confirmation. (If something genuinely outside that allow-list comes up,
   surface it briefly in the log rather than silently hanging.)
-- **Write live progress to `workspace/<slug>/.spider-state.json`** so the console's live feed updates.
+- **Write live progress to `workspace/<slug>/.ascend-state.json`** so the console's live feed updates.
   After every phase boundary — and ideally at the start of long phases too — write the JSON with:
   - `"phases": {"1":"done", "3":"in-progress", ...}` using phase numbers `1,3,4,6,5,7`,
   - `"current": "<one short line of what's happening now>"` (e.g. *"Searching for jobs — 12 candidates so far…"*),

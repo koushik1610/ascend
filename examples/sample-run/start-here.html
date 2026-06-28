@@ -1,7 +1,7 @@
 <!doctype html>
 <!--
   🧪 FICTIONAL SAMPLE — every name, number, company, and link is invented.
-  S.P.I.D.E.R. START-HERE navigator (the front door to the whole job search), filled with demonstration
+  Ascend START-HERE navigator (the front door to the whole job search), filled with demonstration
   data for the fictional persona "Jordan Rivera." No real person, employer, metric, or link. Real runs
   write this file to workspace/<name>/start-here.html. Relative links resolve from that folder.
   Self-contained, offline, vanilla JS. Status values: not-started | referral | applied | screening |
@@ -106,7 +106,7 @@
   "deadline" (YYYY-MM-DD) and "nextAction" surface in the Reminders strip. To refresh status, edit the
   JSON and re-open, or re-run Phase 7. Phase 7 MUST confirm this JSON parses before declaring done.
 -->
-<script type="application/json" id="spider-data">
+<script type="application/json" id="ascend-data">
 {
   "name":"Jordan Rivera (FICTIONAL SAMPLE)", "role":"Staff / Lead Product Designer", "positioning":"Design systems eng actually adopts · 0→1 product design · research-driven IC multiplier", "asOf":"2026-06-11",
   "thisWeek":[
@@ -149,7 +149,7 @@
 </script>
 <script>
 /* Phase 7 fills the JSON above; this script renders from it. Editing data = edit the JSON, not here. */
-const DATA = JSON.parse(document.getElementById("spider-data").textContent);
+const DATA = JSON.parse(document.getElementById("ascend-data").textContent);
 
 const $=s=>document.querySelector(s), el=(t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e};
 $("#hName").textContent=`${DATA.name} — Job Search HQ`;
