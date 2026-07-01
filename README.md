@@ -6,7 +6,7 @@
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-5b9dff?style=flat-square)
 &nbsp;![Built for Claude Code](https://img.shields.io/badge/built%20for-Claude%20Code-5b9dff?style=flat-square)
-&nbsp;![Version](https://img.shields.io/badge/version-v0.5.0-8b97a7?style=flat-square)
+&nbsp;![Version](https://img.shields.io/badge/version-v0.6.0-8b97a7?style=flat-square)
 
 **Your entire job search, run by an agent that doesn't make things up.**
 From your LinkedIn export to tailored applications and interview prep — one command, zero fabrication.
@@ -23,7 +23,7 @@ Works for any field: engineering, design, product, marketing, ops.
 
 ---
 
-> **Status — v0.5.0, on the path to 1.0.** The **`/ascend` text pipeline is the stable core** — that's
+> **Status — v0.6.0, on the path to 1.0.** The **`/ascend` text pipeline is the stable core** — that's
 > what earns the 1.0 tag. The graphical console (`/ascendui`), the scheduled daily brief, and the
 > on-demand ops (`network`, `answers`, `today`, `prep`) are **1.0-beta**: built and code-checked, but not
 > yet proven end-to-end on real data, and they stay beta until they are. The 1.0 tag itself waits on 2–3
