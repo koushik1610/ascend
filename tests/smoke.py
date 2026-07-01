@@ -18,7 +18,7 @@ Covers the regressions a human won't catch by eye, all fast:
      and no fiction marker; every per-job résumé has a DELTA LOG (selection, not invention).
 Exits non-zero if anything fails — wired into CI (.github/workflows/ci.yml).
 """
-import http.client, json, re, shutil, subprocess, sys, time
+import http.client, json, re, shutil, subprocess, sys, time, zlib
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
@@ -211,7 +211,19 @@ def test_resume_builder():
         if r.returncode == 0:
             raw = out.read_bytes() if out.is_file() else b""
             check("render produced a PDF", out.is_file() and raw[:4] == b"%PDF")
-            check("rendered PDF has selectable text (ATS parse)", b"/Font" in raw and re.search(rb"\b(Tj|TJ)\b", raw) is not None)
+            # Selectable text = a text-showing operator (Tj/TJ) is present. Chrome may emit the content
+            # stream either raw or FlateDecode-compressed (version-dependent), so inflate streams too.
+            def _has_text_ops(pdf):
+                if re.search(rb"\b(Tj|TJ)\b", pdf):
+                    return True
+                for sm in re.finditer(rb"stream\r?\n(.*?)\r?\nendstream", pdf, re.S):
+                    try:
+                        if re.search(rb"\b(Tj|TJ)\b", zlib.decompressobj().decompress(sm.group(1))):
+                            return True
+                    except zlib.error:
+                        continue
+                return False
+            check("rendered PDF has selectable text (ATS parse)", b"/Font" in raw and _has_text_ops(raw))
             # the one-page promise: a within-budget résumé renders to exactly one page.
             pages = len(re.findall(rb"/Type\s*/Page[^s]", raw))
             check("rendered sample résumé is one page", pages == 1, f"pages={pages}")
