@@ -10,6 +10,26 @@ versioning is [SemVer](https://semver.org/).
 _Working toward v1.0. The remaining gate is **2–3 real end-to-end runs on real LinkedIn data** with
 honesty spot-checks + a green CI run on the remote + a demo GIF (see `docs/ROADMAP.md` → Path to v1.0)._
 
+## [0.6.0] — 2026-07-01 — Résumé quality: typography, language rules, plain-text skills
+Hardens what the résumé builder actually produces, from the first real end-to-end run on live data. All
+generic (no candidate data lives in this repo).
+
+### Résumé builder (templates/resume-builder.template.html)
+- **Typography defaults locked to hiring-manager best practices.** ATS-safe Calibri/Arial/Helvetica/Times
+  body font, body **10pt floor** (10–12pt), section headings **12–14pt**, margins **0.5in floor**, line
+  height **1.15 floor**. The builder CSS ships these as the defaults; to fit one page you trim content to
+  the budget, never render below the floors.
+- **Skills render as a plain " · " text list, not bordered chip boxes.** Chips add visual noise and can
+  trip ATS parsers; a plain inline list is safer and cleaner.
+
+### Writing rules
+- **New binding section in `reference/resume-writing-rules.md`:** "Bullet writing — anti-AI-tell + ATS."
+  No em/en dashes as sentence breaks, no clause-joining semicolons, no dramatic-reveal colon, no banned
+  buzzwords, concrete specifics, ATS keyword integration, human-sounding. Plus a "Typography & layout"
+  section restating the floors above.
+- **New `.claude/banned-words.md`:** the full banned-vocabulary + punctuation list the generator avoids.
+- **`prompts/08-export-pdf.md` checklist** now points at the typography floors.
+
 ## [0.5.0] — 2026-06-28 — Ascend rebrand · résumé builder · security hardening
 Cuts a release that captures the **S.P.I.D.E.R. → Ascend** rebrand, the résumé builder + auto-PDF, and
 the **2026-06-28 v1.0 readiness-council** pass. The honest framing (per the council): the periphery is

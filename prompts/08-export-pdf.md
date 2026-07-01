@@ -83,6 +83,11 @@ drift.
 ---
 
 ## Honesty & format checklist (always)
+- **Typography (best practices — always):** classic ATS-safe font (Calibri/Arial/Helvetica/Times New
+  Roman), body **10–12pt (10pt floor)**, section headings **12–14pt**, margins **0.5–1in (0.5in floor)**,
+  line spacing **1.15–1.5 (1.15 floor)**, consistent sizing, bold/italics sparingly. These are the locked
+  defaults in the builder CSS; see `../reference/resume-writing-rules.md → Typography & layout`. To fit
+  one page, trim content to the budget — never render below the font/margin/spacing floors.
 - Single column, standard headings, selectable text (not an image), certs honest (no "Active" unless
   true).
 - **Per-job résumé: one page.** Master public résumé: ≤ 2 pages.

@@ -87,23 +87,32 @@
             text-align: right; }
   .pageok.show { display: block; }
 
-  /* ---------- the résumé (LOCKED ATS layout — shared by preview + print) ---------- */
+  /* ---------- the résumé (LOCKED ATS layout — shared by preview + print) ----------
+     FORMATTING BEST PRACTICES (hiring-manager guidance — keep these when editing this block):
+       • Font: a classic, professional, ATS-safe font only — Calibri / Arial / Helvetica / Times New
+         Roman. No stylized/display fonts. Use ONE family for body + name (consistency).
+       • Body text: 10–12pt (default 10.5pt). Section headings: 12–14pt (default 12pt). Name larger.
+       • Margins: 0.5in–1in (default 0.5in; do not go below 0.5in).
+       • Line spacing: 1.15–1.5 (default 1.25; do not go below 1.15).
+       • Consistency: same font + size for every element of the same kind; bold/italics used sparingly.
+     A per-résumé render may tighten to the COMPLIANT MINIMUMS (body 10pt, line-height 1.15, 0.5in) to
+     make content fit one page — never below those floors. */
   .resume-page {
     width: 8.5in; min-height: 11in; margin: 0 auto; background: #fff; color: var(--r-ink);
     padding: 0.5in; box-shadow: 0 6px 30px rgba(0,0,0,0.5); position: relative;
   }
   .resume {
-    font-family: "Helvetica Neue", Helvetica, Arial, "Calibri", sans-serif;
-    font-size: 10pt; line-height: 1.32; color: var(--r-ink);
+    font-family: Calibri, "Helvetica Neue", Arial, sans-serif;
+    font-size: 10.5pt; line-height: 1.25; color: var(--r-ink);
   }
   .resume .head { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; }
-  .resume .name { font-family: Georgia, "Times New Roman", serif; font-size: 22pt; font-weight: 700;
+  .resume .name { font-family: Calibri, "Helvetica Neue", Arial, sans-serif; font-size: 22pt; font-weight: 700;
                   margin: 0; letter-spacing: -0.01em; line-height: 1.05; }
-  .resume .label { color: var(--r-accent); font-weight: 700; font-size: 11pt; margin: 3pt 0 0; }
-  .resume .contact { text-align: right; font-size: 9pt; color: var(--r-muted); line-height: 1.5;
+  .resume .label { color: var(--r-accent); font-weight: 700; font-size: 11.5pt; margin: 3pt 0 0; }
+  .resume .contact { text-align: right; font-size: 9.5pt; color: var(--r-muted); line-height: 1.5;
                      white-space: nowrap; }
   .resume .rule { height: 2px; background: var(--r-accent); margin: 8pt 0 2pt; }
-  .resume h2 { font-size: 10pt; text-transform: uppercase; letter-spacing: 0.07em;
+  .resume h2 { font-size: 12pt; text-transform: uppercase; letter-spacing: 0.07em;
                color: var(--r-accent); border-bottom: 1px solid var(--r-rule);
                padding-bottom: 2pt; margin: 13pt 0 6pt; }
   .resume .summary { margin: 0; }
@@ -115,9 +124,10 @@
   .resume ul { margin: 3pt 0 0; padding-left: 15pt; }
   .resume li { margin: 1.5pt 0; }
   .resume .proj .pdesc { margin: 1pt 0 0; }
-  .resume .skills { display: flex; flex-wrap: wrap; gap: 5pt 6pt; }
-  .resume .skill { border: 1px solid var(--r-rule); border-radius: 10pt; padding: 1.5pt 8pt;
-                   font-size: 9pt; color: #333; }
+  /* Skills as a plain, ATS-safe text list (no chip boxes). */
+  .resume .skills { display: block; }
+  .resume .skill { display: inline; border: 0; border-radius: 0; padding: 0; color: var(--r-ink); }
+  .resume .skill:not(:last-child)::after { content: " · "; color: var(--r-muted); }
   .resume a { color: var(--r-ink); text-decoration: none; }
   /* keep blocks from splitting awkwardly across printed pages */
   .resume h2, .resume .entry .row { break-after: avoid; }

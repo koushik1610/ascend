@@ -35,6 +35,47 @@ Every bullet should answer: *what did you do, how big was it, and what changed b
 10. **No personal pronouns, no full sentences-as-paragraphs.** Bullet points, active voice, present
     tense for current role / past tense for prior.
 
+## Bullet writing — anti-AI-tell + ATS (binding)
+Two goals that pull apart: ATS wants literal keyword matches; a human recruiter rejects text that reads
+AI-generated. Follow the punctuation/vocabulary bans strictly (zero ATS cost) and integrate keywords
+deliberately (where the real optimization is). Check every bullet against `../.claude/banned-words.md`.
+
+**1. Punctuation (hard bans).**
+- **No em dashes (—) or en dashes as sentence breaks** — the single most-cited AI tell. Use a period,
+  comma, or plain colon.
+- **No semicolons joining two independent clauses** in a bullet. A bullet is one clean statement, not two
+  stitched together.
+- **No dramatic-reveal colon** ("The result: a 40% lift"). State it plainly. (A colon introducing a list
+  is fine.)
+- Never open a bullet with **"Successfully," "Effectively," or "Proactively."**
+
+**2. Banned vocabulary.** The full list lives in `../.claude/banned-words.md` (verbs like *leverage,
+utilize, streamline, spearhead, drive, optimize, orchestrate, pioneer*; adjectives like *robust,
+seamless, innovative, comprehensive, results-driven, proven, impactful*; nouns like *synergy, landscape,
+ecosystem, journey, testament*; clichés like *proven track record, team player, extensive experience
+in*). Any tense/plural/`-ing` form counts. **Cut vague verbs/adjectives; keep specific-noun ATS keywords.**
+
+**3. Rhythm.** Vary bullet length within a section (mix short and long — uniform 15–20-word bullets read
+AI). Don't repeat the "X, resulting in Y" template more than twice per résumé, and don't stack the same
+`[Verb]+[Task]+[Metric]` skeleton back to back. Some structural unevenness reads human.
+
+**4. Specificity over polish.** Never leave a vague capability claim ("improved cloud security posture").
+Name the mechanism: the actual service (EKS, GuardDuty, a Terraform module), the config, the number.
+"Built a detection rule that flagged X" beats "built a robust detection capability." If no metric exists,
+state the concrete deliverable, don't inflate with an adjective. No internal contradictions with the summary.
+
+**5. ATS keyword integration.** Pull **exact-match** keywords from the JD (tool/framework/cert names, job-
+title variants) and use each **verbatim at least once** in a bullet where it's true. Give both the acronym
+and full term once ("Cloud Security Posture Management (CSPM)"). Put the highest-priority JD keywords in
+the **top third**. Don't stuff a single bullet with unrelated tools (a red flag to ATS *and* humans);
+spread them where actually used. Match the JD's exact term where accurate ("incident response," not only
+"incident handling"). The **Skills** section may be a plain comma/pipe list of exact-match nouns.
+
+**6. Self-check before finalizing each bullet.** Banned word? → rewrite. Em dash? → period/comma. Could
+it describe *any* candidate with no tool/number/company swapped in? → add the specific detail. Uses a JD
+keyword verbatim where accurate? → if not and one applies, work it in. Read it aloud: does it sound like a
+person describing their work, or a press release? → plainer if the latter.
+
 ## Structure & format (ATS-safe)
 - Reverse-chronological. Sections: Header → Summary → Experience → Skills → Education → (optional)
   Projects/Certs. Standard section *names* (ATS matches on them).
@@ -43,10 +84,28 @@ Every bullet should answer: *what did you do, how big was it, and what changed b
   them). PDF unless the portal demands .docx.
 - File name: `<Name>-Resume[-<Company>].pdf` (recruiters search download folders).
 
+## Typography & layout (hiring-manager best practices — ALWAYS follow)
+These are encoded as the default CSS in `../templates/resume-builder.template.html`; keep any edit within
+these ranges, and never render below the **compliant minimums**.
+- **Font:** a classic, professional, ATS-safe font ONLY — **Calibri / Arial / Helvetica / Times New
+  Roman**. No stylized/display fonts (they misrender across systems and can break parsers). Use **one
+  family** for body and name (builder default: Calibri, with Helvetica/Arial fallback).
+- **Body size:** **10–12pt** (default 10.5pt; **10pt is the hard floor** — never smaller to force a fit).
+- **Section headings:** **12–14pt** (default 12pt); the name is larger still. Job titles are bold, one
+  consistent size.
+- **Margins:** **0.5in–1in** on all sides (default 0.5in; **never below 0.5in**).
+- **Line spacing:** **1.15–1.5** (default 1.25; **never below 1.15**).
+- **Consistency:** identical font + size for every element of the same kind (all job titles alike, all
+  bullets alike); use **bold/italics sparingly** to highlight, not decorate.
+- **To fit one page:** cut/trim *content* to the budget below and tighten only to the compliant minimums
+  (10pt / 1.15 / 0.5in). If it still overflows, drop the lowest-relevance bullet or go to 2 pages —
+  **do not** drop below the font/margin/spacing floors.
+
 ## One-page content budget (the builder standard)
 Per-job resumes default to **exactly one page**. The page is not made to fit by shrinking type (10pt is
 the ATS floor); the *content* is generated to fit the fixed layout. The layout is the locked CSS in
-`../templates/resume-builder.template.html` (US-Letter, 0.5in margins, serif name, 10pt body). These
+`../templates/resume-builder.template.html` (US-Letter, 0.5in margins, Calibri body ~10.5pt, 12pt
+section headings — see **Typography & layout** above). These
 budgets were calibrated against that template (a résumé at the ceiling renders to one page; aim a notch
 under it for white space):
 
