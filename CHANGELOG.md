@@ -10,6 +10,12 @@ versioning is [SemVer](https://semver.org/).
 _Working toward v1.0. The remaining gate is **2–3 real end-to-end runs on real LinkedIn data** with
 honesty spot-checks + a green CI run on the remote + a demo GIF (see `docs/ROADMAP.md` → Path to v1.0)._
 
+### Fixed
+- **CI smoke: selectable-text check no longer depends on Chrome's stream compression.** The `Tj`/`TJ`
+  ATS-parse assertion scanned raw PDF bytes, which broke when a newer headless Chrome emitted a
+  FlateDecode-compressed content stream. The check now inflates streams before scanning, so it passes
+  whether Chrome compresses or not.
+
 ## [0.6.0] — 2026-07-01 — Résumé quality: typography, language rules, plain-text skills
 Hardens what the résumé builder actually produces, from the first real end-to-end run on live data. All
 generic (no candidate data lives in this repo).
