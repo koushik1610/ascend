@@ -47,8 +47,18 @@ bodies, the metrics bank, or shared prep.
   outlines only.
 - Every resume bullet traces to a master entry ID, cited in the Delta Log.
 
+## Selection-only mode (when the master is locked)
+If `.ascend-state.json` has `"master_locked": true`, every bullet is **selected verbatim** from the
+locked master — reorder and trim, never reword. Cite the `master_version` in the Delta Log. A JD that
+needs a bullet the master lacks is a MASTER GAP note; the answer is to fix + re-lock the master, never
+to write a one-off bullet here (one-off bullets are how derivative résumés drift from the source).
+
 ## Verify (per pack)
 - 3 core files present and conforming; number-policy grep clean.
+- **Lint gate:** `python3 tools/lint_artifacts.py workspace/<name>/jobs/<NN-slug>/`
+  (plus `--config workspace/<name>/lint-config.json` if it exists) reports **0 findings** — dashes,
+  banned vocabulary, semicolons, dramatic colons, forbidden numbers, retracted claims, and Delta-Log
+  provenance in one mechanical pass.
 - Every resume bullet cites a real master entry ID; MASTER GAPS noted where selection fell short.
 - `outreach.md` referral names are real (from the network analysis) or honestly absent.
 - `resume.json` + filled builder `.html` + the **one-page** `<Name>-Resume-<Company>.pdf` exist (or the

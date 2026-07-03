@@ -16,6 +16,12 @@ flagging applications gone quiet and drafting the follow-up (or the "move on" ca
 **Read first:** `.ascend-state.json`, `job-queue.md`, every `jobs/*/application-log.md`,
 `network-map.md` (best warm paths), `start-here.html` (weekly targets), `intake.md`.
 
+> **Language gate (binding for anything sendable).** Every line the user could paste or send follows
+> `../reference/resume-writing-rules.md → Bullet writing` and `../.claude/banned-words.md`: no em/en-dash
+> sentence breaks, no banned vocabulary, no clause-joining semicolons, no dramatic-reveal colons.
+> Sanitize at GENERATION, not as a post-hoc résumé-only pass. Gate mechanically before presenting:
+> `python3 tools/lint_artifacts.py <the files you wrote>` (add `--config workspace/<name>/lint-config.json`
+> if it exists) → 0 findings.
 ---
 
 ## The briefing (keep it tight — this is a daily standup, not a report)

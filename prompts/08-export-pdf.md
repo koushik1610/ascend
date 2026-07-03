@@ -93,6 +93,9 @@ drift.
 - **Per-job résumé: one page.** Master public résumé: ≤ 2 pages.
 - Filename: `<Name>-Resume-<Company>.pdf` (recruiters search download folders).
 - The render must not reintroduce any sanitized internal number (grep the final `resume.json`).
+- **Lint gate before rendering:** `python3 tools/lint_artifacts.py <the resume.md and resume.json>`
+  (plus `--config workspace/<name>/lint-config.json` if it exists) → **0 findings**. This is the
+  mechanical form of the language rules above — don't render a PDF from text that fails it.
 
 ## Verify
 - The `.html` opens with the form prefilled and the preview showing the résumé.

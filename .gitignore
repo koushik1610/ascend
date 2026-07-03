@@ -99,5 +99,5 @@ ui/.port
 # images/ is ignored by default so stock/copyrighted/unverified art can't be
 # published by accident. Allow-list each cleared (licensed or original) file.
 images/*
-!images/spider_unsplash.jpg
-!images/spider_unsplash2.jpg
+!images/ascend-texture.jpg
+!images/ascend-texture2.jpg

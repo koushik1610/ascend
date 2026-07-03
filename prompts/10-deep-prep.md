@@ -14,6 +14,12 @@ Run on request: *"`/ascend prep <NN>`"*, "prep me for the Acme onsite," or when 
 exist yet — see Phase 6), `job-queue.md` (that entry), `../templates/job-folder/_TEMPLATE.md`,
 `../reference/interview-prep-framework.md`.
 
+> **Language gate (binding for anything sendable).** Every line the user could paste or send follows
+> `../reference/resume-writing-rules.md → Bullet writing` and `../.claude/banned-words.md`: no em/en-dash
+> sentence breaks, no banned vocabulary, no clause-joining semicolons, no dramatic-reveal colons.
+> Sanitize at GENERATION, not as a post-hoc résumé-only pass. Gate mechanically before presenting:
+> `python3 tools/lint_artifacts.py <the files you wrote>` (add `--config workspace/<name>/lint-config.json`
+> if it exists) → 0 findings.
 ---
 
 ## Build these 5 files into the existing folder (per `_TEMPLATE.md` §2,§3,§4,§6,§7)

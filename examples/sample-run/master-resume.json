@@ -1,7 +1,7 @@
 {
   "basics": {
     "name": "Jordan Rivera",
-    "label": "Senior Product Designer — Design Systems & 0→1",
+    "label": "Senior Product Designer, Design Systems & 0→1",
     "email": "jordan.rivera@example.com",
     "phone": "(512) 555-0147",
     "location": "Austin, TX (remote-first / hybrid-OK)",
@@ -15,7 +15,7 @@
       "location": "Austin, TX (remote)",
       "dates": "Mar 2021 – Present",
       "highlights": [
-        "Built Beacon's design system from scratch — 120 tokenized Figma components + a Storybook library — adopted by 5 product teams and lifting new-feature adoption ~32%.",
+        "Built Beacon's design system from scratch, 120 tokenized Figma components + a Storybook library, adopted by 5 product teams and lifting new-feature adoption ~32%.",
         "Brought the library to WCAG 2.1 AA and drove a design-engineering partnership through implementation, cutting spec-drift defects ~44%.",
         "Established design-system governance and a contribution model, consolidating 40+ ad-hoc patterns so teams extend the system instead of forking it.",
         "Redesigned the B2B partner dashboard from funnel and survey data, lifting product NPS from 22 to 41; mentors 3–4 designers and runs crits."
@@ -37,7 +37,7 @@
       "location": "Austin, TX",
       "dates": "Jul 2016 – May 2018",
       "highlights": [
-        "Delivered 0→1 designs for 7 agency client engagements across SaaS, retail, and healthcare; a retail self-checkout concept shipped to pilot."
+        "Delivered 0→1 designs for 7 agency client engagements across SaaS, retail, and healthcare, and a retail self-checkout concept shipped to pilot."
       ]
     }
   ],

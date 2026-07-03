@@ -250,6 +250,8 @@ ascend/
 │                                    linkedin-analysis + start-here (HTML)
 ├── reference/                       binding rules: ATS/keywords, résumé writing, numbers/honesty,
 │                                    interview-prep framework
+├── tools/lint_artifacts.py          the honesty + language gate (dashes, banned words, forbidden
+│                                    numbers, retracted claims, Delta-Log provenance) — phases run it
 ├── tests/smoke.py                   stdlib smoke tests (server, dashboards, gitignore, cross-refs)
 ├── examples/sample-run/             a fictional end-to-end example (open its start-here.html)
 └── workspace/                       YOUR private output lands here (gitignored)

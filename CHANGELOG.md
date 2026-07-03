@@ -7,10 +7,48 @@ versioning is [SemVer](https://semver.org/).
 > now **Ascend**, with `/ascend` and `/ascendui` commands; earlier entries below use the old name.
 
 ## [Unreleased]
-_Working toward v1.0. The remaining gate is **2–3 real end-to-end runs on real LinkedIn data** with
-honesty spot-checks + a green CI run on the remote + a demo GIF (see `docs/ROADMAP.md` → Path to v1.0)._
+_Working toward v1.0. Real-run gate: **1 of 2–3 runs signed off** (2026-07-01, with-résumé/tech —
+see `docs/ROADMAP.md` → sign-off log); cases (b) no-résumé/non-tech and (c) resume-after-interruption
+remain, plus a green CI run on the remote + a demo GIF._
+
+### Added — the 2026-07-01 run council, absorbed (from two real end-to-end runs)
+- **`tools/lint_artifacts.py` — the honesty + language gate (P0-1).** One committed, smoke-tested,
+  stdlib-only linter over any sendable artifact: em/en-dash sentence breaks (date ranges exempt),
+  the banned vocabulary parsed live from `.claude/banned-words.md`, clause-joining semicolons,
+  dramatic-reveal colons, bullet-opener tells, the user's forbidden-number and retracted-claim lists
+  (from `workspace/<name>/lint-config.json`, captured at intake), and Delta-Log provenance on per-job
+  résumés. Wired into Phases 3/5/8 verify steps and a language-gate note on every sendable-emitting
+  prompt (06/10/12/13/15/19); pinned into the Bash allow-list. Replaces the ad-hoc greps real runs
+  relied on. The gate flags for a human — it never rewrites.
+- **"Lock the master" is first-class state (P0-2).** Phase 3 gains an explicit lock checkpoint:
+  `master_locked` + `master_version` recorded in `.ascend-state.json`; every downstream phase then
+  runs **selection-only** (reorder/trim, never reword; MASTER GAP → fix the master, re-lock,
+  re-derive). This is the single change that separated the smooth second real run from the first.
+- **Bullet-quality gate that flags, not writes (P0-3).** A field-neutral 5-point rubric in Phase 3
+  (measured outcome, specific nouns, scope signal, keyword fit, reads human); bullets scoring ≤3 go on
+  a WEAK BULLETS list for the user to disposition. Never auto-rewrites beyond the evidence.
+- **Warmth in the network map (P1-3).** Phase 11 now reads `messages.csv` from the export when
+  present and ranks contacts by real DM history (recency > volume, two-way > one-way), with the same
+  untrusted-content quarantine. No `messages.csv` → rank on `Connected On` and say so.
+- **Packet breadth is an explicit intake choice (P1-7)** — top 3–5 committed jobs (default) vs the
+  full queue; no more silent default the user has to discover and override.
+- **Run report at final handoff (P2-2).** New `templates/run-report-template.md`; the orchestrator
+  writes `workspace/<name>/RUN-REPORT.md` (what ran, gates passed, what changed since the last run,
+  blockers in priority order) so runs are auditable and comparable.
 
 ### Fixed
+- **`workspace/README.md` described the retired v0.1 architecture** (a standalone `resume-audit.md`,
+  8-file job folders) — rewritten to the current shape (audit folded into the master, 3-file CORE
+  packs + on-demand deep prep, `resume.json` + PDFs, state manifest).
+- **The committed fictional sample now passes the language gate.** Em-dash sentence breaks, clause
+  semicolons, and two banned words cleaned from every sendable in `examples/sample-run/` (body text
+  only — the fiction banners and meta stay); a smoke test now lints the sample so it can't drift again.
+- **PDF page-count smoke assertion made compression-independent (P1-6)** — counts `/Type /Page` in
+  inflated streams when the raw scan finds none, same class of fix as the earlier Tj/TJ one.
+- **Stale brand residue**: the GitHub repo description still read "S.P.I.D.E.R." (updated); the two
+  committed console-backdrop images renamed `spider_unsplash*.jpg` → `ascend-texture*.jpg` (gitignore
+  allow-list, console CSS, and smoke tests updated); stale "resume audit" phase list in the `/ascend`
+  command description fixed.
 - **CI smoke: selectable-text check no longer depends on Chrome's stream compression.** The `Tj`/`TJ`
   ATS-parse assertion scanned raw PDF bytes, which broke when a newer headless Chrome emitted a
   FlateDecode-compressed content stream. The check now inflates streams before scanning, so it passes

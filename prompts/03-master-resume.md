@@ -34,8 +34,8 @@ Fill every section with this user's real content:
    sendable value (per their sanitization rule), source, tag. This is the only place numbers live;
    bullets reference it. For users with no sensitive employer data, public = exact for most rows.
 4. **Skills inventory** — full taxonomy; every skill maps to ≥1 evidence bullet or project. Mark which
-   are ATS keywords for the target roles (from `resume-audit.md` §4 + `../reference/ats-and-keywords.md`)
-   and keep an honest gap list (keywords they CANNOT claim).
+   are ATS keywords for the target roles (from the "Gaps & fixes" audit above +
+   `../reference/ats-and-keywords.md`) and keep an honest gap list (keywords they CANNOT claim).
 5. **Experience** — every role, reverse-chronological. For each achievement, write: (a) a standard
    bullet (≤2 lines, formula-shaped, public values), (b) an expanded bullet (3–4 lines, for depth),
    (c) tags for JD-matching (define a tag set fitting the user's field), (d) source reference, and
@@ -63,6 +63,35 @@ Fill every section with this user's real content:
   but claimable" keyword, add the substantiating bullet here (this is where the keyword gap gets fixed
   at the source).
 
+## Bullet-quality gate (flag, never auto-rewrite)
+Before presenting the master, self-score **every standard bullet** against this field-neutral rubric
+(1 point each, 0–5):
+
+1. **Measured outcome present** — a number, delta, or observable result (or an honest "no number yet —
+   suggest what to measure" note).
+2. **Specific nouns** — a named system, product, artifact, or population; no generic "solutions".
+3. **Scope/level signal** — team size, org breadth, user count, or ownership scope appears once.
+4. **Keyword fit** — carries ≥1 Tier-1/Tier-2 keyword from §4 where the content honestly supports one.
+5. **Reads human** — passes `../reference/resume-writing-rules.md → Bullet writing` and
+   `../.claude/banned-words.md` (no banned vocabulary, no em/en-dash breaks, no dramatic colon).
+
+Any bullet scoring **≤3** goes on a **WEAK BULLETS list shown to the user at the checkpoint** with
+*why* it scored low and what evidence would raise it. **The gate flags; the user decides.** Never
+auto-rewrite a weak bullet into something stronger than the evidence — that's how fabrication sneaks
+in. If the user can substantiate more, capture it and rewrite together; otherwise the bullet stands
+or is cut. The rubric is field-neutral on purpose: a nurse's "patients per shift" scores exactly like
+an engineer's "requests per second."
+
+## Lock the master (first-class state)
+When the user approves the master at the checkpoint, **lock it**: record
+`"master_locked": true` + an ISO date in `workspace/<name>/.ascend-state.json`. From that moment every
+downstream phase operates in **selection-only mode** — Phases 4/5/6 and all on-demand ops may *select,
+reorder, and trim* master content but never reword a locked bullet or add an unlisted one (a needed
+bullet that doesn't exist is a MASTER GAP note; fix the master, re-lock, re-derive). To change a locked
+master, the user says so explicitly ("unlock the master" / "Ascend mine" to add new achievements);
+bump a `master_version` counter on re-lock so per-job Delta Logs can cite the version they selected
+from. Locking is what makes reruns cheap and drift detectable — treat an unlocked master as a draft.
+
 ## Master public résumé PDF
 After `master-resume.md` is built, also produce a **public, generic-default résumé PDF** from it (a
 real résumé the user can use when no specific JD applies — not the private superset). Select the
@@ -76,8 +105,12 @@ public résumé is the one exception to the one-page default: **up to 2 pages**,
 - Every experience entry has an ID, a standard bullet, and a public-value form.
 - The honest-gap list exists and the positioning summaries lead with a real differentiator.
 - The Conflicts log exists (even if empty).
-- `master.resume.json` + the master public résumé PDF exist and carry **no** INTERNAL/sanitized values
-  (number-policy grep clean).
+- `master.resume.json` + the master public résumé PDF exist and carry **no** INTERNAL/sanitized values.
+- **Run the lint gate** on the public artifacts:
+  `python3 tools/lint_artifacts.py workspace/<name>/master-resume.json` (plus
+  `--config workspace/<name>/lint-config.json` if intake captured forbidden numbers / retracted
+  claims). Zero findings, or each finding shown to the user and resolved.
+- The WEAK BULLETS list (if any) was shown at the checkpoint and dispositioned.
 
 ## Checkpoint
 Tell the user where the file is, how many experience entries/bullets it holds, confirm the positioning

@@ -52,9 +52,17 @@ fenced as beta · ④ smoke harness + CI green **on the remote** · ⑤ no dead 
 **Sign-off log (fill as runs complete):**
 | Run | Case | Date | Honesty | Grounding | Completeness | Privacy | Signed off |
 |---|---|---|---|---|---|---|---|
-| 1 | with-résumé · tech | — | — | — | — | — | — |
+| 1 | with-résumé · tech | 2026-07-01 | ✅ | ✅ | ✅ | ✅ | ✅ author (private archive) |
 | 2 | no-résumé or non-tech | — | — | — | — | — | — |
 | 3 | resume-after-interruption | — | — | — | — | — | — |
+
+> Run 1 detail: a full live run on the author's real LinkedIn data (locked master → fresh 15-job
+> queue with Fit Scores → apply packs with one-page PDFs → referral map). All four rubric lines passed;
+> the run-report + artifacts are archived in the author's private (gitignored) workspace. An earlier
+> exploratory run (2026-06-28→30) surfaced real defects — derivative-résumé drift, manual one-page
+> fitting, hand-run language greps — and does **not** count toward the gate; its lessons were absorbed
+> as the 2026-07-01 run-council items below. Caveat logged honestly: both runs are the same user and
+> field, which is why cases (b) and (c) remain open.
 
 > Run each on a **clean `workspace/<name>/`** (no stale `.ascend-state.json` from a prior run) so the
 > archived proof reflects a true cold start. Accepted single-user risks logged for 1.0: **SEC-MED-4**
@@ -75,7 +83,7 @@ fenced as beta · ④ smoke harness + CI green **on the remote** · ⑤ no dead 
 | 11 | `/resume-builder` had no CSP; one-page PDF unenforced; daily-brief on by default; node unpinned in CI; CSV claim over-broad | 🟢 done (v0.5.0) — builder CSP added; Create-PDF refuses multi-page + page-count smoke assertion; scheduled brief **off by default** (opt-in, loud notice); `setup-node`/`setup-python` pinned; README CSV claim softened |
 | 12 | Honesty value-claim untested | 🟢 done (v0.5.0) — smoke test asserts the committed sample's sendables carry no internal-number/codename leak and no fiction marker |
 | 3 | **Real-run gate widened** to 2–3 runs + rubric + sign-off | 🟢 done (v0.5.0) — defined above |
-| 2 | **2–3 real end-to-end runs on real data** | ⬜ **pending — the remaining gate** (needs a real LinkedIn export; demo GIF + green-on-remote CI ride along) |
+| 2 | **2–3 real end-to-end runs on real data** | 🟡 **1 of 2–3 done** (2026-07-01, signed off above); cases (b) no-résumé/non-tech and (c) resume-after-interruption remain (demo GIF + green-on-remote CI ride along) |
 
 > The security gates were surfaced by the 2026-06-15 and 2026-06-28 councils and verified against source.
 > See [**Security review**](#security-review--council-2026-06-15) for findings/fixes. They gate the 1.0 tag
@@ -84,6 +92,31 @@ fenced as beta · ④ smoke harness + CI green **on the remote** · ⑤ no dead 
 **Beta-surface scope for v1.0 (council P0-5):** SemVer 1.0 is a stability promise, so the lede fences it
 explicitly — **the `/ascend` text pipeline is the 1.0 core; `/ascendui`, the scheduled brief, and the
 on-demand ops (`network`/`answers`/`today`/`prep`) are 1.0-beta** until the real runs above exercise them.
+
+---
+
+## Run council — 2026-07-01 (what two real runs taught the product)
+
+A 6-persona council reviewed the first two real runs end-to-end. The one-line thesis: **Ascend gets
+good when the master is locked and the machine only selects from it** — everything below either
+enforces that or automates the manual safety checks a locked-master workflow still needs. Standing
+gate on every item: n=1 (one user, one field) — nothing ships that encodes one user's structure.
+
+| # | Item | Status |
+|---|---|---|
+| P0-1 | **Automated honesty + language linter as a pipeline gate** (`tools/lint_artifacts.py`: dashes, banned vocab, semicolons, dramatic colons, forbidden numbers, retracted claims, Delta-Log provenance; wired into Phases 3/5/8 + smoke-tested) | 🟢 shipped |
+| P0-2 | **"Lock the master" as first-class state** (`master_locked`/`master_version` in `.ascend-state.json`; downstream = selection-only) | 🟢 shipped |
+| P0-3 | **Bullet-quality gate that flags, not writes** (field-neutral 5-point rubric in Phase 3; WEAK BULLETS list → the user decides) | 🟢 shipped |
+| P1-1 | **Sanitizer at generation, everywhere** (binding language-gate note on every sendable-emitting prompt) | 🟢 shipped |
+| P1-2 | **Bullet provenance / anti-drift check** (linter's provenance category + selection-only mode in Phase 5) | 🟢 shipped |
+| P1-3 | **Warmth in the network map** (Phase 11 reads `messages.csv` when present; ranks by real DM history) | 🟢 shipped |
+| P1-5 | One-page auto-fit in the renderer (deterministic trim within the typography floors) | ⚪ pending — keep simple per the council's own gold-plating warning |
+| P1-4 | Deterministic per-job build as a repo tool (selection + render + scaffold) | ⚪ pending — must not encode any one user's bullet cadence (n=1 gate) |
+| P1-6 | **Environment-robust PDF assertions** (page-count check now inflates streams, like the Tj/TJ fix) | 🟢 shipped |
+| P1-7 | **Packet breadth as an explicit intake choice** (top 3–5 vs full queue — no silent default) | 🟢 shipped |
+| P2-1 | Link-liveness + comp capture in Phase 4 | 🟢 already present (verified-live/unverified gate + comp field) |
+| P2-2 | **Run-report template + cross-run diff** (`templates/run-report-template.md`, written at final handoff) | 🟢 shipped |
+| P2-3 | Prune or mark-experimental the unused prompts | ⚪ pending — the beta labels cover it for now |
 
 ---
 

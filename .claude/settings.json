@@ -8,6 +8,7 @@
       "WebSearch",
       "WebFetch",
       "Bash(python3 ui/server.py*)",
+      "Bash(python3 tools/lint_artifacts.py*)",
       "Bash(mkdir -p workspace/*)",
       "Bash(mkdir workspace/*)",
       "Bash(rm -f workspace/*)",

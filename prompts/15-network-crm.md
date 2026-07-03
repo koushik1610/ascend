@@ -14,6 +14,13 @@ are the #1 interview lever, and they decay without touch. Run on request: *"trac
 `job-queue.md` (which companies matter now), `jobs/*/outreach.md` (asks already drafted/sent),
 `jobs/*/application-log.md` (where each thread stands), `intake.md`, `../reference/number-and-honesty-policy.md`.
 
+> **Language gate (binding for anything sendable).** Every line the user could paste or send follows
+> `../reference/resume-writing-rules.md → Bullet writing` and `../.claude/banned-words.md`: no em/en-dash
+> sentence breaks, no banned vocabulary, no clause-joining semicolons, no dramatic-reveal colons.
+> Sanitize at GENERATION, not as a post-hoc résumé-only pass. Gate mechanically before presenting:
+> `python3 tools/lint_artifacts.py <the files you wrote>` (add `--config workspace/<name>/lint-config.json`
+> if it exists) → 0 findings.
+
 > **Honesty (non-negotiable):** track ONLY real connections from the user's own export and real
 > interactions the user reports. Never invent a contact, a relationship strength, a past conversation, or
 > a reply. "Status unknown" is the honest default until the user says otherwise. The user sends every

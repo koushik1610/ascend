@@ -13,6 +13,13 @@ defend, and rehearsed scripts for the moments that decide comp. On request: *"pr
 `job-queue.md` / `jobs/<NN>/` (the role, posted band if any, level), `master-resume.md` (leverage:
 competing interest, scarce skills), `../reference/number-and-honesty-policy.md`.
 
+> **Language gate (binding for anything sendable).** Every line the user could paste or send follows
+> `../reference/resume-writing-rules.md → Bullet writing` and `../.claude/banned-words.md`: no em/en-dash
+> sentence breaks, no banned vocabulary, no clause-joining semicolons, no dramatic-reveal colons.
+> Sanitize at GENERATION, not as a post-hoc résumé-only pass. Gate mechanically before presenting:
+> `python3 tools/lint_artifacts.py <the files you wrote>` (add `--config workspace/<name>/lint-config.json`
+> if it exists) → 0 findings.
+
 > **Honesty (non-negotiable):** never coach the user to lie — no fake competing offers, no inflated
 > current salary, no invented numbers. Market data is cited from real sources fetched live and labeled
 > with its basis (`VERIFY:` anything unconfirmed). The user decides their numbers; you arm them with real

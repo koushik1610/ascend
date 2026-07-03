@@ -53,6 +53,9 @@ at a time). Required answers are marked ★ — do not proceed past Step 2 witho
 - **Compensation** expectations or floor (kept private; used only to filter and to script the
   recruiter-screen comp anchor).
 - **Timeline**: actively applying now, or exploring?
+- **Packet breadth**: build apply packs for the **top 3–5 jobs you commit to** (the lazy default), or
+  for **every queued job**? (Full-queue is slower and costs more tokens; the default keeps the first
+  run lean. This is an explicit choice — don't silently assume either.)
 
 **Calibration & honesty**
 - Your strongest 2–3 differentiators, in your own words.
@@ -61,7 +64,10 @@ at a time). Required answers are marked ★ — do not proceed past Step 2 witho
 - Any **sanitization needs**: employer-internal numbers or codenames you should NOT publish (e.g.,
   exact headcounts, internal project names, unreleased metrics). Capture the rule now; apply it to
   every sendable surface. (Default rule if unsure: round employer-internal operational numbers,
-  keep your own verifiable numbers exact, never name internal codenames.)
+  keep your own verifiable numbers exact, never name internal codenames.) Also capture any
+  **retracted claims** — things they once claimed but can no longer stand behind. Write both lists
+  into `workspace/<name>/lint-config.json` (`{"forbidden_patterns": [...], "retracted_patterns":
+  [...]}`, regex strings) so `tools/lint_artifacts.py` can gate every sendable mechanically.
 
 Reflect their answers back in a short **Intake Summary** and get a thumbs-up before building anything.
 
@@ -153,7 +159,11 @@ When all phases are done:
 3. Remind them: the workspace is gitignored and private; nothing about them was or will be committed.
 4. Offer the maintenance loop (`09-maintenance.md`): re-run the job search weekly for fresh roles;
    update each job's `application-log.md` as they apply and interview.
-5. Set `.ascend-state.json` `phase: "done"`.
+5. Write `workspace/<name>/RUN-REPORT.md` per `../templates/run-report-template.md` — what ran, what
+   was produced, the quality gates that passed (including the `tools/lint_artifacts.py` result over
+   the sendables), and the blockers/next actions in priority order. This makes runs auditable and
+   comparable over time.
+6. Set `.ascend-state.json` `phase: "done"`.
 
 ---
 
@@ -165,6 +175,7 @@ makes resuming deterministic — never re-derive progress by guessing from `ls`.
 ```json
 {
   "name": "<slug>", "updated": "<ISO timestamp>", "phase": "5",
+  "master_locked": true, "master_locked_on": "<ISO date>", "master_version": 1,
   "phases": { "1":"done","2":"done","3":"done","4":"done","6":"done","5":"in-progress","7":"todo" },
   "jobs": [
     { "slug":"01-acme-staff-engineer", "files_done":["resume.md","outreach.md"], "complete": false }

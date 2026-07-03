@@ -10,6 +10,13 @@ when a posting has custom screener questions.
 `interview-packet/` (positioning hooks), the job's `jobs/<NN>/` if per-job,
 `../reference/number-and-honesty-policy.md`.
 
+> **Language gate (binding for anything sendable).** Every line the user could paste or send follows
+> `../reference/resume-writing-rules.md → Bullet writing` and `../.claude/banned-words.md`: no em/en-dash
+> sentence breaks, no banned vocabulary, no clause-joining semicolons, no dramatic-reveal colons.
+> Sanitize at GENERATION, not as a post-hoc résumé-only pass. Gate mechanically before presenting:
+> `python3 tools/lint_artifacts.py <the files you wrote>` (add `--config workspace/<name>/lint-config.json`
+> if it exists) → 0 findings.
+
 > **Honesty:** every answer is drawn from the user's real evidence — no invented experience or numbers.
 > Anything requiring the user's genuine motivation or opinion (a real "why this company," a personal
 > values answer) is produced as **beats/outline only**, flagged `DRAFT — WRITE IN YOUR VOICE`. Factual

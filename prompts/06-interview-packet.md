@@ -7,6 +7,13 @@ reused by every job folder, so a story or metric lives in exactly one place.
 bank), `../templates/interview-packet-template.md`,
 `../reference/interview-prep-framework.md`.
 
+> **Language gate (binding for anything sendable).** Every line the user could paste or send follows
+> `../reference/resume-writing-rules.md → Bullet writing` and `../.claude/banned-words.md`: no em/en-dash
+> sentence breaks, no banned vocabulary, no clause-joining semicolons, no dramatic-reveal colons.
+> Sanitize at GENERATION, not as a post-hoc résumé-only pass. Gate mechanically before presenting:
+> `python3 tools/lint_artifacts.py <the files you wrote>` (add `--config workspace/<name>/lint-config.json`
+> if it exists) → 0 findings.
+
 > **Sequencing:** build this right before or alongside Phase 5, since the job folders cite its story
 > IDs. If you build folders first, build a thin packet first (story stubs with stable IDs), then
 > enrich here.

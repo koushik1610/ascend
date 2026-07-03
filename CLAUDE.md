@@ -52,14 +52,24 @@ rule sources; prompts reference them rather than re-stating them. Templates: `te
 `_TEMPLATE.md` is the binding tiered spec — CORE apply pack + on-demand prep pack). Derive the
 **keyword set once** (Phase 3, into master §4) and reuse it downstream — don't re-derive per phase.
 
+## The mechanical gates (run them, don't re-implement them)
+- **`tools/lint_artifacts.py`** — the honesty + language gate over any sendable artifact: em/en-dash
+  breaks, banned vocabulary (`.claude/banned-words.md`), clause-joining semicolons, dramatic colons,
+  the user's forbidden numbers + retracted claims (from `workspace/<name>/lint-config.json`), and
+  Delta-Log provenance. Phases 3/5/8 and every language-gated prompt call it before "done" — zero
+  findings, or each finding surfaced to the user.
+- **Lock the master.** Once `.ascend-state.json` has `"master_locked": true`, downstream work is
+  **selection-only**: reorder/trim locked bullets, never reword, never add unlisted ones. MASTER GAP →
+  fix the master, re-lock (bump `master_version`), re-derive.
+
 ## Permissions (pre-approved so `/ascendui` runs uninterrupted)
 The repo commits **`.claude/settings.json`** so a run doesn't stop for approval prompts. It is
 deliberately **scoped**: broad `Read` + `WebSearch`/`WebFetch` (the pipeline reads your files and
 researches jobs across many domains), but **`Write`/`Edit` only under `workspace/**`** (the pipeline
 writes user output there and can't silently change the repo's own prompts/code). The Bash boundary is
-**allow-list-only**: only a few pinned forms run (`python3 ui/server.py…`, `mkdir/rm -f` under
-`workspace/`, `git check-ignore`, `pandoc`); anything else is refused, so an injected page can't write a
-script under `workspace/` and run it. A **hardened deny-list** backs that up for interactive use: `sudo`,
+**allow-list-only**: only a few pinned forms run (`python3 ui/server.py…`,
+`python3 tools/lint_artifacts.py…`, `mkdir/rm -f` under `workspace/`, `git check-ignore`, `pandoc`);
+anything else is refused, so an injected page can't write a script under `workspace/` and run it. A **hardened deny-list** backs that up for interactive use: `sudo`,
 network/exfil tools (`curl`/`wget`/`nc`/`ssh`/`scp`), shell-bypass forms (`bash -c`/`sh -c`/`env`/`xargs`/
 `find -exec`/`eval`/`exec`), RCE-capable interpreters (`node`/`deno`/`bun`/`ruby`/`perl`/`php`/`osascript`/
 `python3 -c`), package managers (`npm`/`npx`/`pip`), `rm -rf /`, and high-value secrets (`.env`, `~/.ssh`,

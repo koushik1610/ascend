@@ -1,5 +1,5 @@
 ---
-description: Start the Ascend job-search pipeline (intake interview → LinkedIn analysis → resume audit → master resume → 15+ jobs → per-job folders → navigator)
+description: Start the Ascend job-search pipeline (intake interview → LinkedIn analysis → master resume (audit folded in) → 15+ ranked jobs → interview packet → apply packs → navigator)
 ---
 
 Run Ascend Follow `prompts/00-orchestrator.md` from the top: begin with the intake interview
