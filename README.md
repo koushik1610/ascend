@@ -2,241 +2,211 @@
 
 ![ascend](assets/ascend-banner.png)
 
-**AI-run job search and career advancement, grounded in your real history.**
+# The job-search agent that can't make things up
+
+**Point it at your LinkedIn export. Get a ranked queue of live jobs, a tailored one-page PDF per
+application, referral-first outreach, and interview prep. Every claim traces to your real history.**
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-5b9dff?style=flat-square)
 &nbsp;![Built for Claude Code](https://img.shields.io/badge/built%20for-Claude%20Code-5b9dff?style=flat-square)
 &nbsp;![Version](https://img.shields.io/badge/version-v0.6.0-8b97a7?style=flat-square)
+&nbsp;![Privacy](https://img.shields.io/badge/your%20data-never%20committed-36d399?style=flat-square)
 
-**Your entire job search, run by an agent that doesn't make things up.**
-From your LinkedIn export to tailored applications and interview prep — one command, zero fabrication.
-Works for any field: engineering, design, product, marketing, ops.
-
-[**▶ See a full fictional run**](examples/sample-run/) &nbsp;·&nbsp; [Quickstart](#quickstart) &nbsp;·&nbsp; [How it works](#how-it-works) &nbsp;·&nbsp; [User journeys](WORKFLOW.md) &nbsp;·&nbsp; [Setup for non-coders](docs/SETUP.md)
+[**See a full fictional run**](examples/sample-run/) · [Quickstart](#quickstart) · [How it works](#how-it-works) · [How people use it](WORKFLOW.md) · [Non-coder setup](docs/SETUP.md)
 
 </div>
 
 <!-- DEMO: record a 10–15s clip of `/ascend` → intake → a phase completing → opening start-here.html.
      Export GIF ≤8MB ≤1200px wide → commit to assets/demo.gif → replace this comment with:
-     <div align="center"><img src="assets/demo.gif" alt="Ascend demo" width="900"></div>
-     Until then, the fictional examples/sample-run/start-here.html is the "see it" link above. -->
+     <div align="center"><img src="assets/demo.gif" alt="Ascend demo" width="900"></div> -->
 
----
+Job hunting with AI has a trust problem: generic ChatGPT résumés are the new typos, and recruiters
+flag them on sight. Ascend takes the opposite bet. It builds everything from **your** LinkedIn
+export, **your** résumé, and **your** answers, then runs a linter that mechanically blocks invented
+numbers, retracted claims, and AI-tell language before anything is called done. A missing skill
+becomes an honest gap with a plan. Never a bluff.
 
-> **Status — v0.6.0, on the path to 1.0.** The **`/ascend` text pipeline is the stable core** — that's
-> what earns the 1.0 tag. The graphical console (`/ascendui`), the scheduled daily brief, and the
-> on-demand ops (`network`, `answers`, `today`, `prep`) are **1.0-beta**: built and code-checked, but not
-> yet proven end-to-end on real data, and they stay beta until they are. The 1.0 tag itself waits on 2–3
-> archived real runs (**[`docs/ROADMAP.md`](docs/ROADMAP.md)** → Path to v1.0). See
-> **[Known limitations](#known-limitations)**.
+It runs entirely inside [Claude Code](https://claude.com/claude-code) on your machine. Your data
+lands in a gitignored `workspace/`, and nothing about you is ever committed.
+
+## What it looks like
+
+Two of the dashboards it builds, from the committed fictional sample (open them yourself in
+[`examples/sample-run/`](examples/sample-run/), no install needed):
+
+| `start-here.html`, your home base | `linkedin-analysis.html`, the profile audit |
+|---|---|
+| ![The navigator dashboard](assets/preview-navigator.png) | ![The LinkedIn analysis](assets/preview-linkedin.png) |
 
 ## Quickstart
 
 ```bash
 git clone https://github.com/koushik1610/ascend.git
 cd ascend
-# Unzip your LinkedIn export; note the folder path + your resume's path.
-claude          # open Claude Code in this folder
+claude        # open Claude Code here
 ```
 
-Then type **`/ascend`** (or *"Run Ascend"*). It interviews you — name, where your LinkedIn export and
-resume are, what jobs you want — builds a private `workspace/<your-name>/`, and runs the pipeline,
-checking in after each step. When it's done, open **`workspace/<your-name>/start-here.html`**. Start
-with the **"Before you apply" blockers** and your **#1-ranked job**.
+Then type **`/ascend`**. It interviews you (name, where your LinkedIn export and résumé live, what
+jobs you want), builds a private `workspace/<your-name>/`, and runs the pipeline with a check-in
+after each phase. When it finishes, open **`workspace/<your-name>/start-here.html`** and work the
+"Before you apply" blockers and your #1-ranked job.
 
-> New to terminals? **[`docs/SETUP.md`](docs/SETUP.md)** walks through it step by step.
-> Want to sample it cheaply first? Say *"Run Ascend Phase 1"* (just the LinkedIn analysis).
-> Re-run anytime: *"Run Ascend Phase 4"* refreshes your job queue with new postings.
+Three useful variants:
 
-**Prefer clicking to typing?** Run **`/ascendui`** instead — it opens a graphical, Jarvis-style console
-in your browser that walks you through everything (folder picker, target roles, an optional daily-brief
-time) and shows the pipeline running live. It needs only Python 3 (preinstalled on macOS/Linux) plus an
-agent CLI for the analysis. See [`ui/README.md`](ui/README.md).
-
----
+- **Sample it cheap first:** say *"Run Ascend Phase 1"* for just the LinkedIn audit.
+- **Prefer clicking to typing:** run **`/ascendui`** *(beta)* for a browser console with a folder
+  picker and live progress. See [`ui/README.md`](ui/README.md).
+- **Never opened a terminal?** [`docs/SETUP.md`](docs/SETUP.md) walks you in step by step.
 
 ## What you get
 
 | Output | What it is |
 |---|---|
-| **`linkedin-analysis.html`** | A visual audit of your LinkedIn presence (findability score, keyword gaps, network, activity) **+ 10 ranked next steps** to grow reach and recruiter exposure. |
-| **`master-resume.md`** | Your superset resume — every achievement, tagged, with a metrics bank. Every per-job resume is *selected* from it, never rewritten. (The ATS/keyword audit is folded in.) Also rendered to a public **master résumé PDF** as a generic default. |
-| **`job-queue.md`** | 15+ ranked candidate jobs matched to your profile, each link fetched and marked verified/unverified (postings rot — you re-open before applying). |
-| **`jobs/<NN-company-role>/`** | A tailored **apply pack** per job you pursue — résumé (markdown + `resume.json` + a clean one-page **ATS-safe PDF** from the résumé builder), referral-first outreach, application log. Deep interview prep is generated **on demand** when a screen gets booked. |
-| **`interview-packet/`** | Cross-job prep reused everywhere: STAR stories, positioning hooks, metrics cheat-sheet. |
-| **`start-here.html`** | The front door — a dashboard with your weekly action loop, application scoreboard, and every job. **Open this first.** |
+| `linkedin-analysis.html` | Visual audit of your LinkedIn presence: findability score, keyword gaps, network reach, plus **10 ranked next steps**. |
+| `master-resume.md` | Your superset résumé. Every achievement, tagged and ID'd, with a metrics bank. Per-job résumés are *selected* from it, never rewritten. Also rendered to a generic public PDF. |
+| `job-queue.md` | **15+ ranked live openings** with an explainable 0–100 Fit Score each. Links are fetched and honestly marked verified or unverified. |
+| `jobs/<NN-company-role>/` | An apply pack per job: tailored résumé (markdown + `resume.json` + a clean one-page **ATS-safe PDF**), referral-first outreach, application log with a referral hard gate. |
+| `interview-packet/` | Cross-job prep: STAR stories, positioning hooks, metrics cheat-sheet. Deep per-job prep is built **when a screen books**, not speculatively. |
+| `start-here.html` | The front door: weekly action loop, application funnel, every job. **Open this first.** |
 
-Everything lands in `workspace/<your-name>/`, which is **gitignored** — it never leaves your machine.
-
----
+The default first run is lean by design, roughly 25–30 files. Intake asks whether you want packs
+for the top 3–5 jobs you commit to, or the full queue. A run manifest (`.ascend-state.json`) makes
+everything resumable: close your laptop mid-run, say *"Run Ascend resume"* later, lose nothing.
 
 ## How it works
 
 ```
-  Phase 0  Intake interview ............ asks your name, data location, targets
-     │
-  1  LinkedIn analysis ........ linkedin-analysis.html  (+10 next steps)
-  3  Master resume ............ master-resume.md  (resume audit folded in)
-  4  Job search ............... job-queue.md  (15+ ranked candidates)
-  6  Interview packet ......... interview-packet/  (thin; enriched on demand)
-  5  Apply packs .............. jobs/<NN>/  (résumé · outreach · log — top 3–5 you commit to)
+  0  Intake interview ......... your name, data paths, targets, honest gaps
+  1  LinkedIn analysis ........ linkedin-analysis.html + 10 next steps
+  3  Master resume ............ master-resume.md (audit folded in) → LOCK IT
+  4  Job search ............... job-queue.md, live research, Fit Scores
+  6  Interview packet ......... thin now, enriched on demand
+  5  Apply packs .............. résumé · outreach · log (+ one-page PDF each)
   7  Navigator ................ start-here.html
-
-  On demand:
-  network    Warm referral paths from your connections .... 11-network-map.md
-  answers    Reusable answers to application questions ..... 12-answer-sheet.md
-  today      Daily briefing + follow-up nudges ............. 13-daily-briefing.md
-  prep <NN>  Deep interview prep when a screen books ...... 10-deep-prep.md
-  export     Résumé → one-page ATS-safe PDF (builder) ...... 08-export-pdf.md
-  build-resume  Standalone résumé builder (ad-hoc) ........ templates/resume-builder.template.html
-  maintenance Weekly refresh, follow-ups, retros ........... 09-maintenance.md
-
-  More on demand (beta):
-  aggregate   Pull open roles from Greenhouse/Lever/Ashby ... 14-ats-aggregation.md
-  crm         Keep warm referral relationships alive ........ 15-network-crm.md
-  mine        Interview that mines real achievements ........ 16-achievement-mining.md
-  drill <NN>  Live mock interview with rubric feedback ...... 17-interview-me.md
-  degenericize  Specificity pass on sendable text .......... 18-degenericizer.md
-  negotiate   Grounded salary-negotiation plan + scripts .... 19-salary-studio.md
-  export-docx Also emit an ATS-safe Word copy (pandoc) ...... 08-export-pdf.md
 ```
 
-**Lazy by design (your choice at intake).** The default first run produces **~25–30 files** — a
-master resume, a 15-job queue, a thin packet, and a 3-file apply pack for the few jobs you commit
-to — with deep interview prep built per job, when it converts. Prefer everything built up front?
-Intake asks — say *full queue* and it builds a pack for every ranked job instead. A run manifest
-(`.ascend-state.json`) makes everything **resumable** — close your laptop mid-run, say *"Run Ascend
-resume"* later. And expect your **first master résumé to need a revision pass**: the bullet-quality
-gate shows you exactly which bullets are weak and what evidence would fix them — that iteration is
+The engine behind the quality is one idea: **lock the master, then only select.** Once you approve
+your master résumé, it freezes. Every downstream résumé reorders and trims locked bullets, cited by
+ID in a delta log. A job that needs a bullet you don't have produces a MASTER GAP note, and the fix
+happens at the source. That is what makes tailoring fast and fabrication structurally hard.
+
+Three mechanical gates back it up:
+
+1. **The linter** ([`tools/lint_artifacts.py`](tools/lint_artifacts.py)) scans every sendable for
+   em-dash tells, [banned AI vocabulary](.claude/banned-words.md), your forbidden internal numbers,
+   retracted claims, and delta-log provenance. Zero findings or it isn't done.
+2. **The honesty rules** ([`reference/number-and-honesty-policy.md`](reference/number-and-honesty-policy.md))
+   ban invented metrics, titles, certs, and referral contacts outright. "Why this company" essays
+   come out as outlines for your voice, never finished prose.
+3. **The untrusted-content quarantine** ([`reference/untrusted-content-policy.md`](reference/untrusted-content-policy.md)):
+   anything fetched from the web is data to analyze, never instructions to obey, and the committed
+   permission set is allow-list-only.
+
+First master résumé draft feeling weak? That is the system working: the bullet-quality gate flags
+weak bullets and tells you what evidence would fix them. Expect one revision pass. The iteration is
 where the quality comes from.
 
+## Day-to-day
+
+| Say this | What happens |
+|---|---|
+| `/ascend` | Full run from the intake interview |
+| `"Run Ascend Phase 1"` | Just the LinkedIn audit, a cheap first taste |
+| `"Run Ascend resume"` | Continue an interrupted run from the manifest |
+| `"Ascend export Acme"` | Render a job's résumé to a one-page ATS-safe PDF |
+| `"Ascend prep 03"` *(beta)* | Deep interview prep for job #3 when a screen books |
+| `"Ascend today"` *(beta)* | Daily briefing: 3 actions + follow-up nudges, drafted |
+| `"Ascend network"` *(beta)* | Who you already know at each target company |
+
 <details>
-<summary><b>the ASCII sunrise, for the terminal-romantics</b></summary>
-
-```
-        \   |   /
-         \  |  /
-   - - - ( ● ) - - -     Ascend
-  ___________________    find · tailor · apply · rise
-```
-</details>
-
----
-
-## Day-to-day (in Claude Code)
+<summary><b>All commands (including the beta ops)</b></summary>
 
 | Say this | What it does |
 |---|---|
-| `/ascendui` *(beta)* | **Graphical console** — browser intake wizard + live progress + daily-brief scheduling |
-| `/ascend` / "Run Ascend" | Full run from the intake interview (text) |
-| "Run Ascend Phase 1" | Just the LinkedIn analysis (cheap first taste) |
-| "Run Ascend resume" | Resume an interrupted run where it stopped |
-| "Ascend today" *(beta)* | **Daily briefing** — today's 3 actions + ghost-detector follow-ups, drafted |
-| "Ascend network" *(beta)* | **Warm-network map** — who you already know at each target company |
-| "Ascend answers" *(beta)* | Reusable, varied answers to common application questions |
+| `/ascendui` *(beta)* | Browser console: intake wizard, live progress, daily-brief scheduling |
 | "Ascend job add \<url>" *(beta)* | Add + build an apply pack for a job you found |
-| "Ascend prep 03" *(beta)* | Build deep interview prep for job #3 (when a screen books) + mock drill |
 | "Ascend score \<paste a JD>" *(beta)* | 0–100 Fit Score + missing keywords, no files built |
-| "Ascend export Acme" | Render a job's résumé to a one-page ATS-safe PDF (résumé builder) |
-| "Ascend build-resume" *(beta)* | Open the standalone résumé builder (form + live preview + Create PDF) |
-| "Ascend export-docx Acme" *(beta)* | Also emit an ATS-safe **Word** copy (pandoc) — PDF stays the default |
-| "Ascend aggregate" *(beta)* | Pull open roles from Greenhouse/Lever/Ashby public boards into the queue |
-| "Ascend crm" *(beta)* | **Networking CRM** — keep warm referral relationships alive + follow-ups due |
-| "Ascend mine" *(beta)* | **Achievement-mining interview** — extract real wins into the master résumé |
-| "Ascend drill 03" *(beta)* | **Interview Me** — live mock interview with evidence-grounded feedback |
-| "Ascend degenericize" *(beta)* | **De-genericizer** — swap generic text for your real evidence |
-| "Ascend negotiate Acme" *(beta)* | **Salary studio** — market anchors + your numbers + scripts |
+| "Ascend answers" *(beta)* | Reusable, varied answers to application questions |
+| "Ascend build-resume" *(beta)* | Standalone résumé builder (form + live preview + PDF) |
+| "Ascend export-docx Acme" *(beta)* | ATS-safe Word copy via pandoc; PDF stays the default |
+| "Ascend aggregate" *(beta)* | Pull open roles from Greenhouse/Lever/Ashby public boards |
+| "Ascend crm" *(beta)* | Keep warm referral relationships alive |
+| "Ascend mine" *(beta)* | Guided interview that extracts real wins into the master |
+| "Ascend drill 03" *(beta)* | Live mock interview with evidence-grounded feedback |
+| "Ascend degenericize" *(beta)* | Swap generic text for your real evidence |
+| "Ascend negotiate Acme" *(beta)* | Salary plan: market anchors, your numbers, scripts |
 | "Run Ascend maintenance" *(beta)* | Weekly: new/closed jobs, follow-ups due, retro patterns |
 
-Every job also gets an explainable **Fit Score (0–100)** so you work the best matches first. For the
-full picture of who uses each command and when — what you start with and the path through each one —
-see **[`WORKFLOW.md`](WORKFLOW.md)**. The **roadmap** ([`docs/ROADMAP.md`](docs/ROADMAP.md)) tracks
-what's next.
+Who uses each command, when, and with what preconditions lives in
+[`WORKFLOW.md`](WORKFLOW.md).
+</details>
 
 **The objective is action, not paperwork.** The dashboard leads with a weekly *apply N / ask N
-referrals* loop and a funnel scoreboard — applications sent and referrals asked are what get you
-interviews; tailored documents are just the ammunition.
+referrals* loop and a funnel scoreboard. Applications sent and referrals asked get you interviews.
+The documents are ammunition.
 
----
+## Honest status
+
+**v0.6.0, working toward 1.0.** The `/ascend` text pipeline is the stable core. The graphical
+console, the scheduled daily brief, and the on-demand ops marked *(beta)* are built and code-checked
+but not yet exercised end-to-end on real data. The 1.0 tag waits on archived real runs with
+line-by-line honesty sign-offs. Progress and the sign-off log live in
+[`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 <details>
-<summary><b>Costs, runtime & requirements</b></summary>
+<summary><b>Costs & requirements</b></summary>
 
-- **You need a Claude subscription / API access** — this runs inside Claude Code and uses tokens.
-- **A full run is long:** live web research for 15+ roles + the generated files often means **1–3+
-  hours** of Claude working, across several check-ins. Sample it first ("Run Ascend Phase 1", or "only
-  find 3 jobs and build apply packs for 2").
-- **And it isn't free:** a full run consumes a large share of a Pro plan's session limit (expect to
-  hit it and resume) or several dollars of API usage — the exact number depends on your plan and how
-  much research Phase 4 does. That's exactly what the resumable manifest is for: if you hit a limit
-  mid-run, nothing is lost — say *"Run Ascend resume"* when it resets.
-- **The PDF step is automated** (`08-export-pdf` renders headless via the résumé builder + Chrome). If
-  no Chrome-class browser is found it falls back to a two-click "Save as PDF". Eyeball it either way.
-- **Platform:** developed on macOS; works on Linux; on **Windows** use WSL or Git Bash (see
-  [`docs/SETUP.md`](docs/SETUP.md)).
-- **See output for free:** open the fictional [`examples/sample-run/start-here.html`](examples/sample-run/).
+- **You need a Claude subscription or API access.** This runs inside Claude Code and uses tokens.
+- **A full run is long.** Live research on 15+ roles plus the generated files means 1–3+ hours of
+  Claude working, across several check-ins. Sample Phase 1 first.
+- **It isn't free.** Expect a full run to consume a large share of a Pro plan session limit or
+  several dollars of API usage. If you hit a limit mid-run, nothing is lost: *"Run Ascend resume"*
+  when it resets.
+- **PDF rendering is automatic** via headless Chrome. No Chrome-class browser? You get a two-click
+  "Save as PDF" fallback.
+- **Platform:** macOS and Linux. On Windows use WSL or Git Bash ([`docs/SETUP.md`](docs/SETUP.md)).
 </details>
 
 <details>
-<summary><b>Privacy &amp; honesty</b></summary>
+<summary><b>Privacy model</b></summary>
 
-**Privacy.** Everything personal lives in `workspace/<name>/` and is **gitignored** — your LinkedIn
-export, résumés, job folders, and dashboards are never committed. As a backstop the `.gitignore` also
-ignores everything under `workspace/`, plus résumés and the standard LinkedIn export filenames
-(`Connections.csv`, `Profile.csv`, …) anywhere in the tree — a *renamed* export outside `workspace/`
-is only caught by the `workspace/` rule, so keep exports there. Both dashboards carry a "contains
-personal data — keep it local" banner. Run it for more than one person and each gets their own
-`workspace/<name>/`; delete a folder to wipe that person entirely.
-
-**Honesty.** Ascend never fabricates. Every claim traces to your LinkedIn export, your résumé, or an
-answer you gave — no invented metrics, titles, certs, skills, or referral contacts. A role wants
-something you don't have? That's a **gap with honest handling**, not a bluff. Personal "why this
-company" essays come out as honest *outlines* for you to write in your voice — never as finished prose.
-Job links are fetched and marked verified/unverified; req IDs are never invented. Full policy:
-[`reference/number-and-honesty-policy.md`](reference/number-and-honesty-policy.md).
+Everything personal lives in `workspace/<name>/`, which is gitignored: your LinkedIn export,
+résumés, job folders, dashboards. The `.gitignore` also blocks résumé-shaped files and standard
+LinkedIn export names elsewhere in the tree as a backstop (a renamed export outside `workspace/` is
+only caught by the `workspace/` rule, so keep exports there). Both dashboards carry a "personal
+data, keep it local" banner. Run it for a friend and they get their own folder. Delete a folder to
+wipe that person entirely. Data goes to Claude to run the pipeline, like any Claude Code session,
+and nowhere else. Web access is read-only research.
 </details>
 
 <details>
 <summary><b>FAQ</b></summary>
 
-**Do I need an Anthropic/Claude subscription?** Yes — you run this inside Claude Code.
+**Will it apply to jobs for me?** No. It finds, tailors, and preps. You review, export, submit.
+Auto-applying violates most sites' terms and skips your judgment.
 
-**Will it apply to jobs for me?** No. It finds jobs, builds your materials, and preps you. You review,
-export the PDF, and submit — applying for you would violate most sites' terms and skip your judgment.
+**Are the job links real?** Phase 4 fetches each link and marks it verified or unverified, and
+never invents req IDs. Career sites block bots and postings rot, so the queue reports the honest
+split and you re-open every link before applying.
 
-**Are the job links real?** Phase 4 fetches each link and marks it verified/unverified/dead, and never
-fabricates req IDs. Job boards block automated checks and postings rot, so the queue reports an honest
-split (*N candidates, M link-verified*) and you re-open every link before applying.
+**Can it run without a résumé?** Yes. It builds the master from your LinkedIn export plus the
+intake interview.
 
-**Can it run without a résumé?** Yes — it builds the master résumé from your LinkedIn export + intake.
+**Why not just use ChatGPT?** A chat session has no memory of your evidence, no provenance, and no
+gate against invention. Ascend's whole architecture exists to make "sounds plausible" insufficient.
 
-**Is my data sent anywhere?** Only to Claude as part of running the pipeline (like any Claude Code
-session). Nothing is committed to git; nothing is published.
-
-**Can I customize it?** Yes — edit anything in `prompts/`, `templates/`, or `reference/`.
+**Can I customize it?** Yes. Everything is Markdown in `prompts/`, `templates/`, and `reference/`.
 </details>
 
-<a id="known-limitations"></a>
 <details>
 <summary><b>Known limitations</b></summary>
 
-Honest about what's proven vs. still beta (and the path to 1.0 is tracked in [`docs/ROADMAP.md`](docs/ROADMAP.md)):
-
-- **Beta surfaces** — `/ascendui`, the scheduled daily brief, and the newer on-demand ops (`network`,
-  `answers`, `today`, `prep`) are built and code-checked but **not yet verified end-to-end on real
-  data**. The text `/ascend` pipeline is the stable path.
-- **Scheduled daily brief** — the cron runs your agent CLI headlessly, which may need it configured for
-  non-interactive use (permissions/flags). If a scheduled run doesn't complete, just say **"Run Ascend
-  today"** in Claude Code for the same briefing. Detecting a CLI (`claude`/`gemini`/`codex`) does not
-  guarantee it completes a multi-file run unattended.
-- **Platform** — the daily-brief scheduler uses cron (**macOS/Linux**); **native Windows is not
-  supported** for scheduling (use WSL/Git Bash, or run the brief manually). The Linux folder picker
-  needs `zenity`/`kdialog`, otherwise paste the path.
-- **Free tier** — a free *web-chat* tier can't read local files; you need a local agent CLI (a free
-  *CLI* tier like Gemini CLI is the closest free path).
-- **Job links** — fetched and marked verified/unverified; postings rot, so re-open each before applying.
-- **Tests** — a smoke-test harness + CI cover the server, dashboards, gitignore, and prompt cross-refs;
-  there is no full end-to-end test (that requires a real run).
+- **Beta surfaces** are labeled throughout and stay beta until real runs prove them.
+- **Scheduled daily brief** runs your agent CLI headlessly via cron (macOS/Linux, off by default,
+  opt-in). If a scheduled run doesn't complete, *"Ascend today"* gives the same briefing.
+- **Free tiers:** a free web-chat tier can't read local files. You need a local agent CLI.
+- **Tests** cover the server, dashboards, gitignore, permissions, linter, and cross-refs. There is
+  no full end-to-end test. That requires a real run, which is exactly what gates 1.0.
 </details>
 
 <details>
@@ -245,69 +215,46 @@ Honest about what's proven vs. still beta (and the path to 1.0 is tracked in [`d
 ```
 ascend/
 ├── README.md · WORKFLOW.md · CLAUDE.md · CHANGELOG.md · LICENSE (MIT)
-├── .gitignore                       privacy backstop (ignores all personal data + output)
-├── .claude/commands/                the /ascend + /ascendui slash commands
-├── ui/                              the graphical console: server.py (also `--render` → PDF), index.html, run-daily-brief.sh
-├── assets/ascend-banner.png         the brand banner
-├── docs/                            SETUP.md (first-run guide) · ROADMAP.md (versions + what's next)
-├── prompts/                         00-orchestrator + phases 01–07; on-demand 08–13
-│                                    (export, maintenance, deep-prep, network-map, answer-sheet, daily-briefing)
-├── templates/                       job-folder (tiered spec), master-resume, signal, job-queue,
-│                                    interview-packet, resume-builder (the PDF builder),
-│                                    linkedin-analysis + start-here (HTML)
-├── reference/                       binding rules: ATS/keywords, résumé writing, numbers/honesty,
-│                                    interview-prep framework
-├── tools/lint_artifacts.py          the honesty + language gate (dashes, banned words, forbidden
-│                                    numbers, retracted claims, Delta-Log provenance) — phases run it
-├── tests/smoke.py                   stdlib smoke tests (server, dashboards, gitignore, cross-refs)
-├── examples/sample-run/             a fictional end-to-end example (open its start-here.html)
-└── workspace/                       YOUR private output lands here (gitignored)
+├── .gitignore                       privacy backstop (all personal data + output ignored)
+├── .claude/commands/                the /ascend and /ascendui slash commands
+├── prompts/                         the pipeline: 00-orchestrator + phases 01–19
+├── templates/                       job folder spec, master résumé, dashboards, résumé builder
+├── reference/                       binding rules: ATS, résumé writing, honesty, interview prep
+├── tools/lint_artifacts.py          the honesty + language gate
+├── ui/                              the graphical console (Python stdlib server)
+├── tests/smoke.py                   stdlib smoke tests, wired into CI
+├── examples/sample-run/             the complete fictional example
+└── workspace/                       YOUR private output (gitignored)
 ```
-
-See **[Contributing](#contributing)** below to add field packs, polish the dashboards, or fix prompts.
 </details>
-
----
 
 ## Contributing
 
-Ascend is a prompt-and-template system, not a codebase — most contributions are Markdown (prompts,
-templates, reference rules) plus the occasional HTML/JS in the dashboard templates.
+Ascend is a prompt-and-template system. Most contributions are Markdown, plus occasional HTML/JS in
+the dashboard templates.
 
-**The one hard rule: never commit personal data.** No real resumes, LinkedIn exports, names, or
-generated runs go into git, ever. All of it lives in `workspace/` (gitignored). Any example must be
-100% fictional and live under `examples/`. Before a PR:
+**The one hard rule: never commit personal data.** No real résumés, exports, names, or generated
+runs, ever. Anything real lives in `workspace/` (gitignored), and any committed example must be 100%
+fictional and live under `examples/`. Before a PR:
 
 ```bash
 git status --porcelain                              # nothing personal staged
-git check-ignore workspace/you/master-resume.md     # should print the path (ignored)
-python3 tests/smoke.py                               # stdlib + git, no installs; CI runs the same
+git check-ignore workspace/you/master-resume.md     # prints the path (ignored) = good
+python3 tests/smoke.py                              # stdlib + git, no installs; CI runs the same
 ```
 
-If you change `.gitignore`, prove it still ignores personal data and still tracks the system files. The
-gitignore is load-bearing, so test it.
-
-**Principles to preserve:** honesty gates (nothing fabricated; conviction essays stay outlines) ·
-selection-not-invention (per-job resumes are selected from the master; a missing bullet is a MASTER GAP
-note, never fiction) · self-contained dashboards (no CDN; they open offline) · field-agnostic ·
-person-agnostic (no real person's details in committed files).
-
-**Good first contributions:** field packs (the system is field-agnostic but examples lean tech — a
-worked sample or reference notes for design, PM, marketing, healthcare, finance, trades, academia);
-keeping [`reference/ats-and-keywords.md`](reference/ats-and-keywords.md) and
-[`reference/interview-prep-framework.md`](reference/interview-prep-framework.md) current as the market
-shifts; dashboard polish; non-tech onboarding in [`docs/SETUP.md`](docs/SETUP.md) (especially Windows);
-and prompt bug fixes.
-
-**Workflow:** fork → branch → make the change → run `python3 tests/smoke.py` → update `CHANGELOG.md`
-under "Unreleased" → open a PR (use the template) describing what changed and which principle(s) it
-touches. Report bugs via the issue templates; for prompt bugs, include the phase, what you asked, and
-what it produced (personal data removed).
+Principles to preserve: honesty gates (nothing fabricated, conviction essays stay outlines) ·
+selection over invention · self-contained offline dashboards · field-agnostic · person-agnostic.
+Good first contributions: field packs for non-tech roles, keeping
+[`reference/ats-and-keywords.md`](reference/ats-and-keywords.md) current, dashboard polish, and
+Windows onboarding in [`docs/SETUP.md`](docs/SETUP.md).
 
 ---
 
 <div align="center">
 
-**MIT** — see [`LICENSE`](LICENSE). Use it, fork it, run it for your friends and family.
+**MIT** · [`LICENSE`](LICENSE) · Use it, fork it, run it for your friends and family.
+
+*Built with the same rules it enforces: this README passes `tools/lint_artifacts.py`.*
 
 </div>
