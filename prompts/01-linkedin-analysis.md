@@ -60,6 +60,9 @@ id="ascend-data">` block** with this user's real numbers — it is strict JSON (
 comments, no trailing commas), and the page renders from it via `JSON.parse`. **`steps` must hold
 exactly 10 objects.** After writing, **validate the JSON parses** (extract the block and run it through
 a JSON parser) — a syntax error there blanks the entire dashboard. Don't edit the render `<script>`.
+🔒 **Escape rule (injection):** no string value in the data block may contain a literal `</` — write
+it as the JSON-legal escape `<\/` (e.g. `"<\/script>"`). Profile/JD text is untrusted; an unescaped
+`</script>` inside a string closes the data island and injects markup into the user's dashboard.
 Requirements:
 - **Single self-contained file**, opens offline in any browser. Inline CSS. Charts via inline SVG or a
   single CDN charting lib (Chart.js) — if you use a CDN, also render a text fallback so it's readable

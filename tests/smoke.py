@@ -289,7 +289,14 @@ def test_bash_allowlist():
                 "env python3 workspace/jane/evil.py",
                 "find workspace -exec rm {} ;",
                 "xargs sh",
-                "eval 'rm -rf /'"]:
+                "eval 'rm -rf /'",
+                # pandoc is a code-exec primitive via filter flags (2026-07-02 council):
+                # the allow rule pins input paths to workspace/ and the filter flags are denied.
+                "pandoc --lua-filter=workspace/jane/x.lua workspace/jane/resume.md",
+                "pandoc workspace/jane/resume.md --lua-filter=workspace/jane/x.lua",
+                "pandoc workspace/jane/resume.md --filter ./evil",
+                "pandoc workspace/jane/resume.md -L workspace/jane/x.lua",
+                "pandoc /etc/passwd -o workspace/jane/out.docx"]:
         check(f"blocked (bypass): {cmd}", not permitted(cmd))
 
 # ── 4f. Honesty gates on the committed sample (P1) ───────────────────────────
@@ -388,6 +395,13 @@ def test_scripts():
             json.loads(settings.read_text(encoding="utf-8")); check(".claude/settings.json is valid JSON", True)
         except Exception as e:
             check(".claude/settings.json is valid JSON", False, str(e))
+    # No committed markdown carries leaked AI-tool-output residue (2026-07-02 council P0-3).
+    STRAY = ("</invoke" + ">", "</content" + ">", "<function_call", "antml" + ":")
+    tracked_md = subprocess.run(["git", "ls-files", "*.md"], cwd=REPO,
+                                capture_output=True, text=True).stdout.split()
+    dirty = [f for f in tracked_md
+             if any(s in (REPO / f).read_text(encoding="utf-8", errors="ignore") for s in STRAY)]
+    check("no leaked tool tags in committed markdown", not dirty, ", ".join(dirty[:5]))
     if shutil.which("bash"):
         check("run-daily-brief.sh passes bash -n",
               subprocess.run(["bash", "-n", str(REPO / "ui/run-daily-brief.sh")]).returncode == 0)

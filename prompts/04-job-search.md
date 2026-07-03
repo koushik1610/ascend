@@ -47,6 +47,13 @@ location/work-mode, ATS in use, and a **link-status field** (see the gate below)
 15 candidates in the user's exact lane, widen by one ring (adjacent titles, adjacent locations,
 adjacent company tier) and say you did.
 
+**Checkpoint incrementally — research must survive an interrupt.** This is the longest phase (live
+research on 15+ roles). Write findings into `job-queue.md` as you go (industry scan first, then
+append each batch of researched postings) and update `.ascend-state.json` after the scan and after
+every ~5 postings (e.g. `"4": "in-progress (scan done, 10/15 researched)"`). A closed laptop
+mid-phase should cost minutes, not the whole phase — on resume, keep verified entries and continue
+from the count in the manifest.
+
 ### Link-verification gate (be honest — do not assert verification you didn't perform)
 Many job boards block automated fetches, paginate behind JavaScript, and rot within days. You **cannot
 reliably confirm** a posting is open just because it appeared in a search result. So:

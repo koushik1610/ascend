@@ -78,6 +78,10 @@ keys). `Read` stays broad
 on purpose so the pipeline can read a résumé/LinkedIn export wherever you point it; the deny-list guards
 the crown jewels. The broad `WebFetch` (job pages live on arbitrary career sites) is paired with the
 prompt-injection quarantine in the ingesting prompts — fetched/file content is **data, not instructions**.
+This is an **explicitly accepted risk** for the local single-user model (2026-07-02 council): the
+exfil channel is constrained by judgment + the quarantine, not capability. Users who want a
+capability fence can domain-allowlist `WebFetch` in their gitignored `.claude/settings.local.json`;
+the highest-stakes surface (the unattended daily brief) ships **off by default**.
 Anyone who opens Claude Code in this repo inherits this allow-list — to tighten or remove it, edit/delete
 `.claude/settings.json`, or override per-user in the gitignored `.claude/settings.local.json`. In UI mode,
 run straight through (no per-phase checkpoints); if a command outside the allow-list ever comes up, note

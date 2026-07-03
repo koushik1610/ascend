@@ -18,18 +18,21 @@ model: **no fabrication, no auto-apply, no scraping, no real-time interview copi
 | **0.2.0** | Simpler + outcome-targeted | **Tiered job folders** (CORE apply pack now, deep prep on demand) so a first run is ~25–30 files, not ~100; résumé audit folded into the master résumé; default order 1→3→4→6→5→7. Navigator **weekly action loop + funnel scoreboard**, **referral-first hard gate**, mock-interview drill. Modern README + hand-authored SVG banner. |
 | **0.3.0** | P1 first cut (research-driven) | **Explainable Fit Score 0–100** (P1 #3), **Warm-Network Mapper** from your `Connections.csv` (#1), **Application Answer Sheet** (#8), **Daily Briefing + ghost-detector follow-ups** (#9 + #12). `docs/ROADMAP.md` itself. |
 | **0.4.0** | Graphical console | **`/ascendui`** — a local Jarvis-style browser wizard (Python-stdlib server, native folder picker, live progress, optional daily-brief cron that auto-detects claude/gemini/codex). |
-| **Unreleased** | v1.0 hardening | Server **CSRF / DNS-rebinding hardening** (verified live); **beta labels + Known Limitations** honesty pass; dead-link fix; **smoke-test harness + CI**. 2026-06-15 **council review** (architecture · competitive · security) documented; the two new security gates (**SEC-CRIT-1 prompt-injection**, **SEC-CRIT-2 reader XSS**) plus SEC-HIGH-3 **fixed 2026-06-16** and smoke-tested. **Résumé builder** — a self-contained live-preview builder (`templates/resume-builder.template.html`) with a locked ATS-safe one-page layout, JSON Resume data model, and headless auto-render to PDF via `ui/server.py --render`; wired into Phases 3 (master public résumé) and 5 (per-job), plus a standalone `build-resume` op. Closes the competitive "live-preview builder" + JSON-export gaps. (See *Path to v1.0* + *Council review*.) |
+| **0.5.0** | Rebrand · builder · hardening | The **S.P.I.D.E.R. → Ascend** rebrand; the **résumé builder** (live preview, JSON Resume, headless auto-PDF via `ui/server.py --render`) wired into Phases 3/5 + `build-resume`; server CSRF/DNS-rebind hardening; **SEC-CRIT-1/2 + HIGH-3 fixed**; Bash boundary converted to **allow-list-only**; sample run regenerated; smoke harness + CI; beta fences; the relationship/interactivity ops (crm/mine/drill/degenericize/negotiate/aggregate/export-docx, beta). |
+| **0.6.0** | Résumé quality | Typography floors locked into the builder (Calibri 10pt/12–14pt/0.5in/1.15); plain-text skills; the **anti-AI-tell language rules** (`.claude/banned-words.md` + writing-rules section). From the first real run on live data. |
+| **Unreleased** | Run-council absorption | `tools/lint_artifacts.py` (the honesty+language gate) · lock-the-master state · bullet-quality rubric · messages.csv warmth · packet-breadth intake choice · run reports · 2026-07-02 release-council fixes (pandoc pin, truth-layer re-grade, CI hardening). |
 
 ---
 
 ## Path to v1.0
 
-> **Where we are: v0.5.0 is cut now.** It captures the **Ascend** rebrand, the résumé builder +
-> auto-PDF, and the security hardening (allow-list-only Bash, reader/builder CSP, prompt-injection
-> quarantine). The one thing between v0.5.0 and **v1.0** is real-data validation: the pipeline has been
-> code-checked exhaustively but not yet run end-to-end on real LinkedIn data. The **2026-06-28 readiness
-> council** ([`V1-READINESS.md`](V1-READINESS.md)) is the authority; this section is reconciled to it. The
-> earlier "one checkbox away" framing was optimistic — the runs are the work.
+> **Where we are: v0.6.0 is tagged** (rebrand + résumé builder + security hardening shipped in
+> v0.5.0; résumé-quality typography/language rules in v0.6.0; the 2026-07-01 run-council absorption
+> is on `main` unreleased). What stands between here and **v1.0** is real-data validation done
+> honestly: the 2026-07-01 run earned **partial** credit (see the sign-off log), and the repo-pure
+> cold-start run (b) + interrupt-resume run (c) are the remaining gate. The **2026-06-28 readiness
+> council** ([`V1-READINESS.md`](V1-READINESS.md)) set the bar; the **2026-07-02 release council**
+> re-graded progress against it. The runs are the work.
 
 **Definition of Done (gate the 1.0 tag on ALL):**
 ① **2–3 real end-to-end runs** on real LinkedIn data, spanning (a) with-résumé in a technical field,
@@ -52,17 +55,29 @@ fenced as beta · ④ smoke harness + CI green **on the remote** · ⑤ no dead 
 **Sign-off log (fill as runs complete):**
 | Run | Case | Date | Honesty | Grounding | Completeness | Privacy | Signed off |
 |---|---|---|---|---|---|---|---|
-| 1 | with-résumé · tech | 2026-07-01 | ✅ | ✅ | ✅ | ✅ | ✅ author (private archive) |
-| 2 | no-résumé or non-tech | — | — | — | — | — | — |
-| 3 | resume-after-interruption | — | — | — | — | — | — |
+| 1 | with-résumé · tech | 2026-07-01 | ✅ | ✅ | **⚠ partial** | ✅ | ⚠ counts as partial (author) |
+| 2 | no-résumé or non-tech | — (owner: author, recruit a non-tech volunteer; target: before tag) | — | — | — | — | — |
+| 3 | resume-after-interruption | — (owner: author; cheap — interrupt a real run mid-Phase-4 and resume; target: next run) | — | — | — | — | — |
 
-> Run 1 detail: a full live run on the author's real LinkedIn data (locked master → fresh 15-job
-> queue with Fit Scores → apply packs with one-page PDFs → referral map). All four rubric lines passed;
-> the run-report + artifacts are archived in the author's private (gitignored) workspace. An earlier
-> exploratory run (2026-06-28→30) surfaced real defects — derivative-résumé drift, manual one-page
-> fitting, hand-run language greps — and does **not** count toward the gate; its lessons were absorbed
-> as the 2026-07-01 run-council items below. Caveat logged honestly: both runs are the same user and
-> field, which is why cases (b) and (c) remain open.
+> **Run 1, re-graded honestly (2026-07-02 council):** a real live run on real LinkedIn data — but it
+> exercised **Phases 4/5/8/11 only**: the master was reused pre-locked (not built cold through Phase
+> 3), no thin packet was produced (it referenced a pre-existing private one), packs were built eagerly
+> for all 15 jobs (full-queue breadth — now an explicit intake choice), parts of selection/render/
+> scaffold ran through out-of-repo helper scripts, and interruption was never tested. Honesty,
+> grounding, and privacy passed cleanly; **Completeness did not** — so run 1 counts as *partial*
+> evidence, not a full pass. An earlier exploratory run (2026-06-28→30) surfaced real defects and
+> doesn't count at all; its lessons became the run-council items below.
+>
+> **Hard requirements for runs (b) and (c), so the gate can't be self-graded soft:** repo-pure (repo
+> prompts + tools only — no out-of-repo scripts), a true cold start through the orchestrator ending at
+> `start-here.html`, graded **line-by-line against the rubric inside the run's own RUN-REPORT.md**,
+> and for (b) an anti-author profile (no résumé or non-tech field) that also stress-tests the new
+> v0.6/0.7 mechanisms (lint gate, lock state, bullet rubric) for n=1 overfitting.
+
+> **SCOPE FREEZE (2026-07-02, per council):** until runs (b) and (c) are signed off, the only work
+> that ships is defect fixes those runs surface. No new features, no new prompts, no new ops.
+> **Post-launch success signal** (so v1.0 can fail informatively): within 60 days of going public,
+> at least one person who isn't the author completes a run and files an issue/discussion about it.
 
 > Run each on a **clean `workspace/<name>/`** (no stale `.ascend-state.json` from a prior run) so the
 > archived proof reflects a true cold start. Accepted single-user risks logged for 1.0: **SEC-MED-4**
@@ -83,7 +98,7 @@ fenced as beta · ④ smoke harness + CI green **on the remote** · ⑤ no dead 
 | 11 | `/resume-builder` had no CSP; one-page PDF unenforced; daily-brief on by default; node unpinned in CI; CSV claim over-broad | 🟢 done (v0.5.0) — builder CSP added; Create-PDF refuses multi-page + page-count smoke assertion; scheduled brief **off by default** (opt-in, loud notice); `setup-node`/`setup-python` pinned; README CSV claim softened |
 | 12 | Honesty value-claim untested | 🟢 done (v0.5.0) — smoke test asserts the committed sample's sendables carry no internal-number/codename leak and no fiction marker |
 | 3 | **Real-run gate widened** to 2–3 runs + rubric + sign-off | 🟢 done (v0.5.0) — defined above |
-| 2 | **2–3 real end-to-end runs on real data** | 🟡 **1 of 2–3 done** (2026-07-01, signed off above); cases (b) no-résumé/non-tech and (c) resume-after-interruption remain (demo GIF + green-on-remote CI ride along) |
+| 2 | **2–3 real end-to-end runs on real data** | 🟡 **partial credit only** — the 2026-07-01 run passed honesty/grounding/privacy but exercised Phases 4/5/8/11 only (see the re-graded sign-off log); a repo-pure cold-start run (b) + an interrupt-resume run (c) remain the gate (demo GIF rides along with run (b)) |
 
 > The security gates were surfaced by the 2026-06-15 and 2026-06-28 councils and verified against source.
 > See [**Security review**](#security-review--council-2026-06-15) for findings/fixes. They gate the 1.0 tag
@@ -110,8 +125,8 @@ gate on every item: n=1 (one user, one field) — nothing ships that encodes one
 | P1-1 | **Sanitizer at generation, everywhere** (binding language-gate note on every sendable-emitting prompt) | 🟢 shipped |
 | P1-2 | **Bullet provenance / anti-drift check** (linter's provenance category + selection-only mode in Phase 5) | 🟢 shipped |
 | P1-3 | **Warmth in the network map** (Phase 11 reads `messages.csv` when present; ranks by real DM history) | 🟢 shipped |
-| P1-5 | One-page auto-fit in the renderer (deterministic trim within the typography floors) | ⚪ pending — keep simple per the council's own gold-plating warning |
-| P1-4 | Deterministic per-job build as a repo tool (selection + render + scaffold) | ⚪ pending — must not encode any one user's bullet cadence (n=1 gate) |
+| P1-5 | One-page auto-fit in the renderer (deterministic trim within the typography floors) | ⚪ **post-1.0** (2026-07-02 council: out of the v1.0 gate; keep simple per the gold-plating warning) |
+| P1-4 | Deterministic per-job build as a repo tool (selection + render + scaffold) | ⚪ **post-1.0** (must not encode any one user's bullet cadence — n=1 gate) |
 | P1-6 | **Environment-robust PDF assertions** (page-count check now inflates streams, like the Tj/TJ fix) | 🟢 shipped |
 | P1-7 | **Packet breadth as an explicit intake choice** (top 3–5 vs full queue — no silent default) | 🟢 shipped |
 | P2-1 | Link-liveness + comp capture in Phase 4 | 🟢 already present (verified-live/unverified gate + comp field) |

@@ -13,7 +13,7 @@
       "Bash(mkdir workspace/*)",
       "Bash(rm -f workspace/*)",
       "Bash(git check-ignore*)",
-      "Bash(pandoc *)"
+      "Bash(pandoc workspace/*)"
     ],
     "deny": [
       "Bash(sudo *)",
@@ -63,7 +63,13 @@
       "Read(**/id_rsa)",
       "Read(**/id_ed25519)",
       "Read(**/*.pem)",
-      "Edit(**/.env)"
+      "Edit(**/.env)",
+      "Bash(pandoc * --lua-filter*)",
+      "Bash(pandoc * --filter*)",
+      "Bash(pandoc * -L *)",
+      "Bash(pandoc -L*)",
+      "Bash(pandoc --lua-filter*)",
+      "Bash(pandoc --filter*)"
     ]
   }
 }

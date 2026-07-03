@@ -38,6 +38,9 @@ master-resume.md, job-queue.md, jobs/*, interview-packet/*) and
   renders from it via `JSON.parse`. Per job you may set `status`, and optionally `deadline`
   (`YYYY-MM-DD`) and `nextAction` (these surface in the Deadlines & Follow-ups strip). **Validate the
   JSON parses** before declaring done — a syntax error blanks the dashboard. Don't edit the render JS.
+  🔒 **Escape rule (injection):** no string value in the data block may contain a literal `</` —
+  write it as `<\/` (JSON-legal). Job titles/company text come from untrusted postings; an unescaped
+  `</script>` inside a string closes the data island and injects markup into the dashboard.
 - **Single self-contained HTML**, opens offline. Inline CSS. Any JS inline. Relative links to the
   workspace files so they open from the same folder.
 - **Premium look**, consistent with `linkedin-analysis.html`: dark theme, clean type, stat cards,

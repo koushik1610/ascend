@@ -269,5 +269,3 @@ These aren't a journey — they're the promises Ascend keeps no matter which pat
 - **Resumable.** `.ascend-state.json` makes any run recoverable; never re-derive progress by guessing.
 - **You stay in the loop.** Ascend finds, tailors, and preps — it never applies for you. You review,
   export, and submit.
-</content>
-</invoke>

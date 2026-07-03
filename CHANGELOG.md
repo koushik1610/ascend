@@ -36,6 +36,34 @@ remain, plus a green CI run on the remote + a demo GIF._
   writes `workspace/<name>/RUN-REPORT.md` (what ran, gates passed, what changed since the last run,
   blockers in priority order) so runs are auditable and comparable.
 
+### Fixed — 2026-07-02 release-council pass (9-persona full council, voted)
+- **Run 1 re-graded honestly in the v1.0 sign-off log.** The 2026-07-01 run passed
+  honesty/grounding/privacy but exercised Phases 4/5/8/11 only (master reused pre-locked, no cold
+  start, full-queue breadth, partly out-of-repo tooling) — Completeness is now ⚠ partial, and runs
+  (b)/(c) gained hard requirements: repo-pure, cold start through the orchestrator to
+  `start-here.html`, graded line-by-line inside the run's own RUN-REPORT. A **scope freeze** is
+  declared until both sign off, and a post-launch success signal is defined.
+- **`Bash(pandoc *)` was a code-exec hole in the allow-list** (pandoc runs arbitrary code via
+  `--lua-filter`/`--filter`/`-L`). Pinned to `pandoc workspace/*`, filter flags denied, five negative
+  smoke tests added.
+- **ROADMAP version drift**: "v0.5.0 is cut now" + a lineage table ending at 0.4.0 contradicted the
+  v0.6.0 badge/tag/CHANGELOG — reconciled; 0.5.0/0.6.0 lineage rows added; P1-4/P1-5 marked post-1.0.
+- **`WORKFLOW.md` ended with leaked AI-tool-output tags** on the README's headline journeys link —
+  removed, plus a smoke check that no committed markdown carries tool-tag residue.
+- **CI least-privilege + supply chain**: `permissions: contents: read` added; the three actions
+  SHA-pinned (tags are mutable).
+- **Dashboard data-island escape rule** (🔒) added to Phases 1/7: string values must escape `</` as
+  `<\/` so hostile posting text can't close the JSON island and inject markup into the dashboards.
+- **Phase 4 now checkpoints incrementally** (state updated per ~5 postings researched) so an
+  interrupt costs minutes, not the whole research phase.
+- **Sample PDFs re-rendered** from the language-gate-cleaned sources (they had drifted from the
+  cleaned markdown/JSON); both verified one page with selectable text.
+- **README honesty**: beta labels reconciled (job add / score / maintenance / build-resume /
+  export-docx); an honest cost sentence (plan limits / API dollars + the resumability tie-in); packet
+  breadth framed as the intake choice it now is; first-master revision-pass expectation set.
+- **WebFetch accepted-risk posture documented** in CLAUDE.md (judgment + quarantine, not capability;
+  local settings.local.json domain-fence available; unattended brief stays default-off).
+
 ### Fixed
 - **`workspace/README.md` described the retired v0.1 architecture** (a standalone `resume-audit.md`,
   8-file job folders) — rewritten to the current shape (audit folded into the master, 3-file CORE

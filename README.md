@@ -101,11 +101,14 @@ Everything lands in `workspace/<your-name>/`, which is **gitignored** — it nev
   export-docx Also emit an ATS-safe Word copy (pandoc) ...... 08-export-pdf.md
 ```
 
-**Lazy by design.** A first run produces **~25–30 files** — a master resume, a 15-job queue, a thin
-packet, and a 3-file apply pack for the few jobs you commit to — *not* 100 speculative prep files for
-leads that never call back. Deep interview prep is built per job, exactly when it converts. A run
-manifest (`.ascend-state.json`) makes everything **resumable** — close your laptop mid-run, say *"Run
-Ascend resume"* later.
+**Lazy by design (your choice at intake).** The default first run produces **~25–30 files** — a
+master resume, a 15-job queue, a thin packet, and a 3-file apply pack for the few jobs you commit
+to — with deep interview prep built per job, when it converts. Prefer everything built up front?
+Intake asks — say *full queue* and it builds a pack for every ranked job instead. A run manifest
+(`.ascend-state.json`) makes everything **resumable** — close your laptop mid-run, say *"Run Ascend
+resume"* later. And expect your **first master résumé to need a revision pass**: the bullet-quality
+gate shows you exactly which bullets are weak and what evidence would fix them — that iteration is
+where the quality comes from.
 
 <details>
 <summary><b>the ASCII sunrise, for the terminal-romantics</b></summary>
@@ -131,19 +134,19 @@ Ascend resume"* later.
 | "Ascend today" *(beta)* | **Daily briefing** — today's 3 actions + ghost-detector follow-ups, drafted |
 | "Ascend network" *(beta)* | **Warm-network map** — who you already know at each target company |
 | "Ascend answers" *(beta)* | Reusable, varied answers to common application questions |
-| "Ascend job add \<url>" | Add + build an apply pack for a job you found |
+| "Ascend job add \<url>" *(beta)* | Add + build an apply pack for a job you found |
 | "Ascend prep 03" *(beta)* | Build deep interview prep for job #3 (when a screen books) + mock drill |
-| "Ascend score \<paste a JD>" | 0–100 Fit Score + missing keywords, no files built |
+| "Ascend score \<paste a JD>" *(beta)* | 0–100 Fit Score + missing keywords, no files built |
 | "Ascend export Acme" | Render a job's résumé to a one-page ATS-safe PDF (résumé builder) |
-| "Ascend build-resume" | Open the standalone résumé builder (form + live preview + Create PDF) |
-| "Ascend export-docx Acme" | Also emit an ATS-safe **Word** copy (pandoc) — PDF stays the default |
+| "Ascend build-resume" *(beta)* | Open the standalone résumé builder (form + live preview + Create PDF) |
+| "Ascend export-docx Acme" *(beta)* | Also emit an ATS-safe **Word** copy (pandoc) — PDF stays the default |
 | "Ascend aggregate" *(beta)* | Pull open roles from Greenhouse/Lever/Ashby public boards into the queue |
 | "Ascend crm" *(beta)* | **Networking CRM** — keep warm referral relationships alive + follow-ups due |
 | "Ascend mine" *(beta)* | **Achievement-mining interview** — extract real wins into the master résumé |
 | "Ascend drill 03" *(beta)* | **Interview Me** — live mock interview with evidence-grounded feedback |
 | "Ascend degenericize" *(beta)* | **De-genericizer** — swap generic text for your real evidence |
 | "Ascend negotiate Acme" *(beta)* | **Salary studio** — market anchors + your numbers + scripts |
-| "Run Ascend maintenance" | Weekly: new/closed jobs, follow-ups due, retro patterns |
+| "Run Ascend maintenance" *(beta)* | Weekly: new/closed jobs, follow-ups due, retro patterns |
 
 Every job also gets an explainable **Fit Score (0–100)** so you work the best matches first. For the
 full picture of who uses each command and when — what you start with and the path through each one —
@@ -163,6 +166,10 @@ interviews; tailored documents are just the ammunition.
 - **A full run is long:** live web research for 15+ roles + the generated files often means **1–3+
   hours** of Claude working, across several check-ins. Sample it first ("Run Ascend Phase 1", or "only
   find 3 jobs and build apply packs for 2").
+- **And it isn't free:** a full run consumes a large share of a Pro plan's session limit (expect to
+  hit it and resume) or several dollars of API usage — the exact number depends on your plan and how
+  much research Phase 4 does. That's exactly what the resumable manifest is for: if you hit a limit
+  mid-run, nothing is lost — say *"Run Ascend resume"* when it resets.
 - **The PDF step is automated** (`08-export-pdf` renders headless via the résumé builder + Chrome). If
   no Chrome-class browser is found it falls back to a two-click "Save as PDF". Eyeball it either way.
 - **Platform:** developed on macOS; works on Linux; on **Windows** use WSL or Git Bash (see
