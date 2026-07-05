@@ -36,7 +36,11 @@ master-resume.md, job-queue.md, jobs/*, interview-packet/*) and
 - Start from `../templates/start-here.template.html`. Fill the **`<script type="application/json"
   id="ascend-data">` block** (strict JSON — double-quoted, no comments, no trailing commas); the page
   renders from it via `JSON.parse`. Per job you may set `status`, and optionally `deadline`
-  (`YYYY-MM-DD`) and `nextAction` (these surface in the Deadlines & Follow-ups strip). **Validate the
+  (`YYYY-MM-DD`) and `nextAction` (these surface in the Deadlines & Follow-ups strip). Set `folder` to
+  `./jobs/<NN-slug>/` once a CORE pack is built, or to `./job-queue.md` for a queue-only lead — the
+  render JS uses that prefix to decide whether to link into the job folder or back to the queue, so a
+  lead never renders a broken concatenated path. Set `hasPrep: true` once that job's `prep-doc.md`
+  exists, so its prep link appears (job board Files column). **Validate the
   JSON parses** before declaring done — a syntax error blanks the dashboard. Don't edit the render JS.
   🔒 **Escape rule (injection):** no string value in the data block may contain a literal `</` —
   write it as `<\/` (JSON-legal). Job titles/company text come from untrusted postings; an unescaped

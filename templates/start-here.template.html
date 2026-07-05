@@ -154,7 +154,7 @@ DATA.phases.forEach(p=>$("#phases").appendChild(el("div","phase",
 DATA.blockers.forEach(b=>$("#blockers").appendChild(el("li",null,`<b>${b.t}</b> <span class="sub">— ${b.note||""}</span>`)));
 /* Reminders: any job with a deadline or a pending next action, soonest deadline first. */
 const today=new Date(); today.setHours(0,0,0,0);
-const rem=DATA.jobs.filter(j=>j.deadline||j.nextAction)
+const rem=DATA.jobs.filter(j=>j.folder.startsWith("./jobs/") && (j.deadline||j.nextAction))
   .sort((a,b)=>(a.deadline||"9999").localeCompare(b.deadline||"9999"));
 if(rem.length===0){ $("#reminders").appendChild(el("li",null,`<span class="sub">No deadlines or follow-ups logged yet. Add <code>deadline</code> / <code>nextAction</code> to a job in the JSON as you apply.</span>`)); }
 rem.forEach(j=>{
@@ -176,10 +176,19 @@ DATA.jobs.forEach(j=>{
   const tr=el("tr"); const label=j.status.replace("-"," ");
   const fit = j.fit==null ? '<span class="sub">—</span>'
     : `<b style="color:${j.fit>=80?'var(--good)':j.fit>=60?'var(--accent)':'var(--warn)'}">${j.fit}</b><span class="sub">/100</span>`;
-  tr.innerHTML=`<td>${j.rank}</td><td><a href="${j.folder}"><b>${j.company}</b></a><div class="sub">${j.role}</div></td>
+  const built=j.folder.startsWith("./jobs/");
+  // Built CORE pack → resume + log; deep prep only if it exists. Leads (no folder yet, j.folder is
+  // the queue file itself) → a single link back to the queue, never a concatenated dead path.
+  const links = built
+    ? `<a href="${j.folder}resume.md">resume</a>`
+      + (j.hasPrep?`<a href="${j.folder}prep-doc.md">prep</a>`:``)
+      + `<a href="${j.folder}application-log.md">log</a>`
+    : `<a href="${j.folder}">queue</a>`;
+  const companyHref = built ? `${j.folder}application-log.md` : j.folder;
+  tr.innerHTML=`<td>${j.rank}</td><td><a href="${companyHref}"><b>${j.company}</b></a><div class="sub">${j.role}</div></td>
     <td>${fit}</td><td>${j.loc}</td><td>${j.comp}</td><td>${j.ats}</td>
     <td><span class="st st-${j.status}">${label}</span></td>
-    <td class="links"><a href="${j.folder}resume.md">resume</a><a href="${j.folder}prep-doc.md">prep</a><a href="${j.folder}application-log.md">log</a></td>`;
+    <td class="links">${links}</td>`;
   $("#jobs").appendChild(tr);
 });
 DATA.packet.forEach(p=>$("#packet").appendChild(el("a",null,p.t)).setAttribute("href",p.link));
