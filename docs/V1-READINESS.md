@@ -1,4 +1,4 @@
-# Ascend — v1.0 Readiness Review (council, 2026-06-28)
+# Ascend: v1.0 Readiness Review (council, 2026-06-28)
 
 Full LLM council, 10 personas across 3 groups (engineering/systems/delivery · security/privacy/compliance ·
 product/market/skeptics), anonymous peer-vote, priority verdict. This report supersedes the optimistic
@@ -16,7 +16,7 @@ Vote weight is noted as ●●● (raised by all three groups), ●● (two), �
 
 ---
 
-## P0 — blocks v1.0
+## P0: blocks v1.0
 
 1. **Release mechanics are unfinished; nothing is on `main`.** ●●
    `main` HEAD still ships S.P.I.D.E.R. (old banner, `/spider`, CI badge → `koushik1610/spider`). The rebrand,
@@ -68,7 +68,7 @@ Vote weight is noted as ●●● (raised by all three groups), ●● (two), �
 
 ---
 
-## P1 — should-fix before v1.0
+## P1: should-fix before v1.0
 
 - **Smoke tests assert plumbing, not the value claim.** ●● The suite proves the server compiles, the renderer
   sanitizes, the PDF has text. None touch the honesty gates or selection-not-invention, which the README calls
@@ -99,7 +99,7 @@ Vote weight is noted as ●●● (raised by all three groups), ●● (two), �
 
 ---
 
-## P2 — post-v1.0 (correctly deferred; do not reopen 1.0 scope)
+## P2: post-v1.0 (correctly deferred; do not reopen 1.0 scope)
 
 - Table-stakes feature gaps already in the backlog: **DOCX export** (#19), **official ATS job aggregation**
   via Greenhouse/Lever/Ashby JSON + RSS (#17). Don't block 1.0.

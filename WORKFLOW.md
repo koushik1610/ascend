@@ -1,14 +1,14 @@
-# WORKFLOW.md — how people actually use Ascend
+# WORKFLOW.md: how people actually use Ascend
 
 This is the **journey index**: who the user is, what they start with, and the path they take for
-each way of using Ascend. It complements the mechanics — it does not restate them. The canonical
+each way of using Ascend. It complements the mechanics. It does not restate them. The canonical
 **run order, phases, and state machine live in [`prompts/00-orchestrator.md`](prompts/00-orchestrator.md)**;
 the canonical **op list lives in [`.claude/commands/ascend.md`](.claude/commands/ascend.md)**. When a
 journey below says "runs the pipeline," that prompt is the source of truth for *how*.
 
 Each journey is written as: **the user → what they start with → the trigger → the path → what they
 end with**. If a journey's trigger has a precondition (a built workspace, a booked screen), it's
-called out — that's the difference between a step that works and one that errors.
+called out: that's the difference between a step that works and one that errors.
 
 ---
 
@@ -18,14 +18,14 @@ The shared baseline. A journey only lists what it needs *beyond* this.
 
 - **Claude Code** open in a clone of this repo, with a Claude subscription / API access (it runs on
   tokens).
-- A **LinkedIn data export** — *LinkedIn → Settings → Data Privacy → Get a copy of your data → "The
+- A **LinkedIn data export**: *LinkedIn → Settings → Data Privacy → Get a copy of your data → "The
   works"* → a zip → unzipped to a folder. (The `Connections.csv` inside it powers the network map.)
 - **Optionally** a current resume (PDF / .docx / .md). No resume? Ascend builds the master from the
   LinkedIn export + intake answers instead.
 - A rough idea of **target roles** (the title you want recruiters to search for) and seniority.
 
 Everything personal lands in **`workspace/<your-name>/`**, which is gitignored. That folder *is* your
-run — delete it to wipe yourself entirely; run for a friend and they get their own.
+run. Delete it to wipe yourself entirely; run for a friend and they get their own.
 
 ---
 
@@ -51,7 +51,7 @@ The shape: **one setup**, then you live in the **loop** and react to **opportuni
 
 ## Setup journeys (you do one of these once)
 
-### J1 — The full run *(the main path)*
+### J1: The full run *(the main path)*
 > **As** someone starting a real job search, **I want** my whole search set up in one pass, **so that**
 > I open one dashboard and start applying instead of staring at a blank resume.
 
@@ -63,22 +63,22 @@ The shape: **one setup**, then you live in the **loop** and react to **opportuni
   after each so you can stop, skip, or redirect.
 - **Ends with:** `linkedin-analysis.html`, `master-resume.md`, a 15+ job `job-queue.md` (each link
   marked verified/unverified), a thin `interview-packet/`, CORE apply packs for the **top 3–5 jobs you
-  commit to**, and `start-here.html` — **open this first**. ~25–30 files, not ~100.
+  commit to**, and `start-here.html`: **open this first**. ~25–30 files, not ~100.
 - **Implemented by:** [`prompts/00-orchestrator.md`](prompts/00-orchestrator.md) → phases 01, 03, 04, 06, 05, 07.
 
-### J2 — The cheap sampler *(try before the long run)*
+### J2: The cheap sampler *(try before the long run)*
 > **As** a skeptic who won't spend 3 hours on an unproven tool, **I want** a cheap first taste, **so
 > that** I can judge the output before committing.
 
 - **Starts with:** the baseline (a resume is optional even here).
-- **Trigger:** *"Run Ascend Phase 1"* (just the LinkedIn analysis) — or scope the full run, e.g. *"only
+- **Trigger:** *"Run Ascend Phase 1"* (just the LinkedIn analysis), or scope the full run, e.g. *"only
   find 3 jobs and build apply packs for 2."*
 - **Path:** runs a single phase / a scoped run, then stops.
 - **Ends with:** one artifact (e.g. `linkedin-analysis.html` + its 10 ranked next steps) you can judge.
-  Liked it? Continue into J1 — the workspace and intake carry forward.
+  Liked it? Continue into J1: the workspace and intake carry forward.
 - **Implemented by:** the orchestrator's "Run Ascend Phase N" path → the named phase prompt.
 
-### J3 — The graphical console *(clicking, not typing)* — **beta**
+### J3: The graphical console *(clicking, not typing)* (**beta**)
 > **As** someone who'd rather click than type terminal commands, **I want** a guided wizard with live
 > progress, **so that** I never touch the command line.
 
@@ -93,7 +93,7 @@ The shape: **one setup**, then you live in the **loop** and react to **opportuni
 - **Implemented by:** [`.claude/commands/ascendui.md`](.claude/commands/ascendui.md) + [`ui/`](ui/) →
   the orchestrator in UI mode.
 
-### J4 — Resume an interrupted run
+### J4: Resume an interrupted run
 > **As** someone whose run got cut off (closed laptop, hit a session/tool limit), **I want** to pick up
 > exactly where it stopped, **so that** I don't redo finished work or get a half-built workspace.
 
@@ -104,7 +104,7 @@ The shape: **one setup**, then you live in the **loop** and react to **opportuni
 - **Ends with:** the run completed as if it never paused.
 - **Implemented by:** the orchestrator's **State & resumability** section + `.ascend-state.json`.
 
-### J5 — Non-coder first setup
+### J5: Non-coder first setup
 > **As** someone who has never opened a terminal, **I want** step-by-step setup help, **so that** I can
 > get to the point of typing `/ascend` at all.
 
@@ -120,22 +120,22 @@ The shape: **one setup**, then you live in the **loop** and react to **opportuni
 ## The recurring loop (where you live after setup)
 
 These assume **a built `workspace/<name>/`** already exists. This is the part that actually gets you
-interviews — the documents are just ammunition; *applications sent and referrals asked* are the score.
+interviews: the documents are just ammunition; *applications sent and referrals asked* are the score.
 
-### J6 — Today's action loop
+### J6: Today's action loop
 > **As** someone with applications in flight, **I want** to be told the few things to do today, **so
 > that** I make progress in ~20 minutes without re-planning my whole search.
 
-- **Trigger:** *"Ascend today"* / `/ascend today` — **or** the scheduled daily brief fires on its own
+- **Trigger:** *"Ascend today"* / `/ascend today`, **or** the scheduled daily brief fires on its own
   (beta; cron, macOS/Linux).
 - **Path:** reads your queue, network map, and dashboard targets → drafts today's 3 actions + a
   ghost-detector pass that surfaces stale applications needing a follow-up nudge.
-- **Ends with:** `daily-briefing.md` — today's actions and drafted follow-ups, ready to send.
+- **Ends with:** `daily-briefing.md`: today's actions and drafted follow-ups, ready to send.
 - **Implemented by:** [`prompts/13-daily-briefing.md`](prompts/13-daily-briefing.md). Scheduled path:
   [`ui/run-daily-brief.sh`](ui/run-daily-brief.sh). If a scheduled run doesn't complete, just say
   *"Ascend today"* for the same brief.
 
-### J7 — Weekly maintenance
+### J7: Weekly maintenance
 > **As** a job seeker a week later, **I want** fresh roles and a status sweep, **so that** my queue
 > doesn't rot and no follow-up slips.
 
@@ -145,7 +145,7 @@ interviews — the documents are just ammunition; *applications sent and referra
 - **Ends with:** an updated queue + a maintenance digest of what changed and what's due.
 - **Implemented by:** [`prompts/09-maintenance.md`](prompts/09-maintenance.md).
 
-### J8 — Network refresh
+### J8: Network refresh
 > **As** someone who'd rather get referred than cold-apply, **I want** to know who I already know at
 > each target company, **so that** my outreach starts warm.
 
@@ -153,7 +153,7 @@ interviews — the documents are just ammunition; *applications sent and referra
 - **Trigger:** *"Ascend network"* / `/ascend network`.
 - **Path:** mines *your own* connections for warm referral paths per target company (never invents
   contacts).
-- **Ends with:** `network-map.md` — best warm paths per company, which J6's outreach and apply packs
+- **Ends with:** `network-map.md`: best warm paths per company, which J6's outreach and apply packs
   pull from. (Best run *before* apply packs so outreach has named targets.)
 - **Implemented by:** [`prompts/11-network-map.md`](prompts/11-network-map.md).
 
@@ -163,7 +163,7 @@ interviews — the documents are just ammunition; *applications sent and referra
 
 Each reacts to a real event and updates the dashboard.
 
-### J9 — Add a job you found
+### J9: Add a job you found
 > **As** someone who spotted a role outside the queue, **I want** to pull it in and get materials, **so
 > that** I can apply to it the same way as the ranked ones.
 
@@ -175,28 +175,28 @@ Each reacts to a real event and updates the dashboard.
 - **Related:** *"Rebuild job NN"* / `/ascend job rebuild <NN>` regenerates a folder (JD changed, master
   improved) while preserving its `application-log.md` status.
 
-### J10 — Prep for a booked screen
+### J10: Prep for a booked screen
 > **As** someone who just got a screen for job #3, **I want** deep, job-specific prep, **so that** I
-> walk in ready — and only build this for jobs that actually convert.
+> walk in ready, and only build this for jobs that actually convert.
 
 - **Precondition:** the job exists in the queue/folders **and** a screen is booked (this is the
-  lazy-by-design payoff — deep prep is built per job, on demand, not for all 15 up front).
+  lazy-by-design payoff: deep prep is built per job, on demand, not for all 15 up front).
 - **Trigger:** *"Ascend prep 03"* / `/ascend prep <NN>`.
 - **Path:** builds the deep interview-prep pack for that job, then offers a mock-interview drill.
 - **Ends with:** the job folder's deep-prep pack (5 files, led by `prep-doc.md`) + an optional mock.
 - **Implemented by:** [`prompts/10-deep-prep.md`](prompts/10-deep-prep.md).
 
-### J11 — Score a JD before investing
+### J11: Score a JD before investing
 > **As** someone weighing a posting, **I want** an honest fit score with no files built, **so that** I
 > decide whether it's worth pursuing first.
 
 - **Trigger:** *"Ascend score <paste a JD>"* / `/ascend score <JD>`.
-- **Path:** runs Phase 4's rubric against the pasted JD — five sub-scores + reasoning.
-- **Ends with:** a **0–100 Fit Score** + the missing-but-claimable keywords, **in chat — nothing
+- **Path:** runs Phase 4's rubric against the pasted JD: five sub-scores + reasoning.
+- **Ends with:** a **0–100 Fit Score** + the missing-but-claimable keywords, **in chat, nothing
   written to disk.** Worth it? Feed it into J9.
 - **Implemented by:** the orchestrator's score op (Phase 4 rubric + §9 tailoring protocol).
 
-### J12 — Export a resume to PDF at apply time
+### J12: Export a resume to PDF at apply time
 > **As** someone about to submit, **I want** a one-page ATS-safe PDF, **so that** the application goes
 > through clean.
 
@@ -211,12 +211,12 @@ Each reacts to a real event and updates the dashboard.
   [`templates/resume-builder.template.html`](templates/resume-builder.template.html) +
   [`ui/server.py`](ui/server.py) `--render`.
 
-### J12b — Build a résumé from scratch (ad-hoc)
+### J12b: Build a résumé from scratch (ad-hoc)
 > **As** someone who just wants a clean résumé without running the whole pipeline, **I want** a visual
 > builder, **so that** I can type or import my details and get a one-page ATS-safe PDF.
 
 - **Precondition:** none (works standalone, no workspace required).
-- **Trigger:** *"Ascend build-resume"* / `/ascend build-resume` — or just open
+- **Trigger:** *"Ascend build-resume"* / `/ascend build-resume`, or just open
   [`templates/resume-builder.template.html`](templates/resume-builder.template.html) in a browser, or
   visit `/resume-builder` while the console runs.
 - **Path:** fill the form (or Import a `resume.json`), watch the live preview with a one-page boundary
@@ -238,12 +238,12 @@ Each reacts to a real event and updates the dashboard.
 
 ## Meta journey
 
-### J13 — Run it for someone else (and wipe them later)
+### J13: Run it for someone else (and wipe them later)
 > **As** someone helping a friend or family member, **I want** a fully isolated run per person, **so
 > that** nobody's data bleeds and I can delete a person cleanly.
 
 - **Trigger:** run any setup journey with their name → a separate `workspace/<their-name>/`.
-- **Path:** every run is person-agnostic — nothing about a prior user (the repo author included) carries
+- **Path:** every run is person-agnostic: nothing about a prior user (the repo author included) carries
   in. Each person's data, resumes, and dashboards live only in their own folder.
 - **Ends with:** independent workspaces. **To wipe a person:** delete their `workspace/<name>/` folder.
 - **Implemented by:** the **Person-agnostic** + **Privacy** binding rules in
@@ -253,7 +253,7 @@ Each reacts to a real event and updates the dashboard.
 
 ## Invariants that hold across every journey
 
-These aren't a journey — they're the promises Ascend keeps no matter which path you're on. Full rules:
+These aren't a journey: they're the promises Ascend keeps no matter which path you're on. Full rules:
 [`reference/number-and-honesty-policy.md`](reference/number-and-honesty-policy.md),
 [`reference/untrusted-content-policy.md`](reference/untrusted-content-policy.md).
 
@@ -264,8 +264,8 @@ These aren't a journey — they're the promises Ascend keeps no matter which pat
 - **Privacy by construction.** All personal output stays under `workspace/<name>/` (gitignored, with a
   resume/CSV backstop). Web access is read-only research; workspace data never leaves your machine.
 - **Untrusted content is data, not instructions.** Anything fetched or loaded from a file (job posts,
-  recruiter messages, your CSV) is inert data to quote/extract — never commands to obey. Highest stakes
+  recruiter messages, your CSV) is inert data to quote/extract, never commands to obey. Highest stakes
   in the unattended daily brief (J6).
 - **Resumable.** `.ascend-state.json` makes any run recoverable; never re-derive progress by guessing.
-- **You stay in the loop.** Ascend finds, tailors, and preps — it never applies for you. You review,
+- **You stay in the loop.** Ascend finds, tailors, and preps. It never applies for you. You review,
   export, and submit.
