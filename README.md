@@ -2,10 +2,11 @@
 
 ![ascend](assets/ascend-banner.png)
 
-# The job-search agent that can't make things up
+# An evidence-grounded job-search pipeline for Claude Code
 
-**Point it at your LinkedIn export. Get a ranked queue of live jobs, a tailored one-page PDF per
-application, referral-first outreach, and interview prep. Every claim traces to your real history.**
+**Point it at your LinkedIn export and resume. Get a ranked queue of live jobs with explainable fit
+scores, a tailored one-page PDF per application, referral-first outreach, and interview prep, all
+built from your real career history.**
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-5b9dff?style=flat-square)
 &nbsp;![Built for Claude Code](https://img.shields.io/badge/built%20for-Claude%20Code-5b9dff?style=flat-square)
