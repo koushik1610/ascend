@@ -33,12 +33,16 @@ headers, so other origins can't read your `workspace` files either.
    console shows it LIVE (phase board + activity feed) ──► "Open my dashboard" ──► start-here.html
 ```
 
-**You watch it in the browser, not the terminal.** Once you finish the wizard, the console shows each
-phase completing and a live activity feed — you never have to switch back to the terminal. And because
-the repo ships a **scoped `.claude/settings.json`** that pre-approves the pipeline's tools (workspace
-writes + web research + a few commands; see `CLAUDE.md → Permissions`), the run goes **straight through
-without stopping for approval prompts**. The agent process still lives in your Claude Code session — but
-you don't have to look at it.
+**You watch it in the browser, not the terminal, but the terminal window has to stay open.** Once you
+finish the wizard, the console shows each phase completing and a live activity feed, so you don't have to
+*look at* the terminal. But the Claude Code (or gemini/codex) session in that terminal is what's actually
+running the pipeline. The browser only displays what it writes to disk. Closing that terminal, letting the
+laptop sleep for the whole run, or hitting a usage limit pauses the pipeline exactly like it would in the
+text flow, only the console can't tell you that's happened as clearly as watching Claude type would. If
+the progress board stops moving, check the terminal first, then reopen it and say "Run Ascend resume" to
+pick back up. And because the repo ships a **scoped `.claude/settings.json`** that pre-approves the pipeline's
+tools (workspace writes + web research + a few commands; see `CLAUDE.md → Permissions`), the run goes
+**straight through without stopping for approval prompts**.
 
 **When it finishes, the results open right in the console** — a left-hand list of every output (Start
 here, LinkedIn analysis, Master résumé, Job queue, Interview packet, your apply packs) with a reading
@@ -68,6 +72,12 @@ removing the `# Ascend-DAILY-BRIEF-<you>` line from `crontab -e`.
 - **Headless runs vary by CLI.** Non-interactive agent runs that touch files/web may need the CLI
   configured for that (permissions/flags). If the scheduled run can't complete, just open Claude Code
   and say **"Run Ascend today"** — same briefing, manually.
+- **The safety backstop is Claude-Code-specific.** This repo's committed `.claude/settings.json` (allow-
+  listed Bash, scoped writes) only governs `claude`. If the scheduled brief runs with `gemini` or `codex`
+  instead, none of that applies to those processes. The only thing keeping the run from acting on
+  something a fetched page tells it to do is the instruction text in the prompt itself, restated inline
+  in `ui/run-daily-brief.sh`. That's real, but it's judgment, not a technical fence. Prefer `claude` for
+  this feature if you have it. The console's Step 5 says so when you pick an agent.
 - **Windows** has no cron: the console will show the command to register in **Task Scheduler** instead,
   or run the brief manually with "Run Ascend today."
 

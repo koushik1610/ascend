@@ -56,6 +56,16 @@ opens in your browser. That's your home base.
 
 ---
 
+## Prefer clicking to typing?
+After Step 1, instead of typing `/ascend`, you can type **`/ascendui`**. It opens a graphical wizard in
+your browser: folder pickers instead of typed paths, a live progress screen, and your finished dashboard
+right there. One thing to know going in: **that browser tab is a window onto the terminal, not a
+replacement for it.** Leave the terminal window open in the background for the whole run (same 1-3+
+hours as the typed flow). If the progress screen ever stops moving, that terminal is the first place to
+check. See [`ui/README.md`](../ui/README.md) for the full picture.
+
+---
+
 ## Windows note
 Claude Code and these shell-style steps work most smoothly under **WSL** (Windows Subsystem for Linux)
 or **Git Bash**. Plain PowerShell mostly works too, but if something looks off, WSL/Git Bash is the

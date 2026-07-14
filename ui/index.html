@@ -12,6 +12,8 @@
     --bg:#0b0f14;--panel:#121822;--panel2:#0f141c;--line:#1f2937;--txt:#e6edf3;--muted:#8b97a7;
     --accent:#5b9dff;--good:#36d399;--warn:#fbbf24;--bad:#f87171;
     --mono:ui-monospace,SFMono-Regular,Menlo,monospace;--sans:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+    /* one spacing scale, used by every new element below (existing inline styles are left as-is) */
+    --sp-1:4px;--sp-2:8px;--sp-3:12px;--sp-4:16px;--sp-5:24px;
   }
   *{box-sizing:border-box}html,body{margin:0;height:100%}
   body{
@@ -47,7 +49,19 @@
   .muted{color:var(--muted);font-size:12.5px;line-height:1.6}
   a{color:var(--accent)}
   .how{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px;margin-top:8px;font-size:13px;line-height:1.7}
-  .ok{color:var(--good)} .err{color:var(--bad)}
+  .ok{color:var(--good)} .err{color:var(--bad);font-size:12.5px;margin-top:var(--sp-1)}
+  /* wizard step tracker: monospace ticks, not a generic progress bar, only shown on the 5 numbered steps */
+  .tracker{display:flex;gap:var(--sp-2);font-family:var(--mono);margin-bottom:var(--sp-4)}
+  .tick{flex:1;height:4px;border-radius:2px;background:var(--line)}
+  .tick.tdone{background:var(--good)} .tick.tnow{background:var(--accent)}
+  /* sub-card grouping inside a step (e.g. Step 4's positioning vs. honesty fields) */
+  .fieldset{border:1px solid var(--line);border-radius:10px;padding:var(--sp-3) var(--sp-4);margin-top:var(--sp-4)}
+  .fieldset>.fslabel{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)}
+  .fieldset label:first-of-type{margin-top:var(--sp-2)}
+  /* a button that starts over something (replaces a report, drops a scheduled brief) reads differently
+     from a plain ghost nav action, without escalating all the way to the red/bad "error" tone */
+  button.warn{background:transparent;border-color:#6b4a14;color:var(--warn)}
+  button.warn:hover{background:#241a08}
   .phaselist{list-style:none;padding:0;margin:14px 0 0}
   .phaselist li{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:13px}
   .pdot{width:9px;height:9px;border-radius:50%;background:var(--muted)} .pdone{background:var(--good)} .prun{background:var(--accent);animation:blink 1s steps(1) infinite}
@@ -59,14 +73,20 @@
   .feed .now{color:var(--txt)}
   /* results browser */
   .console.wide{width:min(1180px,96vw)}
-  .results{display:flex;height:66vh;min-height:430px}
+  .results{display:flex;flex-direction:column;height:66vh;min-height:430px}
+  .rbody{display:flex;flex:1;min-height:0}
   .rnav{width:236px;flex:0 0 auto;overflow:auto;padding-right:6px;border-right:1px solid var(--line)}
   .rgroup{margin-bottom:10px}
   .rglabel{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin:10px 6px 4px}
-  .rnavitem{display:block;padding:7px 10px;border-radius:8px;color:var(--txt);font-size:13px;text-decoration:none;cursor:pointer}
+  /* .rnavitem is a <button>, not an <a>, so Tab/Enter/Space reach it without a fake href */
+  .rnavitem{display:block;width:100%;text-align:left;padding:7px 10px;border-radius:8px;border:0;
+    background:none;color:var(--txt);font-size:13px;font-family:var(--sans);text-decoration:none;cursor:pointer}
   .rnavitem:hover{background:var(--panel2)} .rnavitem.active{background:var(--accent);color:#04101f;font-weight:600}
-  .rnavitem.pop{color:var(--accent);margin-top:8px}
-  .rframe{flex:1;border:0;border-radius:10px;background:var(--bg);margin-left:14px}
+  .rnavitem.pop{color:var(--accent);margin-top:8px;background:transparent}
+  .rcontent{flex:1;display:flex;flex-direction:column;margin-left:14px;min-width:0}
+  .rheader{font-family:var(--mono);font-size:12px;color:var(--muted);padding-bottom:var(--sp-2);
+    border-bottom:1px solid var(--line);margin-bottom:var(--sp-3)}
+  .rframe{flex:1;border:0;border-radius:10px;background:var(--bg)}
 </style>
 </head>
 <body>
@@ -85,15 +105,26 @@ const api = async (path, opts={}) => {
   catch(e){ return {__error: String(e)}; }   // server gone → don't hang silently
 };
 const stage = $("#stage");
-const state = { asOf: new Date().toISOString().slice(0,10), agent:"" };
+// Local calendar date, not toISOString()'s UTC date — otherwise anyone west of UTC captures "tomorrow"
+// on an evening run.
+const localDate = d => { const p = n => String(n).padStart(2,"0"); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`; };
+const state = { asOf: localDate(new Date()), agent:"" };
 let AGENTS = [];
 
-// ---- typewriter ----
+// ---- typewriter (click/key anywhere to skip straight to the end) ----
 function type(lines, cb){
-  stage.innerHTML = `<div class="line" id="tw"></div>`;
-  const tw = $("#tw"); let li=0, ci=0, buf="";
+  stage.innerHTML = `<div class="line" id="tw"></div><div class="muted" style="margin-top:10px">Click anywhere to skip</div>`;
+  const tw = $("#tw"); let li=0, ci=0, buf="", done=false;
+  const finish = () => {
+    if(done) return; done = true;
+    tw.innerHTML = lines.join("\n");
+    stage.removeEventListener("click", finish); document.removeEventListener("keydown", finish);
+    cb && cb();
+  };
+  stage.addEventListener("click", finish); document.addEventListener("keydown", finish);
   (function tick(){
-    if(li>=lines.length){ tw.innerHTML = buf; return cb && setTimeout(cb,500); }
+    if(done) return;
+    if(li>=lines.length){ return finish(); }
     const cur = lines[li];
     if(ci<=cur.length){ tw.innerHTML = buf + cur.slice(0,ci) + '<span class="cursor">.</span>'; ci++; setTimeout(tick, 22); }
     else { buf += cur + "\n"; li++; ci=0; setTimeout(tick, li<lines.length?420:0); }
@@ -101,8 +132,13 @@ function type(lines, cb){
 }
 
 // ---- step shell ----
-function step(title, html){
-  stage.innerHTML = `<h2>${title}</h2>${html}`;
+// wizardStep, when given (1-5), renders the tick tracker above the title. Screens outside the linear
+// 5-step flow (existing-report choice, saving, working, results) just omit it, rather than forcing a
+// tracker onto a screen it doesn't describe.
+function step(title, html, wizardStep){
+  const tracker = wizardStep ? `<div class="tracker">${[1,2,3,4,5].map(n=>
+    `<span class="tick ${n<wizardStep?'tdone':n===wizardStep?'tnow':''}"></span>`).join("")}</div>` : "";
+  stage.innerHTML = `${tracker}<h2>${title}</h2>${html}`;
 }
 
 // ---- intro ----
@@ -127,7 +163,7 @@ function s1_linkedin(){
       <button class="primary" onclick="state.linkedinPath=$('#liPath').value; s2_resume()">Yes — continue</button>
       <button class="ghost" onclick="showHow()">No — show me how</button>
       <button class="ghost" onclick="s2_resume()">Skip for now</button>
-    </div>`);
+    </div>`, 1);
 }
 function showHow(){ $("#how").innerHTML = `<div class="how">
   1. Open <a href="https://www.linkedin.com/mypreferences/d/download-my-data" target="_blank">LinkedIn → Get a copy of your data</a>.<br>
@@ -145,13 +181,14 @@ function s2_resume(){
       <button class="primary" onclick="state.resumePath=$('#rPath').value; s3_targets()">Continue</button>
       <button class="ghost" onclick="s3_targets()">Skip — build one for me</button>
       <button class="ghost" onclick="s1_linkedin()">Back</button>
-    </div>`);
+    </div>`, 2);
 }
 
 // ---- step 3: targets ----
 function s3_targets(){
   step("Step 3 of 5 · what you want", `
     <label>Your name</label><input id="name" value="${state.name||''}" placeholder="e.g., Jordan Rivera">
+    <div class="err" id="name_err" style="display:none">Your name is the one required field, so Ascend knows where to save your workspace.</div>
     <label>Target roles / titles</label><input id="roles" value="${state.roles||''}" placeholder="e.g., Staff Product Designer">
     <div class="row">
       <div><label>Seniority</label><input id="seniority" value="${state.seniority||''}" placeholder="same / step up / stretch"></div>
@@ -161,11 +198,13 @@ function s3_targets(){
     <div class="btns">
       <button class="primary" onclick="grab3()">Continue</button>
       <button class="ghost" onclick="s2_resume()">Back</button>
-    </div>`);
+    </div>`, 3);
 }
 async function grab3(){
   for(const k of ["name","roles","seniority","location","companies"]) state[k]=$("#"+k).value;
-  if(!state.name){ $("#name").focus(); $("#name").style.borderColor="var(--bad)"; return; }
+  const err = $("#name_err");
+  if(!state.name){ $("#name").focus(); $("#name").style.borderColor="var(--bad)"; if(err) err.style.display="block"; return; }
+  if(err) err.style.display="none";
   const r = await api(`/api/exists?name=${encodeURIComponent(state.name)}`);
   if(r && r.hasReport){ state.existingSlug = r.slug; return existingChoice(); }
   s4_calibrate();
@@ -173,10 +212,10 @@ async function grab3(){
 function existingChoice(){
   step("You've been here before", `
     <div class="line">You already have an Ascend report for <b>${state.name}</b>.</div>
-    <div class="muted" style="margin-top:8px">Open it as-is, or run a fresh one — that re-does the analysis and <b>replaces</b> the old report.</div>
+    <div class="muted" style="margin-top:8px">Open it as-is, or run a fresh one. That re-does the analysis and <b>replaces</b> the old report.</div>
     <div class="btns">
       <button class="primary" onclick="viewExisting()">View my existing report</button>
-      <button class="ghost" onclick="s4_calibrate()">Run a fresh one</button>
+      <button class="warn" onclick="s4_calibrate()">Run a fresh one (replaces it)</button>
       <button class="ghost" onclick="s3_targets()">Back</button>
     </div>`);
 }
@@ -185,14 +224,20 @@ function viewExisting(){ state.slug = state.existingSlug; state.resultsShown = t
 // ---- step 4: calibration ----
 function s4_calibrate(){
   step("Step 4 of 5 · calibrate & be honest", `
-    <label>Compensation target / floor (kept private)</label><input id="comp" value="${state.comp||''}" placeholder="e.g., $160k base floor">
-    <label>Your top 2–3 differentiators (your words)</label><textarea id="differentiators" placeholder="what makes you a strong pick">${state.differentiators||''}</textarea>
-    <label>Honest gaps you're aware of</label><textarea id="gaps" placeholder="skills/certs you don't have, employment gaps, a pivot — handled honestly, never hidden">${state.gaps||''}</textarea>
-    <label>Anything you should NOT publish? (employer-internal numbers, codenames)</label><input id="sanitization" value="${state.sanitization||''}" placeholder="default: round internal numbers, keep your own exact, never name codenames">
+    <div class="fieldset">
+      <div class="fslabel">Positioning</div>
+      <label>Compensation target / floor (kept private)</label><input id="comp" value="${state.comp||''}" placeholder="e.g., $160k base floor">
+      <label>Your top 2–3 differentiators (your words)</label><textarea id="differentiators" placeholder="what makes you a strong pick">${state.differentiators||''}</textarea>
+    </div>
+    <div class="fieldset">
+      <div class="fslabel">Honesty</div>
+      <label>Honest gaps you're aware of</label><textarea id="gaps" placeholder="skills/certs you don't have, employment gaps, a pivot, handled honestly, never hidden">${state.gaps||''}</textarea>
+      <label>Anything you should NOT publish? (employer-internal numbers, codenames)</label><input id="sanitization" value="${state.sanitization||''}" placeholder="default: round internal numbers, keep your own exact, never name codenames">
+    </div>
     <div class="btns">
       <button class="primary" onclick="grab4()">Continue</button>
       <button class="ghost" onclick="s3_targets()">Back</button>
-    </div>`);
+    </div>`, 4);
 }
 function grab4(){ for(const k of ["comp","differentiators","gaps","sanitization"]) state[k]=$("#"+k).value; s5_daily(); }
 
@@ -209,6 +254,10 @@ function s5_daily(){
         ⚠ <b>Beta — runs unattended.</b> This installs a local cron job that runs your agent CLI on a
         timer, with no human watching, on web/file content it fetches. It hasn't been proven end-to-end
         on real data. Prefer "Ascend today" on demand. Only schedule this if you understand the trade-off.
+        <br><br>If you pick <b>Claude Code</b> below, this repo's permission settings back up the
+        instructions the brief is given. If you pick <b>Gemini CLI</b> or <b>Codex CLI</b>, those
+        settings don't apply to them. The brief relies on the instructions in the prompt alone, with
+        no technical backstop. Prefer Claude Code here if you have it.
       </div>
       <div class="row">
         <div><label>Time (24h, local)</label><input id="brief" type="time" value="08:30"></div>
@@ -222,7 +271,7 @@ function s5_daily(){
     <div class="btns" style="margin-top:16px">
       <button class="primary" onclick="finish(false)">Start — no daily brief</button>
       <button class="ghost" onclick="s4_calibrate()">Back</button>
-    </div>`);
+    </div>`, 5);
 }
 
 // ---- pickers ----
@@ -260,37 +309,65 @@ async function finish(wantBrief){
 
 // ---- running board (polls the pipeline) ----
 const PHASES = [["1","LinkedIn analysis"],["3","Master résumé"],["4","Job search"],["6","Interview packet"],["5","Apply packs"],["7","Navigator"]];
+// The browser only ever sees what's written to disk — the actual work happens in whatever Claude Code
+// (or gemini/codex) session you started /ascendui from. These track how long it's been since anything
+// changed, so a dead/closed terminal reads as a clear message instead of an identical-looking spinner.
+let runStartedAt = 0, lastProgressAt = 0, lastSeen = "";
 function running(){
   const brief = state.briefResult;
   const briefMsg = !state.dailyBrief ? "" :
     (brief && brief.ok ? `<div class="ok" style="margin-top:8px">✓ Daily brief scheduled for ${brief.time}.</div>`
      : `<div class="muted" style="margin-top:8px">⚠ Daily brief not auto-scheduled${brief&&brief.note?': '+(''+brief.note).replace(/</g,'&lt;'):''}.</div>`);
   step("Ascend is working", `
-    <div class="line">Sit back — this updates live, right here. No need to touch the terminal.</div>
+    <div class="line">Progress shows up here live. Keep the terminal window where you ran <code>/ascendui</code>
+      open in the background: that Claude Code (or gemini/codex) session is what's actually doing the work.
+      This tab just displays it.</div>
     <div class="current" id="current">Starting up…</div>
+    <div class="muted" id="stall" style="margin:4px 0 0"></div>
     <ul class="phaselist" id="phases">${PHASES.map(p=>`<li><span class="pdot" data-p="${p[0]}"></span> Phase ${p[0]} · ${p[1]}</li>`).join("")}</ul>
     <div class="feed" id="feed"></div>
     ${briefMsg}
     <div class="btns"><button class="primary" id="openDash" disabled onclick="results()">View my results →</button></div>`);
+  runStartedAt = Date.now(); lastProgressAt = runStartedAt; lastSeen = "";
   poll();
 }
 async function poll(){
   try{
     const s = await api(`/api/status?slug=${encodeURIComponent(state.slug)}`);
+    const transportError = s.__error;
     const ph = s.phases||{};
     document.querySelectorAll("#phases .pdot").forEach(d=>{
       const st = ph[d.dataset.p];
       d.className = "pdot" + (st==="done"?" pdone":(st==="in-progress"?" prun":""));
     });
-    if($("#current")) $("#current").textContent = s.error ? ("⚠ "+s.error) : (s.current || (s.hasDashboard ? "Done." : "Working…"));
-    if($("#feed") && Array.isArray(s.log)){
-      $("#feed").innerHTML = s.log.map((l,i)=>`<div class="${i===s.log.length-1?'now':''}">${(''+l).replace(/</g,'&lt;')}</div>`).join("");
-      $("#feed").scrollTop = $("#feed").scrollHeight;
+    if(!transportError){
+      const sig = JSON.stringify([s.current, (s.log||[]).length, ph]);
+      if(sig !== lastSeen){ lastSeen = sig; lastProgressAt = Date.now(); }
+      if($("#current")) $("#current").textContent = s.error ? ("⚠ "+s.error) : (s.current || (s.hasDashboard ? "Done." : "Working…"));
+      if($("#feed") && Array.isArray(s.log)){
+        $("#feed").innerHTML = s.log.map((l,i)=>`<div class="${i===s.log.length-1?'now':''}">${(''+l).replace(/</g,'&lt;')}</div>`).join("");
+        $("#feed").scrollTop = $("#feed").scrollHeight;
+      }
     }
     if(s.hasDashboard){
       if($("#openDash")) $("#openDash").disabled=false;
       if(!state.resultsShown){ state.resultsShown=true; results(); }   // auto-show the results when the run finishes
       return;   // stop polling — the results browser is up
+    }
+    const stall = $("#stall");
+    if(stall){
+      const sinceStart = Date.now() - runStartedAt, sinceProgress = Date.now() - lastProgressAt;
+      if(transportError){
+        stall.innerHTML = `⚠ Can't reach the Ascend server right now. If you closed the terminal, reopen it,
+          run <code>claude</code> in the ascend folder, then say "Run Ascend resume."`;
+      } else if(sinceStart > 25000 && !s.current && !Object.keys(ph).some(k=>ph[k])){
+        stall.textContent = "Still starting. Make sure a Claude Code (or gemini/codex) session is open in the ascend folder running /ascendui. This can take a few seconds.";
+      } else if(sinceProgress > 180000){
+        stall.innerHTML = `No update in the last ${Math.round(sinceProgress/60000)} min. If the terminal session
+          closed or hit a usage limit, reopen it and say "Run Ascend resume" to pick up where it left off.`;
+      } else {
+        stall.textContent = "";
+      }
     }
   }catch(e){}
   setTimeout(poll, 2000);
@@ -301,19 +378,29 @@ async function results(){
   const r = await api(`/api/results?slug=${encodeURIComponent(state.slug)}`);
   const groups = r.groups || [];
   document.querySelector(".console").classList.add("wide");
+  // Buttons, not links: keyboard/screen-reader users can Tab+Enter to them without a fake href, and
+  // the actual navigation (loading a file into the reading pane) is a JS action, not a page change.
   const nav = groups.map(g => `<div class="rgroup"><div class="rglabel">${g.label}</div>` +
     g.items.map(it => {
       const src = it.type === "html" ? `/workspace/${state.slug}/${it.path}` : `/view/${state.slug}/${it.path}`;
-      return `<a class="rnavitem" data-src="${src}">${it.name}</a>`;
-    }).join("") + `</div>`).join("") || `<div class="muted" style="padding:10px">No results found.</div>`;
+      return `<button type="button" class="rnavitem" data-src="${src}" data-label="${g.label} · ${it.name}">${it.name}</button>`;
+    }).join("") + `</div>`).join("") || `<div class="muted" style="padding:10px">No results found yet.</div>`;
   step("Your results", `
     <div class="results">
-      <div class="rnav">${nav}<a class="rnavitem pop" href="/workspace/${state.slug}/start-here.html" target="_blank">Open full dashboard ↗</a></div>
-      <iframe class="rframe" id="rframe" title="result"></iframe>
+      <div class="rbody">
+        <div class="rnav">${nav}<a class="rnavitem pop" href="/workspace/${state.slug}/start-here.html" target="_blank">Open full dashboard ↗</a></div>
+        <div class="rcontent">
+          <div class="rheader" id="rheader">Start here</div>
+          <iframe class="rframe" id="rframe" title="result"></iframe>
+        </div>
+      </div>
     </div>`);
   const items = [...document.querySelectorAll(".rnavitem[data-src]")];
-  const show = el => { items.forEach(x => x.classList.remove("active")); el.classList.add("active"); $("#rframe").src = el.dataset.src; };
-  items.forEach(el => el.addEventListener("click", e => { e.preventDefault(); show(el); }));
+  const show = el => {
+    items.forEach(x => x.classList.remove("active")); el.classList.add("active");
+    $("#rframe").src = el.dataset.src; $("#rheader").textContent = el.dataset.label;
+  };
+  items.forEach(el => el.addEventListener("click", () => show(el)));
   if (items[0]) show(items[0]);   // default to "Start here"
 }
 

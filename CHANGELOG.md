@@ -11,6 +11,32 @@ _Working toward v1.0. Real-run gate: **1 of 2–3 runs signed off** (2026-07-01,
 see `docs/ROADMAP.md` → sign-off log); cases (b) no-résumé/non-tech and (c) resume-after-interruption
 remain, plus a green CI run on the remote + a demo GIF._
 
+### Fixed: 2026-07-12 usability & console-hardening council pass (multi-persona review of `/ascendui`)
+- **The "Ascend is working" screen can no longer hang silently.** It tracks how long it's been since
+  progress last changed and now says plainly when the pipeline never started, when the server itself is
+  unreachable, or when nothing has moved in a while, plus what to do about it ("Run Ascend resume").
+  Previously it polled forever with no signal, indistinguishable from a live run. This was the single
+  biggest usability gap the review found.
+- **Fixed a race that could silently drop a run.** `write_intake()` used to delete every workspace's
+  `.ui-ready` flag on each new submission. Two near-simultaneous submits (two tabs, a retry) could delete
+  a run's flag before the pipeline ever saw it. Removed: the consumer side already picks the
+  most-recently-modified flag, so the server no longer needs to (or should) clean up others.
+- **Closed an iframe-embedding gap.** Static routes and dashboards now send `X-Frame-Options` and
+  the `frame-ancestors` CSP directive. Dashboards/results served to the console's own iframe use
+  `SAMEORIGIN`/`'self'` so the in-app results browser keeps working, while the console page and the
+  standalone résumé builder (never framed) get `DENY`/`'none'`.
+- **Re-running `/ascendui` no longer spawns a duplicate server.** `ui/server.py` now checks whether the
+  port in `ui/.port` is still live before binding a new one, and just reopens the existing console.
+- **Disclosed a real gap, didn't paper over it.** The unattended daily brief's Claude-Code permission
+  backstop doesn't apply when it falls back to `gemini`/`codex`. That path relies on the prompt text
+  alone. Now stated plainly in the console's Step 5, `ui/README.md`, and `README.md`'s privacy model,
+  instead of reading as fully covered by "the committed permission set."
+- **Local-date fix.** The console's captured `asOf` date used `toISOString()` (UTC), so an evening run
+  west of UTC could stamp `intake.md` with tomorrow's date. Now uses the local calendar date.
+- **Docs:** `docs/SETUP.md` (the non-coder guide) now mentions `/ascendui` exists. `README.md`'s
+  "how it works" and "Known limitations" sections no longer imply the Bash allow-list also scopes
+  `WebFetch`, and call out the two items above.
+
 ### Added: the 2026-07-01 run council, absorbed (from two real end-to-end runs)
 - **`tools/lint_artifacts.py`: the honesty + language gate (P0-1).** One committed, smoke-tested,
   stdlib-only linter over any sendable artifact: em/en-dash sentence breaks (date ranges exempt),

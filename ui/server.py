@@ -31,6 +31,16 @@ WORKSPACE = REPO / "workspace"
 TOKEN = ""
 PORT = 0
 
+# These stop another tab/site from iframing your console/dashboards/résumés even if it somehow guessed
+# your port + workspace slug. Belt-and-suspenders alongside the Host check above (older browsers honor
+# X-Frame-Options; modern ones honor the frame-ancestors CSP directive).
+# The console's own results browser (ui/index.html `results()`) embeds /workspace/*.html and /view/*.md
+# in an <iframe> from this SAME server — those routes need SAMEORIGIN/'self', not DENY/'none', or the
+# in-app results viewer breaks. Only routes that are never legitimately framed (the console page itself,
+# the standalone résumé builder) get the stricter DENY.
+FRAME_HEADERS_DENY = {"X-Frame-Options": "DENY", "Content-Security-Policy": "frame-ancestors 'none'"}
+FRAME_HEADERS_SAMEORIGIN = {"X-Frame-Options": "SAMEORIGIN", "Content-Security-Policy": "frame-ancestors 'self'"}
+
 
 def slugify(name: str) -> str:
     s = re.sub(r"[^a-zA-Z0-9]+", "-", (name or "").strip().lower()).strip("-")
@@ -178,9 +188,10 @@ def write_intake(data: dict):
 - **Agent CLI:** {data.get('agent','')}
 """
     (wdir / "intake.md").write_text(md, encoding="utf-8")
-    for old in WORKSPACE.glob("*/.ui-ready"):    # clear stale flags so the bridge can't mis-route a run
-        try: old.unlink()
-        except Exception: pass
+    # No cross-slug cleanup here: the consumer side (.claude/commands/ascendui.md) already picks the
+    # most-recently-modified .ui-ready flag and deletes it once read. Deleting other slugs' flags from
+    # this handler raced two concurrent submits (e.g. two tabs) — the second request's cleanup could
+    # unlink the first request's flag before the pipeline ever saw it, silently dropping that run.
     (wdir / ".ui-ready").write_text("ready\n", encoding="utf-8")   # the pipeline polls for this
     return slug
 
@@ -357,7 +368,7 @@ class Handler(BaseHTTPRequestHandler):
         u = urlparse(self.path)
         if u.path in ("/", "/index.html"):
             html = (UIDIR / "index.html").read_text(encoding="utf-8").replace("__Ascend_TOKEN__", TOKEN)
-            return self._send(200, html, "text/html; charset=utf-8")
+            return self._send(200, html, "text/html; charset=utf-8", FRAME_HEADERS_DENY)
         if u.path in ("/resume-builder", "/resume-builder.html"):     # standalone builder (blank)
             html = (TEMPLATES / "resume-builder.template.html").read_text(encoding="utf-8")
             # Same default-src 'none' posture as /view. The builder is dual-use (also opened straight
@@ -365,10 +376,11 @@ class Handler(BaseHTTPRequestHandler):
             # script/style run via 'unsafe-inline'. The load-bearing control is connect-src 'none':
             # a malicious résumé.json renders as DOM text and still can't phone home.
             csp = ("default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; "
-                   "script-src 'unsafe-inline'; connect-src 'none'; base-uri 'none'; form-action 'none'")
+                   "script-src 'unsafe-inline'; connect-src 'none'; base-uri 'none'; form-action 'none'; "
+                   "frame-ancestors 'none'")
             return self._send(200, html, "text/html; charset=utf-8",
                               {"Content-Security-Policy": csp, "X-Content-Type-Options": "nosniff",
-                               "Referrer-Policy": "no-referrer"})
+                               "Referrer-Policy": "no-referrer", "X-Frame-Options": "DENY"})
         if u.path.startswith("/api/") and not self._token_ok():
             return self._send(403, {"error": "forbidden"})
         if u.path == "/api/agents":
@@ -428,7 +440,8 @@ class Handler(BaseHTTPRequestHandler):
                  "svg": "image/svg+xml", "jpg": "image/jpeg", "jpeg": "image/jpeg",
                  "png": "image/png", "webp": "image/webp", "gif": "image/gif"}.get(
                      target.suffix.lstrip("."), "application/octet-stream")
-        return self._send(200, target.read_bytes(), ctype)
+        headers = FRAME_HEADERS_SAMEORIGIN if ctype.startswith("text/html") else None
+        return self._send(200, target.read_bytes(), ctype, headers)
 
     def _serve_md_reader(self, path):
         # Render a workspace .md file as a styled, offline HTML page (the in-app results reader).
@@ -449,16 +462,45 @@ class Handler(BaseHTTPRequestHandler):
         # nonce; everything else (network connections, other scripts, javascript: URLs) is denied, so a
         # malicious link/payload in a workspace .md can't execute or phone home even if it slips the
         # renderer's scheme allow-list.
+        # SAMEORIGIN/'self', not DENY/'none': the console's own results browser embeds this in an
+        # <iframe> from the same server (see FRAME_HEADERS_SAMEORIGIN note up top).
         csp = ("default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; "
-               f"script-src 'nonce-{nonce}'; connect-src 'none'; base-uri 'none'; form-action 'none'")
+               f"script-src 'nonce-{nonce}'; connect-src 'none'; base-uri 'none'; form-action 'none'; "
+               "frame-ancestors 'self'")
         return self._send(200, html, "text/html; charset=utf-8",
                           {"Content-Security-Policy": csp, "X-Content-Type-Options": "nosniff",
-                           "Referrer-Policy": "no-referrer"})
+                           "Referrer-Policy": "no-referrer", "X-Frame-Options": "SAMEORIGIN"})
+
+
+def find_running_server():
+    """If ui/.port names a port that's still actually serving the console, return its URL.
+
+    Without this, re-running `/ascendui` (a second Claude Code session, a restart, a habit of typing
+    the command twice) silently binds a NEW port and leaves the old ThreadingHTTPServer process running
+    forever in the background — a growing pile of zombie servers all pointed at the same workspace.
+    """
+    port_file = UIDIR / ".port"
+    if not port_file.is_file():
+        return None
+    try:
+        port = int(port_file.read_text(encoding="utf-8").strip())
+    except Exception:
+        return None
+    try:
+        import urllib.request
+        req = urllib.request.Request(f"http://127.0.0.1:{port}/", headers={"Host": f"127.0.0.1:{port}"})
+        with urllib.request.urlopen(req, timeout=1) as r:
+            if r.status == 200:
+                return f"http://127.0.0.1:{port}/"
+    except Exception:
+        return None
+    return None
 
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--port", type=int, default=8765)
+    ap.add_argument("--port", type=int, default=None,
+                    help="bind this exact port (default: reuse a live console if one is running, else 8765)")
     ap.add_argument("--no-browser", action="store_true")
     ap.add_argument("--render", metavar="INPUT.html", help="render a résumé-builder HTML file to PDF and exit")
     ap.add_argument("--out", metavar="OUTPUT.pdf", help="output PDF path (with --render)")
@@ -471,7 +513,19 @@ def main():
         print(("PDF: " + msg) if ok else msg, file=(sys.stdout if ok else sys.stderr))
         sys.exit(0 if ok else 1)
 
-    port = args.port
+    # Only reuse a live server for the default, no-args invocation. An explicit --port means the caller
+    # (a test harness, or someone intentionally running a second isolated instance) wants exactly that
+    # port, not whatever the last console session happened to bind.
+    if args.port is None:
+        running = find_running_server()
+        if running:
+            print(f"Ascend console is already running → {running}")
+            if not args.no_browser:
+                try: webbrowser.open(running)
+                except Exception: pass
+            sys.exit(0)
+
+    port = args.port if args.port is not None else 8765
     for _ in range(20):                                  # find a free port
         try:
             httpd = ThreadingHTTPServer(("127.0.0.1", port), Handler)

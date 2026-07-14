@@ -99,8 +99,9 @@ Three mechanical gates back it up:
    ban invented metrics, titles, certs, and referral contacts outright. "Why this company" essays
    come out as outlines for your voice, never finished prose.
 3. **The untrusted-content quarantine** ([`reference/untrusted-content-policy.md`](reference/untrusted-content-policy.md)):
-   anything fetched from the web is data to analyze, never instructions to obey, and the committed
-   permission set is allow-list-only.
+   anything fetched from the web is data to analyze, never instructions to obey, backed by an
+   allow-list-only **Bash** boundary (broad `Read`/`WebFetch` stay unscoped, since the pipeline reads
+   arbitrary résumé locations and researches arbitrary career sites).
 
 First master résumé draft feeling weak? That is the system working: the bullet-quality gate flags
 weak bullets and tells you what evidence would fix them. Expect one revision pass. The iteration is
@@ -147,6 +148,11 @@ The documents are ammunition.
 
 ## Honest status
 
+**Who this is actually for:** someone targeting a handful of specific roles who wants each application
+done well, has (or will get) Claude Code access, and doesn't mind spending an hour of agent time per
+run. **Who should look elsewhere:** anyone optimizing for application volume, without token/subscription
+budget to spare, or without an hour free per run: see Costs below before you start.
+
 **v0.6.0, working toward 1.0.** The `/ascend` text pipeline is the stable core. The graphical
 console, the scheduled daily brief, and the on-demand ops marked *(beta)* are built and code-checked
 but not yet exercised end-to-end on real data. The 1.0 tag waits on archived real runs with
@@ -175,8 +181,11 @@ résumés, job folders, dashboards. The `.gitignore` also blocks résumé-shaped
 LinkedIn export names elsewhere in the tree as a backstop (a renamed export outside `workspace/` is
 only caught by the `workspace/` rule, so keep exports there). Both dashboards carry a "personal
 data, keep it local" banner. Run it for a friend and they get their own folder. Delete a folder to
-wipe that person entirely. Data goes to Claude to run the pipeline, like any Claude Code session,
-and nowhere else. Web access is read-only research.
+wipe that person entirely. Data goes to whichever agent CLI is running the pipeline (Claude Code by
+default) and nowhere else, and web access is read-only research. **One exception:** the opt-in daily
+brief (off by default) can fall back to Gemini CLI or Codex CLI if that's what it finds. In that
+case your data goes to that provider instead for the briefing, without this repo's Claude-Code-specific
+permission settings backing it up. See [`ui/README.md` → The daily brief](ui/README.md#the-daily-brief).
 </details>
 
 <details>
@@ -202,8 +211,14 @@ gate against invention. Ascend's whole architecture exists to make "sounds plaus
 <summary><b>Known limitations</b></summary>
 
 - **Beta surfaces** are labeled throughout and stay beta until real runs prove them.
+- **`/ascendui` needs its terminal to stay open.** The browser console shows live progress, but the
+  Claude Code (or gemini/codex) session you launched it from is what actually runs the pipeline. Close
+  that terminal, and the console can't tell you it stopped, just that nothing new has arrived. It now
+  says so if progress stalls. Reopen the terminal and say *"Run Ascend resume"* to continue.
 - **Scheduled daily brief** runs your agent CLI headlessly via cron (macOS/Linux, off by default,
-  opt-in). If a scheduled run doesn't complete, *"Ascend today"* gives the same briefing.
+  opt-in). If a scheduled run doesn't complete, *"Ascend today"* gives the same briefing. Its
+  prompt-injection quarantine is backed by this repo's permission settings only when run via `claude`;
+  the `gemini`/`codex` fallback relies on the prompt text alone (see `ui/README.md`).
 - **Free tiers:** a free web-chat tier can't read local files. You need a local agent CLI.
 - **Tests** cover the server, dashboards, gitignore, permissions, linter, and cross-refs. There is
   no full end-to-end test. That requires a real run, which is exactly what gates 1.0.
