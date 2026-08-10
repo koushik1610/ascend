@@ -9,7 +9,11 @@ single most important artifact in the system; get it right and tailoring becomes
 `../reference/resume-writing-rules.md`, `../reference/number-and-honesty-policy.md`.
 
 **Audit folded in (was Phase 2):** before building, do a quick ATS + 2026-trends pass on the user's
-current resume (per `../reference/ats-and-keywords.md`) — format hazards, the 6-second-scan verdict,
+current resume (per `../reference/ats-and-keywords.md`). **Apply the two rigor rules at the top of
+`02-resume-audit.md`**: quote the user's actual lines verbatim rather than paraphrasing, and keep parse
+failures separate from content failures. They bind here too, since this folded audit is the default
+path and the standalone Phase 2 artifact only exists on request. Cover format hazards, the
+6-second-scan verdict,
 the **keyword set** (Tier-1/Tier-2 → present / missing-but-claimable / true-gap), and the weakest
 bullets. Capture it as a short **"Gaps & fixes" section at the top of `master-resume.md`** and use it
 to drive the build (missing-but-claimable keywords get their substantiating bullet added here, at the

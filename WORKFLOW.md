@@ -203,13 +203,16 @@ Each reacts to a real event and updates the dashboard.
 - **Precondition:** the job folder exists with a built `resume.md`.
 - **Trigger:** *"Ascend export Acme"* / `/ascend export <company>`. (Also runs automatically when each
   pursued job's pack is built in Phase 5, and for the master public résumé in Phase 3.)
-- **Path:** parses `resume.md` into `resume.json`, fills the résumé builder, and renders a one-page
-  ATS-safe PDF headless via the trusted server. If no Chrome-class engine is found, you press "Save as
-  PDF" once instead. Then eyeball it.
-- **Ends with:** a submittable one-page PDF (plus the `resume.json` and filled builder `.html`).
+- **Path:** parses `resume.md` into `resume.json`, then renders through **LaTeX** into a `.tex` and a
+  one-page ATS-safe PDF. The `.tex` is written even with no TeX toolchain, so you can always compile
+  it on Overleaf. With no engine installed it falls back to the HTML builder rendered headless via
+  the trusted server, and then to pressing "Save as PDF" once. Then eyeball it.
+- **Ends with:** a submittable one-page PDF, plus the `resume.json` and the portable `.tex`.
 - **Implemented by:** [`prompts/08-export-pdf.md`](prompts/08-export-pdf.md) +
+  [`tools/render_resume.py`](tools/render_resume.py) +
+  [`templates/resume-latex.template.tex`](templates/resume-latex.template.tex), with
   [`templates/resume-builder.template.html`](templates/resume-builder.template.html) +
-  [`ui/server.py`](ui/server.py) `--render`.
+  [`ui/server.py`](ui/server.py) `--render` as the fallback.
 
 ### J12b: Build a résumé from scratch (ad-hoc)
 > **As** someone who just wants a clean résumé without running the whole pipeline, **I want** a visual

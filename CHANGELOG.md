@@ -11,6 +11,45 @@ _Working toward v1.0. Real-run gate: **1 of 2–3 runs signed off** (2026-07-01,
 see `docs/ROADMAP.md` → sign-off log); cases (b) no-résumé/non-tech and (c) resume-after-interruption
 remain, plus a green CI run on the remote + a demo GIF._
 
+### Added: 2026-08-10 LaTeX résumé rendering (now the default export path)
+- **`tools/render_resume.py` + `templates/resume-latex.template.tex`.** `resume.json` now renders through
+  LaTeX into a portable `.tex` **and** a one-page ATS-safe PDF. The `.tex` is written even when no TeX
+  toolchain is installed, so the fallback is always "compile it on Overleaf," never "you get nothing."
+  The template is locked and the renderer emits macro calls only, so populating a résumé cannot
+  reintroduce a table, a column, or a text box. Typography floors match the HTML builder exactly
+  (0.5in margins, 10pt body, 12pt headings, 1.15 leading), and the tool enforces the page budget
+  itself, failing on overflow rather than shipping a silent two-pager.
+- **The HTML builder stays** as the fallback when no engine is present and as the interactive path
+  behind `/ascendui` and `/ascend build-resume`. Two renderers, one layout.
+- **Fixed two ATS bugs that only a compile could reveal.** Text extracted back out of the PDF through
+  its ToUnicode tables (which is what an ATS does) showed that (1) the **fi ligature had no ToUnicode
+  mapping**, so "first" read as "rst" and every fi/fl keyword was invisible to a parser, and (2)
+  math-mode glyphs had no mapping either. Ligatures are now disabled per engine and the renderer emits
+  no math mode. `tests/smoke.py` has a regression test that compiles the committed sample and asserts
+  those words survive extraction, so a future font change cannot quietly undo it.
+- **Shell escape is off.** Résumé content can trace back to a fetched job posting, so the renderer
+  escapes backslashes *and* passes `-no-shell-escape` to the pdfTeX family. tectonic disables it by
+  default.
+- **Privacy:** `.tex` résumés and LaTeX build byproducts are gitignored alongside the PDFs they compile
+  to, asserted in the smoke suite's privacy matrix.
+- **19 new smoke checks** covering the template's typography floors, the single content marker, escaping,
+  the no-math-mode rule, compilation, ToUnicode presence, extraction fidelity, and reading order.
+  Suite is 168 checks, all green.
+
+### Changed: 2026-08-10 résumé-audit and keyword rigor
+- **`prompts/02-resume-audit.md` must now quote the user's actual line verbatim** rather than
+  characterising it, and must keep **parse failures separate from content failures** (they have
+  different fixes, and only the first gets you binned before a human reads anything).
+  `prompts/03-master-resume.md` inherits both by reference, since its folded audit is the default path.
+- **`reference/ats-and-keywords.md`** now says to place differentiating keywords *inside achievement
+  bullets* rather than only in the skills list, and points at the existing scarcity scan in
+  `industry-analysis-framework.md` for identifying them instead of describing a second method.
+- **Reviewed and rejected:** per-job bullet rewriting. It conflicts with selection-not-invention, which
+  is what keeps twenty applications from making twenty slightly different claims about the same work.
+  Rewriting already has a home in Phase 3, where the master is built or amended under the
+  bullet-quality gate. Full review and duplication audit:
+  [`docs/PIPELINE-REVIEW-2026-08-10.md`](docs/PIPELINE-REVIEW-2026-08-10.md).
+
 ### Fixed: 2026-07-12 usability & console-hardening council pass (multi-persona review of `/ascendui`)
 - **The "Ascend is working" screen can no longer hang silently.** It tracks how long it's been since
   progress last changed and now says plainly when the pipeline never started, when the server itself is

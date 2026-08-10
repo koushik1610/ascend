@@ -1,14 +1,29 @@
-# Export → ATS-safe PDF (the résumé builder)
+# Export → ATS-safe PDF (LaTeX default, HTML builder fallback)
 
 **Goal:** turn a tailored `resume.md` (or the master resume) into a clean, ATS-safe **PDF** the user
-can submit — in the locked builder layout, fitted to one page. This closes the system's biggest manual
-dead-end.
+can submit, in a locked single-column layout, fitted to one page. This closes the system's biggest
+manual dead-end.
 
 **When:** automatically, per job, right after a `resume.md` is finalized in Phase 5; for the master
 public résumé in Phase 3; or on request (`/ascend export <company>`, `/ascend build-resume`).
 
-**One renderer.** Everything goes through `../templates/resume-builder.template.html` (the locked,
-single-column, ATS-safe layout). There is no separate print template anymore.
+## Two renderers, one layout
+
+Both paths render the **same** locked layout (single column, Helvetica/Arial metric, body 10pt,
+headings 12pt, 0.5in margins, 1.15 leading). Pick by what the machine has:
+
+| Path | Template | Use when |
+|---|---|---|
+| **LaTeX (default)** | `../templates/resume-latex.template.tex` | Always. Produces a `.tex` with no toolchain at all, and a PDF when a TeX engine is installed. |
+| **HTML builder (fallback)** | `../templates/resume-builder.template.html` | No TeX engine, or the user wants the interactive builder / `/ascendui` Create-PDF button. |
+
+**Why LaTeX leads.** The `.tex` is a real, portable artifact: the user can compile it on Overleaf with
+no install, and edit it without touching HTML. The template is locked and the renderer only emits
+macro calls, so populating a résumé cannot reintroduce a table, a column, or a text box, which is the
+failure mode that gets a résumé auto-rejected.
+
+**Never** hand-write LaTeX for a résumé, and never let a model invent the layout. Populate the
+template through the tool.
 
 ---
 
@@ -33,9 +48,31 @@ Use **public/sanitized** values only (per `../reference/number-and-honesty-polic
 it, cut by JD-relevance before rendering, never shrink type. Re-run the number-policy grep over
 `resume.json` before rendering: it must not reintroduce any sanitized internal number.
 
-## Step 2 — fill the builder template
-Copy `../templates/resume-builder.template.html` into the job folder as
-`<name>-resume-<company-role>.html` and replace the empty data island with the JSON from Step 1:
+## Step 2 — render via LaTeX (the default)
+
+One command. It writes the `.tex` and compiles it:
+
+```
+python3 tools/render_resume.py "<path>/resume.json" \
+  --out "<path>/<Name>-Resume-<Company>.pdf"
+```
+
+- Writes `<Name>-Resume-<Company>.tex` beside the PDF, **always**, even with no TeX engine present.
+- Compiles with the first engine it finds (`tectonic`, `latexmk`, `pdflatex`, `xelatex`, `lualatex`).
+- **Enforces the page budget itself.** Default `--max-pages 1`; pass `--max-pages 2` for the master
+  public résumé. If it overflows it fails loudly and tells you to cut content, which is the correct
+  response. Never answer an overflow by shrinking type.
+- `--check` writes and validates the `.tex` without compiling, for a machine with no engine.
+
+**If no engine is installed**, the tool says so and exits 1 with the `.tex` already written. Give the
+user the two real options: upload the `.tex` to **overleaf.com** and compile there (no install), or
+`brew install tectonic` (~20MB, self-contained). Then fall back to Step 3 if they want a PDF now.
+
+## Step 3 — the HTML builder (fallback, and the interactive path)
+
+Use when there is no TeX engine, or when the user wants the live builder. Copy
+`../templates/resume-builder.template.html` into the job folder as
+`<name>-resume-<company-role>.html`, replace the empty data island with the JSON from Step 1:
 
 ```html
 <script type="application/json" id="resume-data">
@@ -43,20 +80,17 @@ Copy `../templates/resume-builder.template.html` into the job folder as
 </script>
 ```
 
-Everything else in the template stays untouched.
-
-## Step 3 — render the PDF (automatic)
-Render headless via the already-trusted server (no extra permissions needed):
+Everything else in the template stays untouched. Then render headless via the already-trusted server:
 
 ```
 python3 ui/server.py --render "<path>/<name>-resume-<company-role>.html" \
   --out "<path>/<Name>-Resume-<Company>.pdf"
 ```
 
-It detects a Chrome-class engine and prints to PDF using the template's print CSS (résumé only,
-single column, selectable text). **Fallback:** if it reports no engine found, tell the user to open the
-filled `.html` in a browser and press **Cmd/Ctrl-P → Save as PDF** (Background graphics off) — same
-output, two clicks. The standalone builder's **Create PDF** button does exactly this.
+It detects a Chrome-class engine and prints to PDF using the template's print CSS. **Fallback of the
+fallback:** if it reports no engine found, tell the user to open the filled `.html` in a browser and
+press **Cmd/Ctrl-P → Save as PDF** (Background graphics off). The builder's **Create PDF** button does
+exactly this.
 
 ---
 
@@ -86,8 +120,9 @@ drift.
 - **Typography (best practices — always):** classic ATS-safe font (Calibri/Arial/Helvetica/Times New
   Roman), body **10–12pt (10pt floor)**, section headings **12–14pt**, margins **0.5–1in (0.5in floor)**,
   line spacing **1.15–1.5 (1.15 floor)**, consistent sizing, bold/italics sparingly. These are the locked
-  defaults in the builder CSS; see `../reference/resume-writing-rules.md → Typography & layout`. To fit
-  one page, trim content to the budget — never render below the font/margin/spacing floors.
+  defaults in **both** `../templates/resume-latex.template.tex` and the builder CSS; see
+  `../reference/resume-writing-rules.md → Typography & layout`. To fit one page, trim content to the
+  budget. Never render below the font/margin/spacing floors, in either template.
 - Single column, standard headings, selectable text (not an image), certs honest (no "Active" unless
   true).
 - **Per-job résumé: one page.** Master public résumé: ≤ 2 pages.
@@ -98,11 +133,17 @@ drift.
   mechanical form of the language rules above — don't render a PDF from text that fails it.
 
 ## Verify
-- The `.html` opens with the form prefilled and the preview showing the résumé.
-- The PDF exists, is the expected page count, and its text copies out in order (the ATS parse test:
-  paste into plain text, confirm name → titles → dates → bullets read top-to-bottom).
+- The `.tex` exists (LaTeX path) or the `.html` opens with the preview showing the résumé (HTML path).
+- The PDF exists and is the expected page count. `render_resume.py` fails on overflow rather than
+  producing a silent two-pager, so a clean exit **is** the page check on the LaTeX path.
+- **The ATS parse test.** Copy the PDF's text into a plain-text editor and confirm it reads
+  name → label → contact → sections → titles → dates → bullets, top to bottom, with no dropped or
+  mangled words. Watch specifically for **ligatures**: if "first" comes out as "rst" or "office" as
+  "oce", the font is emitting glyphs with no ToUnicode mapping and every keyword containing fi/fl is
+  invisible to the parser. The LaTeX template disables common ligatures for exactly this reason. If
+  you ever change the font block, re-run this test before trusting the output.
 
 ## Checkpoint
-Tell the user where the `resume.json`, filled `.html`, and `.pdf` are, and whether it auto-rendered or
-needs the two-click save. Remind them to **eyeball the PDF** before submitting (the one manual
-verification that always matters).
+Tell the user where the `resume.json`, the `.tex` (and filled `.html` if used), and the `.pdf` are, and
+whether it auto-rendered, needs Overleaf, or needs the two-click save. Remind them to **eyeball the
+PDF** before submitting (the one manual verification that always matters).

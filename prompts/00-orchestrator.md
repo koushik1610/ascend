@@ -128,7 +128,9 @@ interview prep is generated **on demand**, per job, only when a screen is booked
   `/ascend today`.
 - `10-deep-prep.md` — **the deep interview-prep pack** for one job when its screen is booked:
   `/ascend prep <NN>`.
-- `08-export-pdf.md` — résumé → ATS-safe one-page PDF via the builder (`templates/resume-builder.template.html`).
+- `08-export-pdf.md` — résumé → ATS-safe one-page PDF. **LaTeX by default** via
+  `tools/render_resume.py` + `templates/resume-latex.template.tex` (also writes a portable `.tex`); the
+  HTML builder (`templates/resume-builder.template.html`) is the fallback and the interactive path.
   Runs automatically in Phases 3 (master public résumé) and 5 (each pursued job), and on demand.
 - **`build-resume`** — open the standalone résumé builder for ad-hoc résumé creation/editing (not tied
   to a job): `/ascend build-resume`.
@@ -207,8 +209,9 @@ partial ones.
 - **"Ascend today"** / `/ascend today` — run the **Daily Briefing** (Phase 13): today's 3 actions +
   ghost-detector follow-ups, drafted and ready.
 - **"Ascend export \<company>"** / `/ascend export <company>` — render that job's `resume.md` to a
-  one-page ATS-safe PDF via the builder per `08-export-pdf.md` (auto-renders; falls back to a two-click
-  Save-as-PDF if no engine is present).
+  one-page ATS-safe PDF per `08-export-pdf.md` (LaTeX by default, and it always leaves a `.tex` you
+  can compile on Overleaf; falls back to the HTML builder, then to a two-click Save-as-PDF, if no
+  engine is present).
 - **"Ascend build-resume"** / `/ascend build-resume` — open the standalone résumé builder for ad-hoc
   résumé creation/editing (Import a `resume.json` or start from scratch, then Create PDF).
 

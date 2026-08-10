@@ -40,6 +40,14 @@ Field-agnostic — the *method* is universal; the *keywords* come from the user'
    **missing-but-claimable** (evidence exists, resume doesn't say it — fix at the master-resume source),
    or **true gap** (cannot honestly claim — honest handling).
 4. Distribute the claimable keywords across achievement bullets in context — never a stuffed list.
+5. **Place the differentiators in bullets, not just the skills line.** The *identification* of
+   rare-but-in-demand terms is not done here. It is the **scarcity / white-space scan** in
+   `industry-analysis-framework.md` (step 5 and the Demand-Scarcity quadrant it outputs). Do not
+   re-derive it, and do not produce a second list from recall about "what the market wants" - an
+   unsourced frequency claim is the kind of confident invention this system exists to prevent. Take
+   that scan's output, keep the terms the user can honestly claim, and make sure **each one lands
+   inside an achievement bullet**. A differentiating keyword sitting only in the skills list is the
+   most common way real leverage gets wasted.
 
 ## Formatting rules (parser-safe)
 - Single column. Standard headings (Summary, Experience, Skills, Education). No tables, text boxes,

@@ -53,6 +53,12 @@ rule sources; prompts reference them rather than re-stating them. Templates: `te
 **keyword set once** (Phase 3, into master §4) and reuse it downstream — don't re-derive per phase.
 
 ## The mechanical gates (run them, don't re-implement them)
+- **`tools/render_resume.py`** — the résumé renderer. `resume.json` → `.tex` → one-page ATS-safe PDF
+  via `templates/resume-latex.template.tex` (locked layout; the tool emits macro calls only, so a render can
+  never reintroduce a table or a column). It **enforces the page budget** and fails on overflow rather
+  than shipping a silent two-pager. The `.tex` is written even with no TeX engine installed, so the
+  user can always compile on Overleaf. The HTML builder + `ui/server.py --render` remains the fallback
+  and the interactive path. Details: `prompts/08-export-pdf.md`.
 - **`tools/lint_artifacts.py`** — the honesty + language gate over any sendable artifact: em/en-dash
   breaks, banned vocabulary (`.claude/banned-words.md`), clause-joining semicolons, dramatic colons,
   the user's forbidden numbers + retracted claims (from `workspace/<name>/lint-config.json`), and
@@ -68,7 +74,8 @@ deliberately **scoped**: broad `Read` + `WebSearch`/`WebFetch` (the pipeline rea
 researches jobs across many domains), but **`Write`/`Edit` only under `workspace/**`** (the pipeline
 writes user output there and can't silently change the repo's own prompts/code). The Bash boundary is
 **allow-list-only**: only a few pinned forms run (`python3 ui/server.py…`,
-`python3 tools/lint_artifacts.py…`, `mkdir/rm -f` under `workspace/`, `git check-ignore`, `pandoc`);
+`python3 tools/lint_artifacts.py…`, `python3 tools/render_resume.py…`, `mkdir/rm -f` under
+`workspace/`, `git check-ignore`, `pandoc`);
 anything else is refused, so an injected page can't write a script under `workspace/` and run it. A **hardened deny-list** backs that up for interactive use: `sudo`,
 network/exfil tools (`curl`/`wget`/`nc`/`ssh`/`scp`), shell-bypass forms (`bash -c`/`sh -c`/`env`/`xargs`/
 `find -exec`/`eval`/`exec`), RCE-capable interpreters (`node`/`deno`/`bun`/`ruby`/`perl`/`php`/`osascript`/
