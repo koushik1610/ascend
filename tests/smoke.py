@@ -18,7 +18,7 @@ Covers the regressions a human won't catch by eye, all fast:
      and no fiction marker; every per-job résumé has a DELTA LOG (selection, not invention).
 Exits non-zero if anything fails — wired into CI (.github/workflows/ci.yml).
 """
-import http.client, json, re, shutil, subprocess, sys, time, zlib
+import http.client, json, re, shutil, subprocess, sys, tempfile, time, zlib
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
@@ -110,8 +110,15 @@ def test_gitignore():
     must_ignore = ["workspace/jane/master-resume.md", "workspace/jane/jobs/01-acme/resume.md",
                    "workspace/jane/inputs/linkedin-export/Connections.csv", "workspace/jane/start-here.html",
                    "examples/realperson/master-resume.md", "examples/realperson/inputs/Connections.csv",
-                   "Resume.pdf", "cover-letter.md", "ui/.port", "images/uncleared_stock.jpg"]
+                   "Resume.pdf", "cover-letter.md", "ui/.port", "images/uncleared_stock.jpg",
+                   # the LaTeX path writes a .tex next to the PDF: it is a full résumé in
+                   # plain text, so it has to be as ignored as the PDF it compiles to.
+                   "workspace/jane/jobs/01-acme/Jane-Doe-Resume-Acme.tex",
+                   "workspace/jane/jobs/01-acme/resume.tex", "Resume.tex",
+                   "workspace/jane/jobs/01-acme/resume.aux"]
     must_track = ["README.md", "ui/server.py", "prompts/00-orchestrator.md",
+                  # the LaTeX template is a SYSTEM file: the .tex privacy patterns must not eat it
+                  "templates/resume-latex.template.tex", "tools/render_resume.py",
                   "examples/sample-run/master-resume.md", "examples/sample-run/start-here.html",
                   "images/ascend-texture.jpg", "images/ascend-texture2.jpg"]
     for p in must_ignore: check(f"ignored: {p}", ignored(p))
@@ -246,6 +253,128 @@ def test_resume_builder():
                   ("Save as PDF" in r.stderr or "print to PDF" in r.stderr), r.stderr.strip()[:120])
     finally:
         shutil.rmtree(d, ignore_errors=True)
+
+# ── 4d-bis. LaTeX résumé renderer (the default export path) ──────────────────
+def _safe_inflate(b):
+    try:
+        return zlib.decompressobj().decompress(b)
+    except zlib.error:
+        return b""
+
+
+def _pdf_text(pdf: bytes) -> str:
+    """Extract text through the PDF's own ToUnicode CMaps.
+
+    This is what an ATS does. A glyph with no ToUnicode entry is invisible to it,
+    which is why this reads the CMaps rather than just asserting Tj/TJ exist.
+    """
+    streams = [_safe_inflate(m.group(1))
+               for m in re.finditer(rb"stream\r?\n(.*?)\r?\nendstream", pdf, re.S)]
+    streams = [s for s in streams if s]
+    cmap, width = {}, 1
+    for st in streams:
+        cs = re.search(rb"begincodespacerange\s*<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>", st)
+        if cs:
+            width = max(width, len(cs.group(1)) // 2)
+        for blk in re.findall(rb"beginbfchar(.*?)endbfchar", st, re.S):
+            for src, dst in re.findall(rb"<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>", blk):
+                cmap[int(src, 16)] = bytes.fromhex(dst.decode()).decode("utf-16-be", "replace")
+        for blk in re.findall(rb"beginbfrange(.*?)endbfrange", st, re.S):
+            for lo, hi, dst in re.findall(
+                    rb"<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>", blk):
+                lo, hi = int(lo, 16), int(hi, 16)
+                base = bytes.fromhex(dst.decode()).decode("utf-16-be", "replace")
+                for i in range(lo, hi + 1):
+                    cmap[i] = chr(ord(base[0]) + i - lo) if base else "?"
+    out = []
+    for st in streams:
+        if not re.search(rb"\b(Tj|TJ)\b", st):
+            continue
+        for t in re.finditer(rb"<([0-9A-Fa-f]+)>|\((?:[^()\\]|\\.)*\)", st):
+            g = t.group(0)
+            raw = (bytes.fromhex(g[1:-1].decode()) if g.startswith(b"<")
+                   else re.sub(rb"\\([()\\])", rb"\1", g[1:-1]))
+            codes = ([int.from_bytes(raw[i:i + 2], "big") for i in range(0, len(raw) - 1, 2)]
+                     if width == 2 else list(raw))
+            out.append("".join(cmap.get(c, "�") for c in codes))
+    return "".join(out)
+
+
+def test_latex_render():
+    print("LaTeX résumé renderer (default export path)")
+    tpl = REPO / "templates/resume-latex.template.tex"
+    tool = REPO / "tools/render_resume.py"
+    check("template exists", tpl.exists())
+    check("renderer compiles", subprocess.run(
+        [sys.executable, "-m", "py_compile", str(tool)],
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0)
+    if not tpl.exists():
+        return
+    body = tpl.read_text(encoding="utf-8")
+
+    # Exactly one marker LINE. A second occurrence injects the résumé into the
+    # preamble and the build dies with an undefined control sequence.
+    markers = [ln for ln in body.splitlines() if ln.strip() == "%%ASCEND-CONTENT%%"]
+    check("template has exactly one content-marker line", len(markers) == 1, f"found {len(markers)}")
+
+    # Typography floors from reference/resume-writing-rules.md must survive edits.
+    check("template keeps the 0.5in margin floor", "margin=0.5in" in body)
+    check("template keeps the 10pt body floor", "letterpaper,10pt" in body)
+    check("template keeps the 1.15 leading floor", "setstretch{1.15}" in body)
+    check("template has no tabular (ATS hazard)", "begin{tabular}" not in body)
+    # The ligature defence. Dropping it silently breaks every fi/fl keyword.
+    check("template disables common ligatures",
+          "Ligatures=NoCommon" in body and "DisableLigatures" in body)
+    check("renderer disables shell-escape for the latex family",
+          "-no-shell-escape" in tool.read_text(encoding="utf-8"))
+
+    sample = REPO / "examples/sample-run/jobs/01-northwind-health-staff-product-designer/resume.json"
+    if not sample.exists():
+        print("  – sample resume.json missing, skipping render")
+        return
+    d = Path(tempfile.mkdtemp())
+    try:
+        out_pdf, out_tex = d / "r.pdf", d / "r.tex"
+        # --check needs no TeX engine, so a CI box without LaTeX still covers this.
+        r = subprocess.run([sys.executable, str(tool), str(sample), "--out", str(out_pdf),
+                            "--tex", str(out_tex), "--check"], capture_output=True, text=True)
+        check("--check writes a validated .tex with no engine",
+              r.returncode == 0 and out_tex.exists(), (r.stderr or r.stdout).strip()[:160])
+        if out_tex.exists():
+            tex = out_tex.read_text(encoding="utf-8")
+            doc = tex.split("\\begin{document}", 1)[-1]
+            check("generated .tex has no leftover marker", "%%ASCEND-CONTENT%%" not in tex)
+            check("generated .tex escapes ampersands", "&" not in doc.replace("\\&", ""))
+            check("generated .tex uses no math mode", "$" not in doc.replace("\\$", ""))
+
+        engine = next((e for e in ("tectonic", "latexmk", "pdflatex", "xelatex", "lualatex")
+                       if shutil.which(e)), None)
+        if not engine:
+            print("  – no TeX engine here, skipping compile (the .tex path is covered above)")
+            return
+        r = subprocess.run([sys.executable, str(tool), str(sample), "--out", str(out_pdf),
+                            "--tex", str(out_tex)], capture_output=True, text=True, timeout=300)
+        check(f"compiles with {engine}", r.returncode == 0 and out_pdf.exists(),
+              (r.stderr or r.stdout).strip()[-200:])
+        if not out_pdf.exists():
+            return
+        raw = out_pdf.read_bytes()
+        has_tounicode = b"/ToUnicode" in raw or any(
+            b"/ToUnicode" in _safe_inflate(m.group(1))
+            for m in re.finditer(rb"stream\r?\n(.*?)\r?\nendstream", raw, re.S))
+        check("PDF carries ToUnicode CMaps (an ATS can read it)", has_tounicode)
+        txt = _pdf_text(raw).replace(" ", "")
+        # The regression this test exists for: an "fi" ligature with no ToUnicode
+        # entry made "first" extract as "rst", silently killing keyword matches.
+        check("ligature words survive extraction (fi/fl)",
+              "first" in txt and "fintech" in txt, f"got: {txt[:120]}")
+        check("extracted text starts in reading order", txt.startswith("JordanRivera"), txt[:80])
+        check("no unmapped glyphs in extracted text", "�" not in txt)
+        check("per-job résumé renders to one page", "1 page" in (r.stdout or ""),
+              (r.stdout or "").strip()[-90:])
+    finally:
+        shutil.rmtree(d, ignore_errors=True)
+
 
 # ── 4e. Bash permission boundary is allow-list-only (P0-4) ───────────────────
 def _rule_to_regex(inner):
@@ -413,7 +542,7 @@ def test_scripts():
         print("  – bash not found, skipping shell lint")
 
 if __name__ == "__main__":
-    for t in (test_server, test_html_json, test_gitignore, test_crossrefs, test_phase_order, test_op_parity, test_resume_builder, test_bash_allowlist, test_honesty, test_linter, test_scripts):
+    for t in (test_server, test_html_json, test_gitignore, test_crossrefs, test_phase_order, test_op_parity, test_resume_builder, test_latex_render, test_bash_allowlist, test_honesty, test_linter, test_scripts):
         try: t()
         except Exception as e:
             check(f"{t.__name__} raised", False, repr(e))

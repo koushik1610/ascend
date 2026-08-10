@@ -36,9 +36,11 @@ shared prep.
   Every bullet is a master entry (a)/(b)/variant — selection, not writing. Missing bullet → MASTER GAPS
   note, never an invention. Selection must fit the **one-page content budget**
   (`reference/resume-writing-rules.md`).
-- **Export:** the export prompt (`prompts/08-export-pdf.md`) emits `resume.json`, the filled builder
-  `<name>-resume-<company-role>.html`, and the auto-rendered one-page `<Name>-Resume-<Company>.pdf`.
-  Don't leave Markdown→PDF to the user.
+- **Export:** the export prompt (`prompts/08-export-pdf.md`) emits `resume.json`, then renders through
+  **LaTeX by default** (`tools/render_resume.py` → `<Name>-Resume-<Company>.tex` +
+  `<Name>-Resume-<Company>.pdf`, one page, budget enforced by the tool). The HTML builder
+  (`<name>-resume-<company-role>.html` + `ui/server.py --render`) is the fallback when no TeX engine
+  is installed, and the interactive path. Don't leave Markdown→PDF to the user.
 
 ## 2. `prep-doc.md` — the night-before read (≤2 pages, 20-min readable)
 1. **Line 1 = the positioning hook** for this company (from `company-positioning.md` / the queue's

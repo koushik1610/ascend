@@ -1,0 +1,119 @@
+%% ============================================================================
+%% Ascend resume template (LaTeX) -- LOCKED ATS-safe layout.
+%%
+%% HOW IT IS USED: tools/render_resume.py reads a resume.json and replaces the
+%% single content-marker line near the bottom of this file with calls to the
+%% macros defined in this preamble. The renderer emits macro calls only, never raw formatting, so
+%% populating a resume cannot reintroduce a parsing hazard. Every layout
+%% decision lives in this file.
+%%
+%% The numbers below mirror templates/resume-builder.template.html so the LaTeX
+%% and HTML paths produce the same document. They are the compliant minimums in
+%% reference/resume-writing-rules.md -> Typography & layout:
+%%   font    Helvetica/Arial metric (ATS-safe, in every TeX install)
+%%   body    10pt      (hard floor; never smaller to force a fit)
+%%   heading 12pt
+%%   margins 0.5in     (hard floor)
+%%   leading 1.15      (hard floor)
+%% To fit one page, cut CONTENT to the budget in resume-writing-rules.md.
+%% Never edit these values downward.
+%%
+%% ATS constraints this template deliberately satisfies: single column, no
+%% tables, no text boxes, no graphics, no headers/footers, standard section
+%% names, real selectable text in reading order.
+%% ============================================================================
+\documentclass[letterpaper,10pt]{article}
+
+\usepackage[margin=0.5in]{geometry}
+\usepackage{iftex}
+%% Font: a Helvetica/Arial metric, with COMMON LIGATURES OFF.
+%% Ligatures are not cosmetic here. An "fi" ligature with no ToUnicode entry
+%% extracts as a single unmapped glyph, so an ATS reads "first" as "rst". That
+%% silently destroys keyword matches. Verified by extracting text back out of a
+%% compiled PDF, which is the only way this class of bug is visible.
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{helvet}
+  \usepackage{microtype}
+  \DisableLigatures[f]{encoding = T1, family = \sfdefault}
+\else
+  \usepackage{fontspec}
+  %% Loaded by file name, not by system name: the OTF ships with every TeX
+  %% distribution and tectonic's bundle, so it resolves on a bare CI box too.
+  \setsansfont{texgyreheros}[Extension=.otf, UprightFont=*-regular,
+    BoldFont=*-bold, ItalicFont=*-italic, Ligatures=NoCommon]
+\fi
+\renewcommand{\familydefault}{\sfdefault}
+\usepackage{setspace}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage[hidelinks]{hyperref}
+
+\setstretch{1.15}
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\raggedright
+%% Discourage hyphenation. A word broken across lines can miss a keyword match.
+\hyphenpenalty=10000
+\exhyphenpenalty=10000
+\sloppy
+
+\definecolor{ascendaccent}{HTML}{1D4ED8}
+\definecolor{ascendink}{HTML}{1A1A1A}
+\definecolor{ascendmuted}{HTML}{555555}
+\color{ascendink}
+
+%% ---- Section heading: 12pt, uppercase, accent, hairline rule beneath -------
+%% Defined by hand rather than through titlesec. One less package, and the
+%% renderer emits \resumesection{...} so headings cannot drift.
+\newcommand{\resumesection}[1]{%
+  \par\vspace{11pt}%
+  {\color{ascendaccent}\fontsize{12}{14}\selectfont\bfseries\MakeUppercase{#1}\par}%
+  \vspace{1.5pt}%
+  {\color{ascendmuted}\hrule height 0.4pt}%
+  \vspace{5pt}%
+}
+
+%% ---- Macros. The renderer calls only these, and never conditionally. -------
+%% Anything optional is simply not emitted, so there is no branching in TeX.
+
+%% Name, 22pt bold.
+\newcommand{\resumename}[1]{{\fontsize{22}{24}\selectfont\bfseries #1\par}}
+
+%% Target-role label, accent, directly under the name.
+\newcommand{\resumelabel}[1]{\vspace{2pt}{\color{ascendaccent}\fontsize{11.5}{13}\selectfont\bfseries #1\par}}
+
+%% One contact line: email, phone, links. Plain text, parses in order.
+\newcommand{\resumecontact}[1]{\vspace{3pt}{\color{ascendmuted}\fontsize{9.5}{12}\selectfont #1\par}}
+
+%% The accent rule that closes the header block.
+\newcommand{\resumerule}{\vspace{5pt}{\color{ascendaccent}\hrule height 1.5pt}\vspace{2pt}}
+
+%% \resumeentry{Position}{Company}{Dates} -- reading order matches parser expectation.
+\newcommand{\resumeentry}[3]{%
+  \vspace{4pt}%
+  {\bfseries #1, #2}\hfill{\color{ascendmuted}\fontsize{9}{11}\selectfont #3}\par
+}
+
+%% A muted sub-line under an entry (location, or anything secondary).
+\newcommand{\resumesub}[1]{{\color{ascendmuted}\fontsize{9.5}{12}\selectfont #1\par}}
+
+%% \resumeproject{Name}{Dates}
+\newcommand{\resumeproject}[2]{%
+  \vspace{3pt}%
+  {\bfseries #1}\hfill{\color{ascendmuted}\fontsize{9}{11}\selectfont #2}\par
+}
+
+%% A plain paragraph block: summary, skills, education, certifications.
+\newcommand{\resumeline}[1]{#1\par}
+
+\newenvironment{resumebullets}
+  {\begin{itemize}[leftmargin=13pt,topsep=2pt,partopsep=0pt,parsep=0pt,itemsep=1.5pt,label=\textbullet]}
+  {\end{itemize}}
+
+\begin{document}
+
+%%ASCEND-CONTENT%%
+
+\end{document}

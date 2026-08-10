@@ -26,7 +26,8 @@ and `workspace/<name>/.ascend-state.json` first, then:
 - **`refresh`** / **`maintenance`** → run `prompts/09-maintenance.md` (weekly job-diff, comp research,
   outreach cadence, retro digest).
 - **`export <company>`** → run `prompts/08-export-pdf.md` for that job's resume: emit `resume.json`,
-  the filled builder HTML, and the auto-rendered one-page ATS-safe PDF.
+  then render via LaTeX (`tools/render_resume.py`) to a `.tex` plus the one-page ATS-safe PDF. Falls
+  back to the filled builder HTML when no TeX engine is installed.
 - **`build-resume`** → open the standalone résumé builder (`templates/resume-builder.template.html`,
   also served at `/resume-builder` when the UI server runs) for ad-hoc résumé creation/editing: Import
   an existing `resume.json`, or build from scratch and Create PDF. Not tied to any job folder.

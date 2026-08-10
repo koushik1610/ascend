@@ -19,6 +19,19 @@ the LinkedIn export + intake answers; capture in `resume-audit.md` what's needed
 Current target alignment in one paragraph: does the resume read at the level/role the user is aiming
 for, or above/below it? Name the gap.
 
+> **Quote, don't paraphrase.** Every finding below names the user's **actual line, verbatim**, then
+> says why it fails. "Your summary is weak" is not a finding. "Your summary opens *'Results-driven
+> professional with a proven track record'* is two banned phrases and zero evidence, and it is
+> the first line a recruiter reads" is a finding. Do not soften. The user asked for a diagnosis, and a
+> diagnosis that reads as encouragement is useless.
+
+> **Keep the two failure classes apart.** They have different fixes and different urgency:
+> **(a) parse failures** get the résumé binned before a human sees it (tables, columns, text boxes,
+> headers/footers, graphics, non-standard section names, unparseable dates, image-only text).
+> **(b) content failures** get it skipped once a human is reading (weak bullets, no numbers, missing
+> keywords, no scope signal). Most people only think about (b). Fix (a) first: it is cheaper, it is
+> mechanical, and no amount of (b) work matters if the file never parses.
+
 ### 2. ATS pass/fail
 Score the resume 0–100 for ATS parseability and keyword coverage. Check, per
 `../reference/ats-and-keywords.md`:
@@ -31,6 +44,10 @@ List each issue with a concrete fix.
 ### 3. The 6-second scan
 Role-play a senior recruiter giving it 6 seconds. What's visible, what's missing, what would make them
 toss it. Verdict: advance / maybe / reject, and the one change that most improves it.
+
+Then go **section by section** (summary, experience, skills, education) and, for each, quote the single
+**weakest line verbatim** and say which failure class it belongs to and why. One line per section is
+enough. The point is that the user can see the specific sentence, not a category.
 
 ### 4. Keyword gap table
 Three columns: **present** (target-role keywords already there), **missing-but-claimable** (the user

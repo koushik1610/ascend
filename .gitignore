@@ -60,6 +60,17 @@ Endorsement*.csv
 **/*-signal-*.pdf
 **/*-resume-*.html
 **/*.resume.json
+**/resume.tex
+**/*-[Rr]esume.tex
+**/*-[Rr]esume-*.tex
+[Rr]esume.tex
+# LaTeX build byproducts (render_resume.py compiles in a temp dir, but a
+# manual pdflatex run in a job folder would drop these next to the .tex).
+**/*.aux
+**/*.fls
+**/*.fdb_latexmk
+**/*.synctex.gz
+**/*.out
 **/application-log.md
 **/job-queue.md
 **/intake.md
