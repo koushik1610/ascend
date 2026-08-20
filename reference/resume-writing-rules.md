@@ -79,6 +79,11 @@ person describing their work, or a press release? → plainer if the latter.
 ## Structure & format (ATS-safe)
 - Reverse-chronological. Sections: Header → Summary → Experience → Skills → Education → (optional)
   Projects/Certs. Standard section *names* (ATS matches on them).
+  **Relevance ordering applies to bullets WITHIN a role, never across roles.** A current role listed
+  below an older one reads as concealment and is one of the fastest rejects in a résumé screen. This
+  is now gated mechanically: `tools/lint_artifacts.py` fails a `resume.json` whose `work[]` entries
+  are out of order, along with a years-of-experience claim that contradicts the dates on the same
+  page (the `scan` category).
 - Length: 1 page under ~10 years, 2 pages for 10+. Never exceed 2.
 - Single column. No tables, text boxes, columns, headers/footers, icons, or graphics (parsers drop
   them). PDF unless the portal demands .docx.

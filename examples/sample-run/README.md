@@ -17,7 +17,7 @@ exercise, **not** LeetCode.
 
 ## The persona
 
-**Jordan Rivera — Senior Product Designer**, 8 years' experience, based in Austin, TX (remote or
+**Jordan Rivera — Senior Product Designer**, 10 years' experience, based in Austin, TX (remote or
 hybrid). Targeting **Staff / Lead Product Designer** roles at consumer and B2B SaaS companies.
 
 - **Strengths:** design systems, 0→1 product design, design-engineering collaboration,

@@ -28,7 +28,7 @@ Austin, TX (remote-first / hybrid-OK) · jordan.rivera@example.com · (512) 555-
 Portfolio: https://example.com/jordanrivera · LinkedIn: https://example.com/in/jordan-rivera-design
 
 ## Summary
-Senior Product Designer with 8 years across fintech, marketplace, and agency work, specializing in
+Senior Product Designer with 10 years across fintech, marketplace, and agency work, specializing in
 **design systems at scale** and 0→1 product design. Built a 120-component, tokenized system adopted by
 5 product teams that lifted new-feature adoption ~32% and cut design QA rework roughly in half. An
 **accessibility-first** IC who pairs through implementation, targeting Staff-scope design-systems
@@ -44,8 +44,8 @@ ownership.
   implementation, cutting spec-drift defects ~44%. *(E3)*
 - Established design-system governance and a contribution model, consolidating 40+ ad-hoc patterns into
   shared components so teams extend the system instead of forking it. *(E2)*
-- Redesigned the B2B partner dashboard from funnel and survey data, lifting product NPS from 22 to 41;
-  mentors 3–4 designers and runs crits, IC leadership without a manager title. *(E4, E9)*
+- Redesigned the B2B partner dashboard from funnel and survey data, lifting product NPS from 22 to 41.
+  Mentors 3–4 designers and runs design crits, IC leadership without a manager title. *(E4, E9)*
 
 **Atlas Mobility · Product Designer** · Austin, TX (hybrid) · Jun 2018 – Feb 2021
 *Two-sided mobility marketplace · design team of 4 · consumer mobile + web.*

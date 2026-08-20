@@ -32,7 +32,7 @@ cold-but-warm via shared community.
 > pointer to who owns the funnel surface? Thanks either way.
 
 ## Recruiter-screen script
-- **60-sec positioning open:** "I'm a Senior Product Designer, 8 years, focused on consumer 0→1 and
+- **60-sec positioning open:** "I'm a Senior Product Designer, 10 years, focused on consumer 0→1 and
   conversion. At Atlas I took onboarding from a blank canvas and cut first-week drop-off 41%→24%, and
   lifted checkout completion 18%, and I mentor 3–4 designers as an IC. Lumen's Lead role looks like a
   clean match."

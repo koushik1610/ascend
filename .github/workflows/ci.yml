@@ -26,7 +26,20 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Smoke tests (server + reader security, perms, dashboards, gitignore, cross-refs, phase-order, scripts)
+      # Without a TeX engine the renderer's highest-value assertions silently skip: the one-page
+      # budget, selectable-text extraction, and the ToUnicode/ligature check that exists because
+      # "first" once extracted as "rst" and killed ATS keyword matching. CI was green that whole
+      # time (2026-08-20 council). ASCEND_REQUIRE_TEX makes a missing engine a failure, not a skip.
+      - name: Install a TeX engine (so the résumé render assertions actually run)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            texlive-latex-base texlive-latex-recommended texlive-fonts-recommended
+          pdflatex --version | head -1
+
+      - name: Smoke tests (server + reader security, perms, dashboards, gitignore, cross-refs, phase-order, scripts, résumé render)
+        env:
+          ASCEND_REQUIRE_TEX: "1"
         run: python3 tests/smoke.py
 
       - name: Validate dashboard render scripts (JS syntax)
