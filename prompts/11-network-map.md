@@ -50,7 +50,10 @@ For each company in the job queue (lead with the jobs the user is pursuing):
 2. **Likely recruiter / hiring manager** — from the connections at that company, flag anyone in
    recruiting/TA or in the hiring team's function/level. If none is in-network, note *"no in-network
    recruiter — find the HM via the company page / the posting,"* and mark it `VERIFY:` — never invent one.
-3. **Ranked referral path** — the single best person to approach first, and why.
+3. **Ranked referral path — name a PRIMARY and a FALLBACK, both real, both now.** Not one contact.
+   Naming the second-best person later never happens: by the time the primary has gone quiet the user
+   is discouraged and moves on to a cold apply. Name both while the export is open. If only one real
+   contact exists at that company, say so explicitly and mark the fallback `none — cold apply on expiry`.
 4. **The ask** — a one-line, specific, honest referral/intro ask tuned to that contact (tie to the
    user's positioning). Keep drafts short; flag voice-dependent lines `DRAFT — REWRITE IN YOUR VOICE`.
 

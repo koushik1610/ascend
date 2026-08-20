@@ -104,7 +104,8 @@ user unless they've told you to run straight through.
 |---|---|---|
 | 1 | `01-linkedin-analysis.md` | `linkedin-analysis.html` — visual profile audit + **10 actionable next steps** |
 | 3 | `03-master-resume.md` | `master-resume.md` — the superset bullet database. **The resume audit (old Phase 2) is folded in here** as the opening "gaps & fixes" section — no separate `resume-audit.md` artifact by default. |
-| 4 | `04-job-search.md` | `job-queue.md` — **15+ ranked candidate jobs** (link-status per entry) |
+| 4 | `04-job-search.md` | `job-queue.md` — **triage 40-60, score the survivors, live queue caps at 8** |
+| 11 | `11-network-map.md` | `network-map.md` — warm referral paths (primary + fallback per company) |
 | 6 | `06-interview-packet.md` | `interview-packet/` — STAR stories + positioning hooks (build a **thin** version here; enrich on demand) |
 | 5 | `05-job-folders.md` | **CORE apply packs** (resume · outreach · application-log) for the **top 3–5 jobs the user commits to** — not deep prep for all 15 |
 | 7 | `07-navigator-html.md` | `start-here.html` — the navigator: weekly action loop, funnel, job board |
@@ -112,8 +113,12 @@ user unless they've told you to run straight through.
 <!-- CANONICAL RUN ORDER — single source of truth. CLAUDE.md and .claude/commands/ascendui.md restate
 this for convenience; tests/smoke.py asserts all three match, so change the order HERE and keep them in
 sync. -->
-**Default run order: 1 → 3 → 4 → 6 → 5 → 7.** (Phase 6 before 5 so the packet's story IDs exist before
-anything references them. Phase 2 is merged into 3.)
+**Default run order: 1 → 3 → 4 → 11 → 6 → 5 → 7.** (Phase 6 before 5 so the packet's story IDs exist
+before anything references them. Phase 2 is merged into 3. **Phase 11 is now declared rather than
+hidden**: Phase 5's referral-first pack requires `network-map.md`, and it used to say "build it first
+if missing," so the run order was quietly lying about its own duration. Skip 11 if the export has no
+`Connections.csv`.) The registry in `../ops.json` holds this order too, and `tests/smoke.py` asserts
+they match.
 
 **Lazy by design — the key simplification:** the first run produces ~25–30 files (a master resume, a
 15-job queue, a thin packet, and a 3-file apply pack for the top few jobs), **not ~100**. Deep
@@ -149,6 +154,19 @@ interview prep is generated **on demand**, per job, only when a screen is booked
   the user's real evidence (adds nothing): `/ascend degenericize [file]`.
 - `19-salary-studio.md` — **Salary Negotiation Studio**: a grounded per-offer plan — market anchors, the
   user's three numbers, rehearsed scripts (no dishonest tactics): `/ascend negotiate [company]`.
+- `20-weekly-review.md` — **The Weekly Review**: the 15-minute heartbeat that keeps a search alive past
+  week three — count, capture, calibrate, check the lead floor, decide one thing: `/ascend week`.
+- `21-rejection-protocol.md` — **Rejection Protocol**: capture what was actually said (verbatim), record
+  the stage it died at, and activate a named replacement target: `/ascend rejected <NN>`.
+- `22-adjacent-titles.md` — **Adjacent Titles**: titles the user's own evidence already supports, written
+  into their targeting on confirmation so every later search inherits them: `/ascend titles`.
+
+**Recording what happened (the capture act).** Every status change goes through one command:
+`python3 tools/pipeline.py log workspace/<name> <NN> <status>` — exposed as **`/ascend log <NN> <status>`**.
+It updates only the fenced STATE block in that job's `application-log.md` (never the user's prose) and
+appends to an append-only ledger. The daily brief, the weekly review and the navigator all read from
+it. Before this existed, Ascend's only write-back surface was a checklist the user had to open and
+hand-edit, so the ghost detector was reading fields nobody ever filled in.
 
 ---
 

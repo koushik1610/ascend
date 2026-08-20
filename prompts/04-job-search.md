@@ -67,17 +67,58 @@ reliably confirm** a posting is open just because it appeared in a search result
 - **Do not invent req IDs or links.** If you can't find a real URL for a role, describe the role and
   where to search for it, marked `⚠ find-the-link`, rather than fabricating one.
 
+## Pass 1 — triage cheap, before you score anything
+
+**Cast wide, then filter.** Aim for **40-60 candidates** in pass 1, not 15. The old "at least 15"
+target was a budget wearing a target's clothes: the phase stopped as soon as it hit 15, which biased
+the queue toward whatever the first searches happened to return.
+
+**Read `profile-brief.md` and nothing else.** Not `master-resume.md`, not `industry-insights.md`, not
+`intake.md`, not `../reference/`. That restriction is the entire point. Full context costs a large
+multiple of the brief and changes almost no go/no-go decisions, and carrying eleven full JDs into the
+scoring of the twelfth is where the Fit Score's unexplained variance comes from.
+
+For each posting emit exactly one line, and nothing else:
+
+```
+TRIAGE: {PASS|MARGINAL|FAIL|SKIP} | {Company} | {Role} | {X.X}/5 | {reason, ≤25 words}
+```
+
+The verdict keyword and the `Company | Role | Score` cells are machine-readable, so keep them exactly
+as written. Only the reason is prose.
+
+- **Hard DQ check first.** Any hard disqualifier from the brief caps the score at 2.5 and ends it.
+- **Score five dimensions**, 1-5 each: archetype fit (30%), comp vs the floor (25%), location (25%),
+  proof-point overlap (15%), soft red flags (−0.5 each). Round to 0.1.
+- **PASS** ≥3.5 · **MARGINAL** 3.0-3.4 · **FAIL** <3.0 · **SKIP** = posting inaccessible or expired.
+- A company on the brief's priority-override list PASSes regardless of score.
+- **Write no files in pass 1.** No folders, no deltas, no talking points.
+
+Show the user the verdict table and the counts. They promote any MARGINAL they want. Nothing is
+filtered on their behalf, and a FAIL is a recommendation, not a deletion.
+
+## Pass 2 — the full Fit Score, on survivors only
+
+Everything below runs **only** on PASS plus promoted MARGINALs, and the **live queue caps at 8**.
+Everything else goes to the watch list with a named revisit trigger. A queue of 15 where the bottom
+third are roles this file itself argues against produces guilt, not interviews.
+
 ## Rank them — an explainable Fit Score (0–100)
 Give every job a transparent **Fit Score out of 100**, the sum of five sub-scores (each 0–20), and
 **show the reasoning** — never a black-box number:
 
-| Dimension (0–20) | What it measures |
+| Dimension (0–25) | What it measures |
 |---|---|
 | **Skills match** | How well the master résumé's evidence covers the JD's must-haves (use the §4 keyword set) |
 | **Seniority fit** | Is the level right — same, a step up (good), or a reach/down-level (note it) |
 | **Comp fit** | Posted/estimated comp vs the user's `intake.md` target/floor |
 | **Location/logistics** | Remote/hybrid/on-site vs the user's constraints + work auth |
-| **Excitement/growth** | Honest read of how well it matches what the user said they want (mission, domain, trajectory) |
+
+**Excitement is a veto and a tie-break, not a fifth of the score.** Report it separately as
+`excitement: high|ok|low`. `low` vetoes the entry to the watch list no matter how well it scores;
+otherwise it breaks ties between close totals. It used to be a 0–20 addend carrying the same weight as
+skills match, which inverted rankings: a role scoring 5/20 on skills but 20/20 on excitement outranked
+one scoring 19 and 18. Those rankings were backwards for anyone trying to get hired.
 
 Order the queue by total Fit Score (tie-break on feasibility). For each job, write the total, the five
 sub-scores, and a one-line "why this score" (the strongest match + the biggest gap). The #1 job should
@@ -91,6 +132,9 @@ claimable keywords), so the user can vet roles they find themselves.
 Per `../templates/job-queue-template.md`, each entry gets:
 - The metadata block (req/link/level/comp/location/ATS).
 - **Why it ranks here** (1–3 sentences).
+- **Why you'd lose this one** — one honest sentence. Every entry currently argues *for* the job, which
+  is how a queue full of stretches reads as a queue full of prospects. This sentence changes the order
+  the user applies in, and it is the input the level case and the work-sample plan both need.
 - **Resume delta** — which master-resume bullets to lead with and any per-job emphasis (this is the
   pre-approved selection Phase 5 applies; cite master entry IDs).
 - **Talking points** (3–5), **expected interview questions**, **gaps & honest handling**.

@@ -10,6 +10,7 @@
       "Bash(python3 ui/server.py*)",
       "Bash(python3 tools/lint_artifacts.py*)",
       "Bash(python3 tools/render_resume.py*)",
+      "Bash(python3 tools/pipeline.py*)",
       "Bash(mkdir -p workspace/*)",
       "Bash(mkdir workspace/*)",
       "Bash(rm -f workspace/*)",

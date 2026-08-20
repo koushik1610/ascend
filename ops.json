@@ -1,0 +1,53 @@
+{
+  "_comment": [
+    "THE OP + PHASE REGISTRY — the single source of truth for what Ascend can do.",
+    "",
+    "Why this file exists: every op used to be enumerated by hand in five places",
+    "(.claude/commands/ascend.md, prompts/00-orchestrator.md, README.md, WORKFLOW.md, and a",
+    "hardcoded list in tests/smoke.py). Three of those were test-enforced, so adding one op meant",
+    "five edits and a red CI run to find the one you missed. tests/smoke.py now DERIVES its parity",
+    "and run-order checks from this file, so a new op is one row here plus the surfaces it names.",
+    "",
+    "status: 'stable' = exercised on real data. 'beta' = built and code-checked, not yet proven on a",
+    "real run (see docs/V1-READINESS.md). Be honest here; the README's maturity claim reads from it."
+  ],
+  "run_order": ["1", "3", "4", "11", "6", "5", "7"],
+  "phases": {
+    "1":  {"file": "prompts/01-linkedin-analysis.md", "produces": "linkedin-analysis.html"},
+    "3":  {"file": "prompts/03-master-resume.md",     "produces": "master-resume.md + profile-brief.md"},
+    "4":  {"file": "prompts/04-job-search.md",        "produces": "job-queue.md"},
+    "11": {"file": "prompts/11-network-map.md",       "produces": "network-map.md"},
+    "6":  {"file": "prompts/06-interview-packet.md",  "produces": "interview-packet/"},
+    "5":  {"file": "prompts/05-job-folders.md",       "produces": "jobs/<NN>/ CORE apply packs"},
+    "7":  {"file": "prompts/07-navigator-html.md",    "produces": "start-here.html"}
+  },
+  "ops": [
+    {"op": "resume",        "status": "stable", "what": "Continue an interrupted run from .ascend-state.json"},
+    {"op": "job add",       "status": "stable", "what": "Add one posting to the queue and build its CORE pack"},
+    {"op": "job rebuild",   "status": "stable", "what": "Regenerate a job folder, preserving its application log"},
+    {"op": "prep",          "status": "stable", "what": "Deep interview-prep pack, run after a screen is PASSED"},
+    {"op": "network",       "status": "stable", "what": "Warm referral paths per target company from Connections.csv"},
+    {"op": "answers",       "status": "stable", "what": "Reusable honest answers to common application questions"},
+    {"op": "today",         "status": "stable", "what": "Daily briefing: 3 actions + due follow-ups"},
+    {"op": "score",         "status": "stable", "what": "Fit-score a pasted JD without building a folder"},
+    {"op": "export",        "status": "stable", "what": "Render a job's resume.md to a one-page ATS-safe PDF"},
+    {"op": "export-docx",   "status": "beta",   "what": "Also emit an ATS-safe Word copy via pandoc"},
+    {"op": "build-resume",  "status": "stable", "what": "Standalone resume builder, not tied to a job"},
+    {"op": "maintenance",   "status": "stable", "what": "Weekly data refresh: re-verify links, refresh the queue"},
+    {"op": "aggregate",     "status": "beta",   "what": "Pull open roles from public ATS boards into the queue"},
+    {"op": "crm",           "status": "beta",   "what": "Keep warm referral relationships alive"},
+    {"op": "mine",          "status": "beta",   "what": "Achievement-mining interview into new master entries"},
+    {"op": "drill",         "status": "beta",   "what": "Live mock interview with evidence-grounded feedback"},
+    {"op": "degenericize",  "status": "beta",   "what": "Swap generic text for the user's real evidence"},
+    {"op": "negotiate",     "status": "beta",   "what": "Grounded per-offer plan: anchors, scripts, walk-away"},
+
+    {"op": "log",           "status": "beta", "new": true,
+     "what": "Record what actually happened to an application, in one command"},
+    {"op": "week",          "status": "beta", "new": true,
+     "what": "The 15-minute weekly review: count, capture, calibrate, check, decide"},
+    {"op": "rejected",      "status": "beta", "new": true,
+     "what": "Close out a rejection or a ghost, and activate a named replacement"},
+    {"op": "titles",        "status": "beta", "new": true,
+     "what": "Adjacent job titles your evidence already supports, written into your targeting"}
+  ]
+}

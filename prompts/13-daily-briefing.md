@@ -35,8 +35,16 @@ Pick the 3 that move the needle most, usually one from each lane:
 Show progress against the weekly targets (e.g., "applications 1/3, referrals 0/2 this week").
 
 ### 2. Ghost-detector + follow-up cadence
-For every job, read its `application-log.md` status + dates and apply this honest cadence (adjust to
-the user's pace):
+**Get the due list from the tool, not by reading every log yourself:**
+```
+python3 tools/pipeline.py overdue workspace/<name>
+```
+It parses each job's STATE block and returns what is actually due, including any **expired referral**
+(a referral gate with no clock costs applications). Two runs of this brief now produce the same list,
+which was not true when the agent compared dates by inspection across N files.
+
+Reason only over the returned rows and draft the messages, which is the part you are good at. The
+cadence below is the human-facing source for those thresholds; the tool mirrors it:
 
 | Since… | Trigger | Action (draft it) |
 |---|---|---|
@@ -59,9 +67,16 @@ A single ≤10-minute compounding action (a LinkedIn comment on a target-company
 endorsement ask, one bullet to sharpen) — the kind of thing that builds presence over weeks.
 
 ## Wire it in
-- Update each affected `application-log.md` (record that a follow-up is due / drafted; set status to
-  `move-on`/closed where chosen) and set the job's `deadline`/`nextAction` so the navigator's
-  **Deadlines & Follow-ups** strip and **weekly targets** reflect today's state.
+- **Record state through the tool, never by hand-editing a date:**
+  `python3 tools/pipeline.py log workspace/<name> <NN> <status> [--note "..."]`. It updates the STATE
+  block in place (leaving every other line of the user's file alone) and appends to the append-only
+  ledger. Hand-editing is what left those fields empty for the entire life of the ghost detector.
+- **Close the loop on any move-on:** hand off to `21-rejection-protocol.md` (`/ascend rejected <NN>`)
+  so the outcome is captured verbatim and a replacement target gets named. A closed door always ships
+  with an open one.
+- **If it has been 7+ days since the last weekly review**, say so in one line and offer `/ascend week`.
+  The daily loop keeps momentum; the weekly review is what catches a search losing in a way no single
+  day shows.
 - Bump `.ascend-state.json` `updated`.
 
 ## Verify & checkpoint

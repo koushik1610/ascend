@@ -50,6 +50,22 @@ and `workspace/<name>/.ascend-state.json` first, then:
   per-offer plan — researched market anchors, the user's three numbers, and rehearsed scripts (no
   dishonest tactics).
 
+**Running the search week to week (these are what keep it alive past week three):**
+- **`log <NN> <status>`** → record what actually happened, in one command. Runs
+  `python3 tools/pipeline.py log workspace/<name> <NN> <status> [--on DATE] [--note "…"]`. Statuses:
+  `queued applied responded screen onsite offer rejected move-on`. It rewrites only the fenced STATE
+  block in that job's `application-log.md` and appends to the append-only ledger. Every other number
+  in the system reads from this, so it is the one command worth making a habit.
+- **`week`** → **The Weekly Review** (`prompts/20-weekly-review.md`): the 15-minute heartbeat — count
+  what you did, capture what moved, calibrate the funnel with denominators, check the lead floor,
+  decide exactly one thing. A search dies from attrition, not from a bad résumé.
+- **`rejected <NN>`** → **Rejection Protocol** (`prompts/21-rejection-protocol.md`): capture what was
+  actually said, verbatim, record the stage it died at, and activate a named replacement target.
+  90 seconds. Never asks the user to theorize about why.
+- **`titles`** → **Adjacent Titles** (`prompts/22-adjacent-titles.md`): job titles the user's own
+  evidence already supports, on three labeled axes (lateral / stretch / pivot), each citing master
+  entry IDs, written into their targeting only on confirmation.
+
 Honor the binding rules in `CLAUDE.md`: person-agnostic, honesty gates absolute, selection-not-invention,
 all personal output under `workspace/` only, never commit personal data. Update `.ascend-state.json`
 after each phase and each job folder so the run is always resumable.

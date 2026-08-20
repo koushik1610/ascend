@@ -11,6 +11,50 @@ _Working toward v1.0. Real-run gate: **1 of 2–3 runs signed off** (2026-07-01,
 see `docs/ROADMAP.md` → sign-off log); cases (b) no-résumé/non-tech and (c) resume-after-interruption
 remain, plus a green CI run on the remote + a demo GIF._
 
+### Added: 2026-08-20 the campaign layer — running a search, not just launching one
+A six-lens review (software architecture · agent systems · technical recruiting · career coaching ·
+workflow design · OSS maintenance) against other open-source career-operations systems. The convergent
+finding was that Ascend is an excellent **launch** system and almost not a **campaign** system: it does
+days 1-7 better than most, then goes quiet for eleven weeks. Ten changes, plus the foundations that
+keep them cheap to maintain.
+
+- **`ops.json` — the op and phase registry.** `tests/smoke.py` used to hardcode four lists that had to
+  track every feature by hand, three of them test-enforced, so adding one op meant five edits and a red
+  CI run to find the one you missed. Parity and run-order checks now derive from one registry row.
+- **`tools/pipeline.py` + `/ascend log` — the capture act.** The ghost detector, the funnel and every
+  weekly count were reading fields nobody ever filled in, because the only write-back surface was a
+  checklist the user had to open and hand-edit. One command now records a transition, updating **only**
+  the fenced `ascend-state` block in that job's `application-log.md` (the user's prose is never
+  regenerated: `workspace/` is gitignored and has no version history) and appending to an append-only
+  ledger where corrections are new rows, never edits.
+- **Two-pass Phase 4.** Triage 40-60 candidates against a new compact `profile-brief.md` and nothing
+  else, emitting one machine-readable verdict line each; run the full Fit Score only on survivors, with
+  the live queue capped at 8. "At least 15" was a budget wearing a target's clothes, and scoring the
+  twelfth posting with eleven full JDs in context was the largest source of variance in the headline
+  number. **Excitement is now a veto and tie-break, not a fifth of the score** — as a 0-20 addend it
+  ranked a role scoring 5/20 on skills above one scoring 19.
+- **`/ascend week` — the weekly review.** Count what you did, capture what moved, calibrate the funnel
+  with denominators, check the lead floor, decide exactly one thing. Reports counts only below n≈10,
+  because asserting a conversion rate off six applications is the same sin as inventing a metric.
+- **`/ascend rejected` — the rejection protocol.** The most common event in a search had no artifact.
+  Captures what was said verbatim (memory rewrites "someone with more platform experience" into "not
+  senior enough" within a week), records the stage it died at, and activates a **named** replacement.
+  It never asks the user to theorize about why, and "this changes nothing" is a valid, frequent output.
+- **The referral loop.** Primary *and* fallback contacts named at map time, a paste-ready **referrer kit**
+  for the "why are you recommending them" box that otherwise gets left blank, and a **`referral_expires_on`
+  clock** — a referral-first gate with no expiry silently costs applications, since reqs are reviewed in
+  arrival order.
+- **Screen card, and deep prep reordered.** Phase 10 now fires when a screen is **passed**, not booked.
+  A booked screen gets a one-page card; the 20-35 hour study plan waits for a loop the user has earned.
+- **`/ascend titles`.** Adjacent titles on three labeled axes (lateral / stretch / pivot), each quoting
+  master evidence verbatim — if you cannot quote it, it is not suggested — written into targeting only
+  on confirmation, so later searches inherit them instead of re-deriving them.
+- **Phase 11 is in the canonical run order** (`1 → 3 → 4 → 11 → 6 → 5 → 7`). Phase 5 required
+  `network-map.md` and said "build it first if missing," so the run order was understating its own duration.
+- **Fixed: the console never wrote `lint-config.json`.** Phases 3/5/8 all pass it to the linter, so every
+  run started from `/ascendui` silently lost the user's never-publish and retracted-claim checks while
+  the prompts reported the gate as passing.
+
 ### Added: 2026-08-10 LaTeX résumé rendering (now the default export path)
 - **`tools/render_resume.py` + `templates/resume-latex.template.tex`.** `resume.json` now renders through
   LaTeX into a portable `.tex` **and** a one-page ATS-safe PDF. The `.tex` is written even when no TeX
