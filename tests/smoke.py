@@ -362,8 +362,13 @@ def test_latex_render():
             return
         r = subprocess.run([sys.executable, str(tool), str(sample), "--out", str(out_pdf),
                             "--tex", str(out_tex)], capture_output=True, text=True, timeout=300)
+        # Surface the LaTeX error lines rather than a blind tail: a 200-char tail of a TeX log is
+        # usually the trailing context, not the "! LaTeX Error: File `x.sty' not found." that says
+        # what to install (2026-08-20).
+        _log = (r.stderr or "") + (r.stdout or "")
+        _errs = [l for l in _log.splitlines() if l.startswith("!") or "not found" in l]
         check(f"compiles with {engine}", r.returncode == 0 and out_pdf.exists(),
-              (r.stderr or r.stdout).strip()[-200:])
+              " | ".join(_errs[:6]) or _log.strip()[-400:])
         if not out_pdf.exists():
             return
         raw = out_pdf.read_bytes()

@@ -33,9 +33,25 @@ jobs:
       - name: Install a TeX engine (so the résumé render assertions actually run)
         run: |
           sudo apt-get update -qq
+          # The template needs geometry, iftex, fontenc/inputenc, helvet, microtype, setspace,
+          # enumitem, xcolor and hyperref. enumitem and xcolor are NOT in latex-base+recommended
+          # on this runner (the first run of this step failed on `\usepackage{xcolor}`), so
+          # latex-extra is required too.
           sudo apt-get install -y --no-install-recommends \
-            texlive-latex-base texlive-latex-recommended texlive-fonts-recommended
+            texlive-latex-base texlive-latex-recommended texlive-latex-extra \
+            texlive-fonts-recommended
           pdflatex --version | head -1
+          # Resolve every package the template loads, so a future failure names the missing .sty
+          # instead of leaving it to be guessed from a truncated LaTeX error.
+          missing=0
+          for sty in geometry iftex fontenc inputenc helvet microtype setspace enumitem xcolor hyperref; do
+            if kpsewhich "$sty.sty" > /dev/null; then
+              echo "  ok      $sty.sty"
+            else
+              echo "  MISSING $sty.sty"; missing=1
+            fi
+          done
+          [ "$missing" -eq 0 ] || { echo "::error::TeX packages missing (see MISSING lines above)"; exit 1; }
 
       - name: Smoke tests (server + reader security, perms, dashboards, gitignore, cross-refs, phase-order, scripts, résumé render)
         env:
