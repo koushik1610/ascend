@@ -11,6 +11,8 @@
       "Bash(python3 tools/lint_artifacts.py*)",
       "Bash(python3 tools/render_resume.py*)",
       "Bash(python3 tools/pipeline.py*)",
+      "Bash(python3 tools/state.py*)",
+      "Bash(python3 tools/grade_run.py*)",
       "Bash(mkdir -p workspace/*)",
       "Bash(mkdir workspace/*)",
       "Bash(rm -f workspace/*)",

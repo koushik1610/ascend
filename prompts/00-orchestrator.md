@@ -107,7 +107,7 @@ user unless they've told you to run straight through.
 | 4 | `04-job-search.md` | `job-queue.md` — **triage 40-60, score the survivors, live queue caps at 8** |
 | 11 | `11-network-map.md` | `network-map.md` — warm referral paths (primary + fallback per company) |
 | 6 | `06-interview-packet.md` | `interview-packet/` — STAR stories + positioning hooks (build a **thin** version here; enrich on demand) |
-| 5 | `05-job-folders.md` | **CORE apply packs** (resume · outreach · application-log) for the **top 3–5 jobs the user commits to** — not deep prep for all 15 |
+| 5 | `05-job-folders.md` | **CORE apply packs** (resume · outreach · application-log) for the **top 3–5 jobs the user commits to** — not deep prep for the whole queue |
 | 7 | `07-navigator-html.md` | `start-here.html` — the navigator: weekly action loop, funnel, job board |
 
 <!-- CANONICAL RUN ORDER — single source of truth. CLAUDE.md and .claude/commands/ascendui.md restate
@@ -121,7 +121,7 @@ if missing," so the run order was quietly lying about its own duration. Skip 11 
 they match.
 
 **Lazy by design — the key simplification:** the first run produces ~25–30 files (a master resume, a
-15-job queue, a thin packet, and a 3-file apply pack for the top few jobs), **not ~100**. Deep
+triaged queue, a thin packet, and a 3-file apply pack for the top few jobs), **not ~100**. Deep
 interview prep is generated **on demand**, per job, only when a screen is booked — see Phase 10.
 
 **On-demand phases (not in the initial sequence):**

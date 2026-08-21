@@ -1,5 +1,5 @@
 ---
-description: Start the Ascend job-search pipeline (intake interview → LinkedIn analysis → master resume (audit folded in) → 15+ ranked jobs → interview packet → apply packs → navigator)
+description: Start the Ascend job-search pipeline (intake interview → LinkedIn analysis → master resume (audit folded in) → triaged + ranked jobs → interview packet → apply packs → navigator)
 ---
 
 Run Ascend Follow `prompts/00-orchestrator.md` from the top: begin with the intake interview
@@ -32,7 +32,7 @@ and `workspace/<name>/.ascend-state.json` first, then:
   also served at `/resume-builder` when the UI server runs) for ad-hoc résumé creation/editing: Import
   an existing `resume.json`, or build from scratch and Create PDF. Not tied to any job folder.
 - **`score <paste JD>`** → report the **0–100 Fit Score** (Phase 4 rubric: skills/seniority/comp/
-  location/excitement + reasoning) and the missing-but-claimable keywords; build nothing.
+  location, 0–25 each, with excitement reported separately as a veto/tie-break + reasoning) and the missing-but-claimable keywords; build nothing.
 - **`export-docx <company>`** → also emit an ATS-safe Word copy from the same `resume.md` via the
   allow-listed `pandoc` (`prompts/08-export-pdf.md` → DOCX section). The PDF stays the default.
 - **`aggregate`** → **ATS Job Aggregation** (`prompts/14-ats-aggregation.md`): pull currently-open roles

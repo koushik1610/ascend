@@ -261,7 +261,16 @@ def read_status(slug: str):
            "hasDashboard": done}
     if statef.exists():
         try:
-            out.update(json.loads(statef.read_text(encoding="utf-8")))   # carries current + log for the live feed
+            data = json.loads(statef.read_text(encoding="utf-8"))
+            out.update(data)                    # carries current + log for the live feed
+            # Structurally validate rather than trusting whatever was written. A plausible-but-wrong
+            # manifest used to flow straight into this API response, so the console would render a
+            # confident wrong state (or hang at 0%) with nothing to point at. Surface it instead.
+            sys.path.insert(0, str(REPO / "tools"))
+            import state as _state                       # noqa: PLC0415 (optional, tools/ only)
+            problems = _state.validate(data)
+            if problems:
+                out["stateProblems"] = problems
         except Exception:
             out["error"] = "state file unreadable"   # surface it so the console doesn't hang silently
     return out
