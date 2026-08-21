@@ -26,7 +26,36 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Smoke tests (server + reader security, perms, dashboards, gitignore, cross-refs, phase-order, scripts)
+      # Without a TeX engine the renderer's highest-value assertions silently skip: the one-page
+      # budget, selectable-text extraction, and the ToUnicode/ligature check that exists because
+      # "first" once extracted as "rst" and killed ATS keyword matching. CI was green that whole
+      # time (2026-08-20 council). ASCEND_REQUIRE_TEX makes a missing engine a failure, not a skip.
+      - name: Install a TeX engine (so the résumé render assertions actually run)
+        run: |
+          sudo apt-get update -qq
+          # The template needs geometry, iftex, fontenc/inputenc, helvet, microtype, setspace,
+          # enumitem, xcolor and hyperref. enumitem and xcolor are NOT in latex-base+recommended
+          # on this runner (the first run of this step failed on `\usepackage{xcolor}`), so
+          # latex-extra is required too.
+          sudo apt-get install -y --no-install-recommends \
+            texlive-latex-base texlive-latex-recommended texlive-latex-extra \
+            texlive-fonts-recommended
+          pdflatex --version | head -1
+          # Resolve every package the template loads, so a future failure names the missing .sty
+          # instead of leaving it to be guessed from a truncated LaTeX error.
+          missing=0
+          for sty in geometry iftex fontenc inputenc helvet microtype setspace enumitem xcolor hyperref; do
+            if kpsewhich "$sty.sty" > /dev/null; then
+              echo "  ok      $sty.sty"
+            else
+              echo "  MISSING $sty.sty"; missing=1
+            fi
+          done
+          [ "$missing" -eq 0 ] || { echo "::error::TeX packages missing (see MISSING lines above)"; exit 1; }
+
+      - name: Smoke tests (server + reader security, perms, dashboards, gitignore, cross-refs, phase-order, scripts, résumé render)
+        env:
+          ASCEND_REQUIRE_TEX: "1"
         run: python3 tests/smoke.py
 
       - name: Validate dashboard render scripts (JS syntax)

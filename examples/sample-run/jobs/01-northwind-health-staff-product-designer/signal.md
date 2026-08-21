@@ -13,7 +13,7 @@ Senior Product Designer · Austin, TX · remote-first / hybrid-OK
 jordan.rivera@example.com · https://example.com/in/jordan-rivera-design · https://example.com/jordanrivera
 
 I take design systems from blank canvas to broad adoption, tokens and components paired 1:1 with
-engineering, not a Figma library that sits unused. Over 8 years across fintech, marketplace, and agency
+engineering, not a Figma library that sits unused. Over 10 years across fintech, marketplace, and agency
 work, I've made consistency, accessibility, and adoption measurable outcomes rather than aspirations.
 
 **Design systems that get adopted.** At Beacon Financial I built a 120-component, tokenized design
@@ -32,7 +32,7 @@ product NPS from 22 to 41 over two quarters.
 **Why Northwind:** design-systems rigor and accessibility matter more on a health platform, not less.
 That's exactly the work I want to own as a Staff IC.
 
-8 years in product design · prior 0→1 work at a mobility marketplace and a product-design agency ·
+10 years in product design · prior 0→1 work at a mobility marketplace and a product-design agency ·
 B.F.A., Communication Design.
 
 > ──────────────── END OF SENDABLE PAGE ────────────────

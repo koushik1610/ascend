@@ -18,7 +18,7 @@ Covers the regressions a human won't catch by eye, all fast:
      and no fiction marker; every per-job résumé has a DELTA LOG (selection, not invention).
 Exits non-zero if anything fails — wired into CI (.github/workflows/ci.yml).
 """
-import http.client, json, re, shutil, subprocess, sys, tempfile, time, zlib
+import http.client, json, os, re, shutil, subprocess, sys, tempfile, time, zlib
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
@@ -350,12 +350,25 @@ def test_latex_render():
         engine = next((e for e in ("tectonic", "latexmk", "pdflatex", "xelatex", "lualatex")
                        if shutil.which(e)), None)
         if not engine:
+            # Locally a missing engine is a legitimate skip. In CI it is a silent hole: every
+            # assertion below (one-page budget, selectable text, the ToUnicode/ligature regression)
+            # stops running while the job still reports green. ASCEND_REQUIRE_TEX turns the skip
+            # into a failure wherever an engine is supposed to exist (2026-08-20 council).
+            if os.environ.get("ASCEND_REQUIRE_TEX"):
+                check("a TeX engine is installed (ASCEND_REQUIRE_TEX=1)", False,
+                      "none of tectonic/latexmk/pdflatex/xelatex/lualatex found")
+                return
             print("  – no TeX engine here, skipping compile (the .tex path is covered above)")
             return
         r = subprocess.run([sys.executable, str(tool), str(sample), "--out", str(out_pdf),
                             "--tex", str(out_tex)], capture_output=True, text=True, timeout=300)
+        # Surface the LaTeX error lines rather than a blind tail: a 200-char tail of a TeX log is
+        # usually the trailing context, not the "! LaTeX Error: File `x.sty' not found." that says
+        # what to install (2026-08-20).
+        _log = (r.stderr or "") + (r.stdout or "")
+        _errs = [l for l in _log.splitlines() if l.startswith("!") or "not found" in l]
         check(f"compiles with {engine}", r.returncode == 0 and out_pdf.exists(),
-              (r.stderr or r.stdout).strip()[-200:])
+              " | ".join(_errs[:6]) or _log.strip()[-400:])
         if not out_pdf.exists():
             return
         raw = out_pdf.read_bytes()
@@ -481,7 +494,10 @@ def test_linter():
         check("dirty artifact exits nonzero", r.returncode == 1, f"rc={r.returncode}")
         for cat in ("[dash]", "[vocab]", "[semicolon]", "[colon]", "[numbers]", "[provenance]"):
             check(f"flags {cat}", cat in r.stdout, r.stdout[:200])
-        # a clean sendable (with provenance) must pass
+        # a clean sendable (with provenance) must pass. The master must exist: provenance now
+        # verifies each cited ID against it, and reports UNVERIFIED when it can't (2026-08-20).
+        (d / "master-resume.md").write_text("#### E1, deploy time\n#### E2, security review\n",
+                                            encoding="utf-8")
         (job / "resume.md").write_text(
             "<!-- DELTA LOG: selected E1, E2 from master v1 -->\n"
             "# Resume\n"
@@ -541,8 +557,99 @@ def test_scripts():
     else:
         print("  – bash not found, skipping shell lint")
 
+# ── 4h. Council 2026-08-20 regressions: the gates that were provably not gating ──
+def test_council_gates():
+    """Each check below is a reproducer for a defect found live in this repo on 2026-08-20.
+
+    Every one of them passed CLEAN / green before the fix, which is the point: these are the cases
+    where a gate was reporting success while not actually checking anything.
+    """
+    print("council regressions (gates that weren't gating)")
+    LINT = [sys.executable, str(REPO / "tools/lint_artifacts.py")]
+    with tempfile.TemporaryDirectory() as td:
+        td = Path(td)
+
+        # (1) An uncommented DELTA LOG used to exempt the entire rest of the file, so an invented
+        #     résumé with an em dash and banned vocabulary linted CLEAN.
+        bad = td / "swallow.md"
+        bad.write_text("# N\n\nDELTA LOG\nInvented, cites nothing.\n"
+                       "Spearheaded a robust synergy — utilizing cutting-edge paradigms.\n",
+                       encoding="utf-8")
+        r = subprocess.run(LINT + [str(bad)], capture_output=True, text=True)
+        check("uncommented DELTA LOG no longer swallows the body", r.returncode == 1
+              and "vocab" in r.stdout and "dash" in r.stdout)
+
+        # (2) A clause-joining semicolon with a DIGIT before it, or wrapping to the next line, was
+        #     missed. Both forms shipped in examples/sample-run.
+        semi = td / "semi.md"
+        semi.write_text("- Lifted product NPS from 22 to 41; mentors 3 designers.\n", encoding="utf-8")
+        r = subprocess.run(LINT + [str(semi)], capture_output=True, text=True)
+        check("semicolon after a digit is caught", "semicolon" in r.stdout)
+
+        # (3) Provenance used to match r"[A-Z]{1,4}-?\d{1,3}" ANYWHERE in the file, so S3/K8/GPT-4
+        #     satisfied it incidentally and a cited ID that the master never declares passed.
+        jobs = td / "w" / "jobs" / "01-x"
+        jobs.mkdir(parents=True)
+        (td / "w" / "master-resume.md").write_text("#### E1, real entry\n| M1 | metric |\n",
+                                                   encoding="utf-8")
+        (jobs / "resume.md").write_text(
+            "<!--\nDELTA LOG\n- Selected: E1, E99\n-->\n\n## Summary\nReal text.\n", encoding="utf-8")
+        r = subprocess.run(LINT + [str(jobs / "resume.md")], capture_output=True, text=True)
+        check("Delta Log citing an ID absent from the master is caught",
+              "provenance" in r.stdout and "E99" in r.stdout)
+        # ...and a résumé citing only real IDs still passes.
+        (jobs / "resume.md").write_text(
+            "<!--\nDELTA LOG\n- Selected: E1, M1\n-->\n\n## Summary\nReal text.\n", encoding="utf-8")
+        r = subprocess.run(LINT + [str(jobs / "resume.md")], capture_output=True, text=True)
+        check("Delta Log citing only real master IDs passes", r.returncode == 0, r.stdout[-200:])
+
+        # (4) Conditionally-banned vocabulary ("ecosystem *(unless literally a technical system)*")
+        #     had no waiver, so eight prompts demanded an unreachable "0 findings".
+        waived = td / "waived.md"
+        waived.write_text("<!-- lint-allow: ecosystem -->\n- Led the Kafka ecosystem migration.\n",
+                          encoding="utf-8")
+        r = subprocess.run(LINT + [str(waived)], capture_output=True, text=True)
+        check("an inline lint-allow waiver suppresses a conditional banned word", r.returncode == 0)
+
+        # (5) The seven-second scan gate: defects a recruiter rejects on without giving feedback.
+        rj = td / "resume.json"
+        rj.write_text(json.dumps({
+            "basics": {"label": "X", "summary": "8 years of work."},
+            "work": [{"company": "Older", "dates": "Jun 2012 – Feb 2021", "highlights": ["a"]},
+                     {"company": "Current", "dates": "Mar 2021 – Present", "highlights": ["b"]}]}),
+            encoding="utf-8")
+        r = subprocess.run(LINT + [str(rj)], capture_output=True, text=True)
+        check("non-reverse-chronological work history is caught", "not reverse-chronological" in r.stdout)
+        check("a years-of-experience claim contradicting the dates is caught",
+              "claims 8 years" in r.stdout)
+
+    # (6) The generated dashboards interpolated untrusted posting/CSV text into innerHTML, and were
+    #     served with only a frame-ancestors CSP inside a SAMEORIGIN iframe on the token-bearing origin.
+    for tpl in ("templates/start-here.template.html", "templates/linkedin-analysis.template.html"):
+        html = (REPO / tpl).read_text(encoding="utf-8")
+        check(f"{tpl}: defines an esc() sink escaper", "const esc=" in html)
+        check(f"{tpl}: ships a CSP blocking egress",
+              "Content-Security-Policy" in html and "connect-src 'none'" in html)
+    nav = (REPO / "templates/start-here.template.html").read_text(encoding="utf-8")
+    check("start-here: untrusted company/role go through esc()",
+          "${esc(j.company)}" in nav and "${esc(j.role)}" in nav)
+    check("start-here: no raw ${j.company} interpolation remains", "${j.company}" not in nav)
+    srv = (REPO / "ui/server.py").read_text(encoding="utf-8")
+    check("workspace HTML is served with a real CSP, not just frame-ancestors",
+          "connect-src 'none'" in srv)
+
+    # (7) install_daily_brief ignored `crontab -l`'s return code, so a read failure looked like an
+    #     empty crontab and every other cron job the user had was replaced.
+    check("crontab install inspects the return code before replacing",
+          "cur.returncode" in srv and "crontab.bak" in srv)
+
+    # (8) CI installed no TeX engine, so the renderer's compile assertions silently skipped.
+    ci = (REPO / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+    check("CI installs a TeX engine and requires it", "texlive-latex-base" in ci
+          and "ASCEND_REQUIRE_TEX" in ci)
+
 if __name__ == "__main__":
-    for t in (test_server, test_html_json, test_gitignore, test_crossrefs, test_phase_order, test_op_parity, test_resume_builder, test_latex_render, test_bash_allowlist, test_honesty, test_linter, test_scripts):
+    for t in (test_server, test_html_json, test_gitignore, test_crossrefs, test_phase_order, test_op_parity, test_resume_builder, test_latex_render, test_bash_allowlist, test_honesty, test_linter, test_council_gates, test_scripts):
         try: t()
         except Exception as e:
             check(f"{t.__name__} raised", False, repr(e))

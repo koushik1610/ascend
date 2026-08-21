@@ -50,7 +50,7 @@ make someone exceptional in this seat in the first six months?"
 ## Numbers-discipline box
 - **Say aloud (public/sanitized):** 120 components · 5 teams · ~32% adoption · "roughly halved" QA
   rework · WCAG 2.1 AA · ~44% spec-drift reduction · NPS 22→41 · 41%→24% drop-off · ~40k signups.
-- **Stay exact (own/verifiable):** 120-component count, 130+ usability sessions, 8 years, 3–4 mentees.
+- **Stay exact (own/verifiable):** 120-component count, 130+ usability sessions, 10 years, 3–4 mentees.
 - **Never say:** internal codename ("Keystone"), raw MAU/headcount, exact 31.6% / 39,800 / −54%,
   current comp.
 

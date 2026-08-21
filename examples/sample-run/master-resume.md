@@ -29,10 +29,10 @@ active certifications. (Designer hiring rarely gates on certs; portfolio is the 
 ## §2 POSITIONING SUMMARIES (per audience, two lengths each)
 
 ### A. Staff/Lead Product Designer, B2B SaaS / design-systems lane (PRIMARY)
-- **40-word:** Senior Product Designer, 8 years, who builds design systems engineering actually
+- **40-word:** Senior Product Designer, 10 years, who builds design systems engineering actually
   adopts. Shipped a 120-component system across 5 product teams, lifting feature adoption and cutting
   design-to-build drift. 0→1 IC who mentors without a manager title.
-- **80-word:** Senior Product Designer with 8 years across fintech, marketplace, and agency work,
+- **80-word:** Senior Product Designer with 10 years across fintech, marketplace, and agency work,
   specializing in design systems and 0→1 product design. Built a 120-component, tokenized system
   adopted by 5 product teams that lifted new-feature adoption ~32% and cut design QA rework roughly in
   half. Partners tightly with engineering, pairs through implementation to kill spec drift. An IC
@@ -43,7 +43,7 @@ active certifications. (Designer hiring rarely gates on certs; portfolio is the 
 - **40-word:** Product Designer who takes consumer products from blank canvas to launch. Designed
   three 0→1 experiences end-to-end, research, prototype, ship, including an onboarding redesign that
   cut first-week drop-off from 41% to 24%. Research-driven, eng-fluent IC.
-- **80-word:** Research-driven Product Designer, 8 years, who thrives in ambiguity and ships 0→1
+- **80-word:** Research-driven Product Designer, 10 years, who thrives in ambiguity and ships 0→1
   consumer and B2B products. Led an onboarding redesign that cut first-week drop-off from 41% to 24%
   across ~40k monthly signups, and a checkout funnel rework that lifted completion 18%. Runs the full
   arc, generative research, prototyping, usability testing, hand-off, and post-launch iteration, and
