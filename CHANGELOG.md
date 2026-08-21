@@ -11,6 +11,24 @@ _Working toward v1.0. Real-run gate: **1 of 2–3 runs signed off** (2026-07-01,
 see `docs/ROADMAP.md` → sign-off log); cases (b) no-résumé/non-tech and (c) resume-after-interruption
 remain, plus a green CI run on the remote + a demo GIF._
 
+### Added: 2026-08-21 the run rubric, executable (`tools/grade_run.py`)
+- **`docs/ROADMAP.md` gates the 1.0 tag on runs graded for honesty, grounding, completeness and
+  privacy — and that rubric was prose.** Grading it meant a human re-reading a whole workspace and
+  deciding, which is how the 2026-07-01 run was signed off as passing an honesty check that (per the
+  2026-08-20 council) could not actually have run. `grade_run.py` makes it mechanical: every
+  delta-log ID must resolve to an entry the master really declares, gaps must be declared rather than
+  quietly filled, sendables go through the real linter rather than a reimplementation of it, the
+  expected artifacts must exist, and a real workspace must be gitignored.
+- **CI grades the committed sample with the same code that grades a real run**, so the fixture and
+  the standard cannot drift apart. Ten prompt-driven features had just landed in a repo where nothing
+  tested output quality.
+- **The grader is asserted to fail, not merely to pass.** `tests/smoke.py` breaks a copy of the sample
+  three ways — a cited ID absent from the master, a missing MASTER GAP declaration, banned vocabulary
+  in a sendable — and requires each to be caught. A gate that only ever passes is the exact failure
+  mode the previous council found five times over.
+- **It reports "no detectable fiction," never "verified honest."** Selection-not-invention is
+  checkable; whether a metric is true is not. The tool says so in its own output.
+
 ### Added: 2026-08-20 the campaign layer — running a search, not just launching one
 A six-lens review (software architecture · agent systems · technical recruiting · career coaching ·
 workflow design · OSS maintenance) against other open-source career-operations systems. The convergent
