@@ -223,11 +223,27 @@ def install_daily_brief(slug: str, hhmm: str, agent: str = ""):
     line = (f"{m} {h} * * * /bin/bash {shlex.quote(str(wrapper))} {shlex.quote(slug)} "
             f"{shlex.quote(agent)} >> {shlex.quote(str(logp))} 2>&1 # Ascend-DAILY-BRIEF-{slug}")
     try:
-        existing = subprocess.run(["crontab", "-l"], capture_output=True, text=True).stdout.splitlines()
+        # `crontab -l` exits non-zero both for "you have no crontab" (fine, stdout empty) and for a
+        # real failure such as macOS denying Full Disk Access (NOT fine, stdout also empty). The
+        # return code was never inspected, so any such failure looked like an empty crontab and we
+        # replaced the user's entire crontab with just the Ascend line, unrecoverably. Distinguish
+        # the two, and keep a backup either way (2026-08-20 council).
+        cur = subprocess.run(["crontab", "-l"], capture_output=True, text=True)
+        err = (cur.stderr or "").lower()
+        no_crontab = "no crontab" in err or not err.strip()
+        if cur.returncode != 0 and not no_crontab:
+            return {"ok": False, "manual": True, "error": (cur.stderr or "").strip(),
+                    "note": "Could not read your existing crontab, so nothing was changed (refusing "
+                            "to risk overwriting it). Add this line via `crontab -e`:\n" + line}
+        existing = cur.stdout.splitlines()
+        if existing:
+            bak = WORKSPACE / slug / "crontab.bak"
+            bak.parent.mkdir(parents=True, exist_ok=True)
+            bak.write_text(cur.stdout, encoding="utf-8")
         kept = [l for l in existing if f"Ascend-DAILY-BRIEF-{slug}" not in l]
         new = "\n".join(kept + [line]) + "\n"
         subprocess.run(["crontab", "-"], input=new, text=True, check=True)
-        return {"ok": True, "time": hhmm}
+        return {"ok": True, "time": hhmm, "preserved": len(kept)}
     except Exception as e:
         return {"ok": False, "error": str(e), "manual": True,
                 "note": f"Could not set cron automatically. Add this line via `crontab -e`:\n{line}"}
@@ -453,7 +469,20 @@ class Handler(BaseHTTPRequestHandler):
                  "svg": "image/svg+xml", "jpg": "image/jpeg", "jpeg": "image/jpeg",
                  "png": "image/png", "webp": "image/webp", "gif": "image/gif"}.get(
                      target.suffix.lstrip("."), "application/octet-stream")
-        headers = FRAME_HEADERS_SAMEORIGIN if ctype.startswith("text/html") else None
+        headers = dict(FRAME_HEADERS_SAMEORIGIN) if ctype.startswith("text/html") else None
+        if headers:
+            # The agent-generated dashboards (start-here.html, linkedin-analysis.html) are built from
+            # job-posting and Connections.csv text and were served with only a frame-ancestors CSP,
+            # i.e. no restriction on script or network. They render in a SAMEORIGIN iframe in the
+            # console, whose page carries the session token, so an injected posting could read it and
+            # drive the API. /view and /resume-builder already ship a real CSP; this closes the gap
+            # for the artifacts the agent writes (2026-08-20 council).
+            headers["Content-Security-Policy"] = (
+                "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; "
+                "img-src data:; connect-src 'none'; form-action 'none'; base-uri 'none'; "
+                "frame-ancestors 'self'")
+            headers["X-Content-Type-Options"] = "nosniff"
+            headers["Referrer-Policy"] = "no-referrer"
         return self._send(200, target.read_bytes(), ctype, headers)
 
     def _serve_md_reader(self, path):

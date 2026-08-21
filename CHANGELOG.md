@@ -55,6 +55,48 @@ keep them cheap to maintain.
   run started from `/ascendui` silently lost the user's never-publish and retracted-claim checks while
   the prompts reported the gate as passing.
 
+### Fixed: 2026-08-20 council, the gates that were reporting success without checking anything
+A three-lens review (software architecture · agent systems · technical recruiting) against
+`santifer/career-ops` and `itshoax/career-ops-extension` found that several of Ascend's own gates
+were green while not gating. Every item below has a reproducer in `tests/smoke.py →
+test_council_gates` that failed before the fix. Analysis: `docs/CAREER-OPS-ANALYSIS.md`.
+
+- **The honesty linter passed fabrication and failed honest writing.** An uncommented `DELTA LOG`
+  opened a skip region that only closed on `---` or a heading, so it swallowed the rest of the file:
+  a résumé stating "Selected nothing at all, this is invented", with an em dash and five banned
+  words, linted `CLEAN`. Provenance matched `[A-Z]{1,4}-?\d{1,3}` **anywhere** in the file, so `S3`,
+  `K8`, `EC2` and `GPT-4` satisfied it incidentally. It now parses the entry IDs
+  `master-resume.md` actually declares and fails on any cited ID the master does not contain, which
+  is the signature of an invented bullet. Conversely, `.claude/banned-words.md` marks several words
+  conditional ("ecosystem *(unless literally a technical system)*") but the parser stripped the
+  exception, so "Kafka ecosystem migration" was flagged as slop with no way to disagree, while eight
+  prompts demanded an unreachable "0 findings" — the gate was pressuring the agent to reword accurate
+  bullets. Added `allow_vocab` in `lint-config.json` and an inline `<!-- lint-allow: … -->`. Also
+  caught a clause-joining semicolon after a digit and across a line wrap, which shipped undetected in
+  the sample, and moved the never-publish number check over *every* line including meta blocks.
+- **New `scan` category: the seven-second recruiter gate.** Fails a `resume.json` whose `work[]`
+  entries are not reverse-chronological, whose stated years of experience contradict the dates on the
+  same page, or whose load-bearing keyword exists only as a glyph (`0→1` with no searchable form).
+  All three were live in `examples/sample-run`, which is regenerated here: the flagship sample listed
+  a 2018–2021 role above the current one, claimed 8 years against a 2016 start, and carried `0→1` in
+  five places with no ASCII spelling.
+- **Untrusted posting text reached `innerHTML` in the generated dashboards.** Company and role come
+  from job postings and network company names from `Connections.csv`. The prompt-level rule only
+  escaped `<\/`, which stops a `</script>` breakout and does nothing about `<img src=x onerror=…>`.
+  Those pages are served in a same-origin iframe by the console, whose page carries the session
+  token, and `_serve_dir` gave them only a `frame-ancestors` CSP while `/view` and `/resume-builder`
+  got real ones. Now escaped at the sink in both templates, with a CSP that blocks egress
+  (`connect-src 'none'`) served and embedded. This is SEC-CRIT-2's fix applied to the artifacts the
+  agent writes.
+- **`crontab -l`'s return code was never checked** in `install_daily_brief`, so a read failure such
+  as a macOS Full Disk Access denial looked identical to "no crontab" and the user's entire crontab
+  was replaced with the single Ascend line, unrecoverably. It now distinguishes the two, refuses to
+  write when it cannot read, and backs up to `workspace/<slug>/crontab.bak`.
+- **CI installed no TeX engine**, so the renderer's compile assertions silently skipped: the one-page
+  budget, selectable-text extraction, and the ToUnicode/ligature regression that exists because
+  "first" once extracted as "rst". CI installs TeX Live and `ASCEND_REQUIRE_TEX=1` turns a missing
+  engine into a failure instead of a skip.
+
 ### Added: 2026-08-10 LaTeX résumé rendering (now the default export path)
 - **`tools/render_resume.py` + `templates/resume-latex.template.tex`.** `resume.json` now renders through
   LaTeX into a portable `.tex` **and** a one-page ATS-safe PDF. The `.tex` is written even when no TeX

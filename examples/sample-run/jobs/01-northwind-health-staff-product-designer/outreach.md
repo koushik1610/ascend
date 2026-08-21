@@ -32,7 +32,7 @@ plausible warm paths:
 > 15-min read on the design org, or a pointer to who owns systems there? Thanks either way.
 
 ## Recruiter-screen script
-- **60-sec positioning open:** "I'm a Senior Product Designer, 8 years, who specializes in design
+- **60-sec positioning open:** "I'm a Senior Product Designer, 10 years, who specializes in design
   systems engineering actually adopts and 0→1 product work. At Beacon I built a 120-component tokenized
   system 5 teams adopted, ~32% adoption lift, and took it to WCAG 2.1 AA. I'm targeting Staff IC
   design-systems scope, which is why Northwind's role caught my eye."

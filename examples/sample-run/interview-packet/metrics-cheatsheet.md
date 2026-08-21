@@ -13,7 +13,7 @@
 - **WCAG 2.1 AA** conformance across the component library (M11).
 - **Three 0→1 products** shipped end-to-end (M13).
 - **3–4 designers mentored**; **0 direct reports** (state the honest framing — M9).
-- **8 years** in product design; fintech → marketplace → agency.
+- **10 years** in product design; fintech → marketplace → agency.
 
 ## Round aloud / on paper (employer-internal → public band)
 - Feature-adoption lift: say **"~32%"** (internal exact 31.6% — M3).
