@@ -154,6 +154,10 @@ def test_phase_order():
     order = re.sub(r"\s+", "", m.group(1)) if m else ""
     check("canonical run order found in 00-orchestrator.md", bool(order),
           "no 'Default run order:' line")
+    # ...and it must match ops.json, which is the registry the docs and tests both read.
+    reg_order = "→".join(json.loads((REPO / "ops.json").read_text(encoding="utf-8"))["run_order"])
+    check("ops.json run_order matches the orchestrator", order == reg_order,
+          f"ops.json={reg_order!r} orchestrator={order!r}")
     for f in ["CLAUDE.md", ".claude/commands/ascendui.md"]:
         txt = re.sub(r"\s+", "", (REPO / f).read_text(encoding="utf-8"))
         check(f"{f} matches the canonical run order", bool(order) and order in txt,
@@ -165,11 +169,16 @@ def test_op_parity():
     # the orchestrator (so a user reading either surface can find it). Catches the kind of menu drift
     # where an op exists in one place but not the other. Case-insensitive substring match.
     print("op parity (command ⇄ orchestrator)")
-    OPS = ["resume", "job add", "prep", "network", "answers", "today",
-           "score", "export", "maintenance", "job rebuild", "build-resume",
-           "export-docx", "aggregate", "crm", "mine", "drill", "degenericize", "negotiate"]
+    # Derived from ops.json, not hardcoded. Adding an op used to mean editing five places, three of
+    # them test-enforced, so you found the one you missed by going red. Now it's one registry row.
+    reg = json.loads((REPO / "ops.json").read_text(encoding="utf-8"))
+    OPS = [o["op"] for o in reg["ops"]]
     cmd = (REPO / ".claude/commands/ascend.md").read_text(encoding="utf-8").lower()
     orch = (REPO / "prompts/00-orchestrator.md").read_text(encoding="utf-8").lower()
+    check("every registry op declares a status", all(o.get("status") in ("stable", "beta") for o in reg["ops"]))
+    check("every registry phase file exists",
+          all((REPO / p["file"]).is_file() for p in reg["phases"].values()),
+          "; ".join(p["file"] for p in reg["phases"].values() if not (REPO / p["file"]).is_file()))
     for op in OPS:
         check(f"op '{op}' documented in ascend.md", op in cmd)
         check(f"op '{op}' documented in 00-orchestrator.md", op in orch)
@@ -648,8 +657,84 @@ def test_council_gates():
     check("CI installs a TeX engine and requires it", "texlive-latex-base" in ci
           and "ASCEND_REQUIRE_TEX" in ci)
 
+# ── 4i. The capture act + the reads that depend on it ────────────────────────
+def test_pipeline():
+    """tools/pipeline.py is the only sanctioned writer of application state.
+
+    The property that matters most here is NOT that the numbers are right — it's that the user's
+    hand-written prose survives. workspace/ is gitignored and has no version history, so a
+    regeneration bug in this tool is unrecoverable data loss.
+    """
+    print("pipeline (capture act + funnel)")
+    TOOL = [sys.executable, str(REPO / "tools/pipeline.py")]
+    check("pipeline.py compiles",
+          subprocess.run([sys.executable, "-m", "py_compile", str(REPO / "tools/pipeline.py")]).returncode == 0)
+    ws = REPO / "workspace" / "_smoke_pipeline"
+    job = ws / "jobs" / "03-acme-staff-engineer"
+    try:
+        job.mkdir(parents=True, exist_ok=True)
+        PROSE = "## My hand-written retro\nInterviewer pushed on sharding. Remember this.\n"
+        (job / "application-log.md").write_text(
+            "# Log\n\n```ascend-state\nstatus: queued\nreferral_state: asked   # keep me\n"
+            "referral_expires_on: 2026-01-01\n```\n\n" + PROSE, encoding="utf-8")
+
+        r = subprocess.run(TOOL + ["log", str(ws), "03", "applied", "--on", "2026-06-01"],
+                           capture_output=True, text=True)
+        check("log records a transition", r.returncode == 0 and "queued → applied" in r.stdout,
+              (r.stdout + r.stderr)[-160:])
+        body = (job / "application-log.md").read_text(encoding="utf-8")
+        check("hand-written prose survives a log write", PROSE in body)
+        check("inline comments in the state block survive", "# keep me" in body)
+        check("state block updated in place", "status: applied" in body and "applied_on: 2026-06-01" in body)
+        check("a follow-up due date is derived", "next_followup_due: 2026-06-08" in body)
+
+        led = (ws / "data" / "status-log.tsv").read_text(encoding="utf-8")
+        check("ledger row appended", "03-acme-staff-engineer\t2026-06-01\tqueued\tapplied" in led)
+        subprocess.run(TOOL + ["log", str(ws), "03", "responded", "--on", "2026-06-10"],
+                       capture_output=True, text=True)
+        led2 = (ws / "data" / "status-log.tsv").read_text(encoding="utf-8")
+        check("ledger is append-only (both rows present)",
+              led2.count("03-acme-staff-engineer") == 2 and "queued\tapplied" in led2)
+
+        r = subprocess.run(TOOL + ["overdue", str(ws), "--today", "2026-07-01"],
+                           capture_output=True, text=True)
+        check("overdue flags an expired referral gate", "referral expired" in r.stdout, r.stdout[-160:])
+
+        r = subprocess.run(TOOL + ["funnel", str(ws)], capture_output=True, text=True)
+        check("funnel refuses a conversion rate below n=10",
+              "Too few applications" in r.stdout and "%" not in r.stdout.split("Applications sent")[-1],
+              r.stdout[-200:])
+
+        r = subprocess.run(TOOL + ["log", str(ws), "03", "bogus"], capture_output=True, text=True)
+        check("an unknown status is rejected", r.returncode == 2)
+        r = subprocess.run(TOOL + ["log", str(REPO / "tools"), "03", "applied"], capture_output=True, text=True)
+        check("refuses to operate outside workspace/", r.returncode == 2)
+    finally:
+        shutil.rmtree(ws, ignore_errors=True)
+
+# ── 4j. The op/phase registry is the single source ───────────────────────────
+def test_registry():
+    print("ops.json registry (single source)")
+    reg = json.loads((REPO / "ops.json").read_text(encoding="utf-8"))
+    check("run_order covers every declared phase",
+          set(reg["run_order"]) == set(reg["phases"]), f"{reg['run_order']} vs {list(reg['phases'])}")
+    new_ops = [o["op"] for o in reg["ops"] if o.get("new")]
+    check("this PR's new ops are registered", set(new_ops) == {"log", "week", "rejected", "titles"},
+          str(new_ops))
+    # Each new prompt must exist and carry the injection quarantine, same bar as every other phase.
+    for f in ("prompts/20-weekly-review.md", "prompts/21-rejection-protocol.md",
+              "prompts/22-adjacent-titles.md"):
+        txt = (REPO / f).read_text(encoding="utf-8") if (REPO / f).is_file() else ""
+        check(f"{f} exists", bool(txt))
+        check(f"{f} cites the injection quarantine", "untrusted-content-policy" in txt)
+    # The console must seed the honesty-gate config; without it every UI run lost the gate silently.
+    check("the UI seeds lint-config.json", "lint-config.json" in (REPO / "ui/server.py").read_text(encoding="utf-8"))
+
 if __name__ == "__main__":
-    for t in (test_server, test_html_json, test_gitignore, test_crossrefs, test_phase_order, test_op_parity, test_resume_builder, test_latex_render, test_bash_allowlist, test_honesty, test_linter, test_council_gates, test_scripts):
+    for t in (test_server, test_html_json, test_gitignore, test_crossrefs, test_phase_order,
+              test_op_parity, test_resume_builder, test_latex_render, test_bash_allowlist,
+              test_honesty, test_linter, test_council_gates, test_pipeline, test_registry,
+              test_scripts):
         try: t()
         except Exception as e:
             check(f"{t.__name__} raised", False, repr(e))

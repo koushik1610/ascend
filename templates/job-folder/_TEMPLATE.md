@@ -117,8 +117,35 @@ shared prep.
   - [ ] Link re-verified live · LinkedIn/profile consistent with the resume.
   - [ ] Resume PDF exported + named + number-policy grep run.
   - [ ] Any pre-application blocker cleared.
-- **Key dates** (the ghost-detector reads these): `status` · `applied_on` · `last_contact_on` ·
-  `next_followup_due` · `next_action`. Keep them current so the daily briefing (Phase 13) can flag
+- **The STATE block — one fenced `key: value` block, machine-read, human-owned.** Everything else in
+  this file is your prose and no tool ever rewrites it. This block is the exception: `tools/pipeline.py`
+  parses it, and `/ascend log` writes to it so you never hand-edit a date again.
+
+  ```ascend-state
+  status: queued            # queued|applied|responded|screen|onsite|offer|rejected|move-on
+  applied_on:               # YYYY-MM-DD
+  last_contact_on:
+  next_followup_due:
+  next_action:
+  referral_state: none      # none|identified|asked|holding|nudged|dormant|referred|declined|waived
+  referral_contact:
+  referral_fallback:        # named at map time, not later. Later never happens.
+  referral_asked_on:
+  referral_expires_on:      # apply cold on this date regardless. A gate with no clock costs applications.
+  screen_booked_on:
+  screen_with:
+  screen_outcome:           # pending|passed|failed
+  level_discussed:          # the level named out loud on the screen
+  comp_discussed:           # the band stated on the screen, for the offer letter to be diffed against
+  work_sample: none         # none|building|ready
+  ```
+
+  **These five fields are a chain, not five independent facts.** `level_discussed` and `comp_discussed`
+  are captured once at the screen; the level case argues from them, the offer read diffs the written
+  offer against them, and the weekly review aggregates them ("you were leveled down in 3 of 4 screens"
+  is the most actionable pattern a search can surface, and today nothing can see it). Write them once.
+
+  Legacy prose key-dates lines still parse, so an existing workspace keeps working. The ghost detector
   quiet threads and the navigator can show deadlines.
 - **Status table:** date | action | contact | outcome.
 - **Thank-you-note tracker.**

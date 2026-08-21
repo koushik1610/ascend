@@ -188,6 +188,19 @@ def write_intake(data: dict):
 - **Agent CLI:** {data.get('agent','')}
 """
     (wdir / "intake.md").write_text(md, encoding="utf-8")
+    # The honesty gate needs a config file to enforce anything user-specific. Phases 3/5/8 all call
+    # `lint_artifacts.py --config workspace/<slug>/lint-config.json`, and the console never wrote one,
+    # so every UI-started run silently lost the mechanical never-publish / retracted-claim check while
+    # the prompts reported the gate as passing. Seed it (empty is valid; the pipeline fills it in as
+    # the user names internals to protect).
+    cfg = wdir / "lint-config.json"
+    if not cfg.exists():
+        cfg.write_text(json.dumps({
+            "_comment": ("Seeded by the Ascend console. forbidden_patterns = never-publish internals "
+                         "(exact regexes); retracted_patterns = claims you can no longer stand behind; "
+                         "allow_vocab = banned words that are legitimate in your field."),
+            "forbidden_patterns": [], "retracted_patterns": [], "allow_vocab": [],
+        }, indent=2) + "\n", encoding="utf-8")
     # No cross-slug cleanup here: the consumer side (.claude/commands/ascendui.md) already picks the
     # most-recently-modified .ui-ready flag and deletes it once read. Deleting other slugs' flags from
     # this handler raced two concurrent submits (e.g. two tabs) — the second request's cleanup could

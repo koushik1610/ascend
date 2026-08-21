@@ -24,13 +24,34 @@ Building 5 packs beats building 15 folders nobody opens.
    content budget** (`../reference/resume-writing-rules.md`). Then run **Phase 8** to emit the
    `resume.json`, the filled `<name>-resume-<company-role>.html` (builder), and the auto-rendered
    ATS-safe **PDF** — every pursued job's pack ships with a submittable one-page PDF, not just markdown.
-2. **`outreach.md`** — **referral-first**: pull this company's warm contacts from `network-map.md`
-   (Phase 11 — real connections from the user's export, NEVER fabricated; build it first if missing),
-   DM drafts flagged *rewrite in your own voice*, and a recruiter-screen script (comp/level anchor, any
+2. **`outreach.md`** — **referral-first**: pull this company's **primary and fallback** contacts from
+   `network-map.md` (Phase 11 — real connections from the user's export, NEVER fabricated), DM drafts
+   flagged *rewrite in your own voice*, and a recruiter-screen script (comp/level anchor, any
    location-friction question, the per-company closer from `company-positioning.md`).
+
+   **Plus the referrer kit** — a `## Referrer kit (plain text — send WITH the ask)` section. This is
+   the mechanical failure that kills referrals: the internal referral form has a "why are you
+   recommending them" box, the referrer doesn't know what to write, leaves it blank, and the
+   submission converts to an ordinary application. Five labeled fields, **≤120 words total, plain
+   text, no markdown, no em dashes** — it is going to be pasted into someone else's form at 11pm:
+   1. **Req** — exact title, req ID, direct URL. Referrers submit against the wrong req constantly.
+   2. **Name and email exactly as submitted** — otherwise the referral and the application never join.
+   3. **Two sentences, third person, for the "why recommend" box** — one concrete number, one scope
+      fact, both selected from the master. Head it `DRAFT — YOUR REFERRER MAY EDIT FREELY`. This is a
+      fact sheet in third person, not a fabricated endorsement, and the honesty gates permit it.
+   4. **How you know each other, and for how long** — referral forms ask, and vague answers get tiered down.
+   5. **The out** — "If you'd rather not put your name on it, an intro to the recruiter is just as useful."
 3. **`application-log.md`** — the stateful doc: the **pre-submit checklist with a referral-first hard
-   gate** ("referral attempted OR explicitly waived" before applying), status table, thank-you tracker,
-   and the post-loop retro template.
+   gate** ("referral attempted OR explicitly waived" before applying), the fenced **STATE block** per
+   `../templates/job-folder/_TEMPLATE.md` §8, status table, thank-you tracker, and the post-loop retro.
+
+   **Set `referral_expires_on` when you set `referral_state`.** Default: 8 business days from the ask,
+   or 3 days before a stated posting close, whichever is first. Reqs are reviewed in arrival order, so
+   a referral landing on day 12 against a req that filled on day 7 is worth nothing — a referral-first
+   gate with no clock silently costs applications, which is the worst harm this system can do. On
+   expiry the user applies cold and records it; that is a success path, not a failure.
+4. **`screen-card.md`** — build from `../templates/screen-card-template.md` **when a screen books**
+   (not before, not at pack time). Deep prep (Phase 10) waits until the screen is *passed*.
 
 Optionally add `signal.md` (sendable one-pager) **only if the user wants something to send** alongside
 outreach — otherwise it's part of the on-demand prep pack.
