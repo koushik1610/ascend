@@ -11,6 +11,40 @@ _Working toward v1.0. Real-run gate: **1 of 2–3 runs signed off** (2026-07-01,
 see `docs/ROADMAP.md` → sign-off log); cases (b) no-résumé/non-tech and (c) resume-after-interruption
 remain, plus a green CI run on the remote + a demo GIF._
 
+### Fixed: 2026-08-21 the leftovers — a real write-escape, an unvalidated contract, a stale test list
+- **The `workspace/**` write fence did not hold for tools, and this was verified, not theorised.**
+  `CLAUDE.md` and the README both promise the agent writes only under `workspace/`. The Bash
+  allow-list pins a tool by *path prefix* and places no constraint on its arguments, so
+  `python3 tools/render_resume.py <json> --check --tex /anywhere/out.tex` ran under the existing
+  allow-list and wrote outside the repo. Content is escaped, so it was a clobber primitive rather
+  than code execution — but the agent holding it is the same agent that ingests attacker-influenceable
+  job postings. New `tools/_paths.py` resolves every output path *before* testing containment (so
+  `workspace/../../etc/x` is rejected rather than accepted on its prefix), and `--engine` now accepts
+  only a known TeX binary instead of anything `shutil.which` can resolve.
+- **`.ascend-state.json` had no schema, no writer, no validation and no tests** — and it carries
+  `master_locked`, the mechanism that makes selection-only mode real. New `tools/state.py` owns it:
+  atomic writes (tmp + `os.replace`, so an interrupted run cannot leave a half-written manifest),
+  a validator that names each problem, an `init` that refuses to overwrite a live run, and a `lock`
+  that will not silently unlock. The console validates instead of trusting, surfacing `stateProblems`
+  rather than rendering a confident wrong state. This is the file the outstanding interrupt-resume
+  run depends on.
+- **The injection-quarantine coverage test was a hardcoded list of twelve prompt names, and it had
+  already drifted.** It is now a derived property: any prompt that mentions fetching, a `.csv`, an
+  export path or an application page must cite the policy. Turning it on immediately caught six
+  prompts, including `12-answer-sheet.md`, which reads live application-form questions and emits two
+  sendables. Banners added to all six.
+- **A detected injection now has somewhere to go.** The policy said to flag attempted directives
+  "rather than silently complying" and named nowhere, so in the unattended daily brief the note landed
+  in a log nobody reads. Every ingesting phase now writes `## Anomalies & ignored directives` into its
+  output and `RUN-REPORT.md` rolls them up, with **none observed** as an explicit entry — an empty
+  table and a clean run should not look identical.
+- **Phase 4's two-pass rewrite left contradictions behind**: the goal line still promised "at least
+  15", the rubric table said four dimensions at 0–25 while the sentence above it said five at 0–20,
+  and five other files still advertised a 15-job queue. All reconciled.
+- **The comparative analysis is now `docs/COMPARATIVE-ANALYSIS.md`**, with the two peer projects
+  referred to as Peer A and Peer B throughout. The findings stand on their own merits; this document
+  exists to record what Ascend decided, not to grade anyone else's project.
+
 ### Added: 2026-08-21 the run rubric, executable (`tools/grade_run.py`)
 - **`docs/ROADMAP.md` gates the 1.0 tag on runs graded for honesty, grounding, completeness and
   privacy — and that rubric was prose.** Grading it meant a human re-reading a whole workspace and
@@ -74,10 +108,10 @@ keep them cheap to maintain.
   the prompts reported the gate as passing.
 
 ### Fixed: 2026-08-20 council, the gates that were reporting success without checking anything
-A three-lens review (software architecture · agent systems · technical recruiting) against
-`santifer/career-ops` and `itshoax/career-ops-extension` found that several of Ascend's own gates
-were green while not gating. Every item below has a reproducer in `tests/smoke.py →
-test_council_gates` that failed before the fix. Analysis: `docs/CAREER-OPS-ANALYSIS.md`.
+A three-lens review (software architecture · agent systems · technical recruiting) against two
+open-source career-operations systems found that several of Ascend's own gates were green while not
+gating. Every item below has a reproducer in `tests/smoke.py →
+test_council_gates` that failed before the fix. Analysis: `docs/COMPARATIVE-ANALYSIS.md`.
 
 - **The honesty linter passed fabrication and failed honest writing.** An uncommented `DELTA LOG`
   opened a skip region that only closed on `---` or a heading, so it swallowed the rest of the file:

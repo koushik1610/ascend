@@ -145,13 +145,22 @@ def test_crossrefs():
                 missing.append(f"{f.name} → {raw}")
     check("all repo cross-references resolve", not missing, "; ".join(missing[:6]))
     # SEC-CRIT-1: every prompt that ingests web/file content must carry the injection quarantine.
-    ingesting = ["01-linkedin-analysis", "04-job-search", "09-maintenance", "10-deep-prep",
-                 "11-network-map", "13-daily-briefing", "14-ats-aggregation", "15-network-crm",
-                 "16-achievement-mining", "17-interview-me", "18-degenericizer", "19-salary-studio"]
-    no_quarantine = [p for p in ingesting
-                     if "untrusted-content-policy" not in (REPO / f"prompts/{p}.md").read_text(encoding="utf-8")]
-    check("ingesting prompts cite the injection quarantine (SEC-CRIT-1)", not no_quarantine,
-          "missing in: " + ", ".join(no_quarantine))
+    # DERIVED, not a hardcoded list. This was twelve prompt names typed by hand, which is a list that
+    # silently goes stale: it had already drifted past 12-answer-sheet.md, which reads live
+    # application-form questions and emits two sendables. A list checks the prompts someone
+    # remembered; a property checks the prompts that actually ingest.
+    INGEST_SIGNALS = re.compile(
+        r"WebFetch|WebSearch|\.csv\b|inputs/|application page|job post|posting|paste|"
+        r"linkedin-export|fetch(ed)? ", re.I)
+    no_quarantine = []
+    for p in sorted((REPO / "prompts").glob("*.md")):
+        txt = p.read_text(encoding="utf-8")
+        if p.name.startswith("00-"):
+            continue          # the orchestrator drives phases; it ingests nothing itself
+        if INGEST_SIGNALS.search(txt) and "untrusted-content-policy" not in txt:
+            no_quarantine.append(p.name)
+    check("every ingesting prompt cites the injection quarantine (SEC-CRIT-1, derived)",
+          not no_quarantine, "missing in: " + ", ".join(no_quarantine))
 
 # ── 4b. Phase run-order stays single-sourced ─────────────────────────────────
 def test_phase_order():
@@ -719,6 +728,67 @@ def test_pipeline():
     finally:
         shutil.rmtree(ws, ignore_errors=True)
 
+# ── 4l. Output-path confinement + the state manifest contract ────────────────
+def test_paths_and_state():
+    """Two claims the repo makes about itself that were not enforced.
+
+    (a) CLAUDE.md and the README both say the agent writes only under workspace/. The Bash allow-list
+        pins a tool by path prefix and constrains none of its arguments, so an allow-listed
+        `render_resume.py --tex /anywhere` wrote outside the repo. Verified before the fix.
+    (b) .ascend-state.json carries master_locked, the mechanism that makes selection-only mode real,
+        and had no schema, no writer and no tests.
+    """
+    print("path confinement + state manifest")
+    check("_paths.py is a module, NOT an allow-listed command",
+          "tools/_paths.py" not in (REPO / ".claude/settings.json").read_text(encoding="utf-8"))
+
+    RR = [sys.executable, str(REPO / "tools/render_resume.py"),
+          str(REPO / "examples/sample-run/master-resume.json"), "--check"]
+    with tempfile.TemporaryDirectory() as td:
+        outside = Path(td).parent / "ascend_escape_probe.tex"   # a temp dir's PARENT is off-limits
+        outside = Path("/") / "ascend_escape_probe.tex" if not str(outside).startswith("/tmp") else outside
+        r = subprocess.run(RR + ["--tex", str(Path("/") / "ascend_escape_probe.tex")],
+                           capture_output=True, text=True)
+        check("--tex outside the workspace is refused", r.returncode == 2, r.stderr.strip()[:160])
+        check("...and no file was written", not (Path("/") / "ascend_escape_probe.tex").exists())
+        r = subprocess.run(RR + ["--tex", str(Path(td) / "ok.tex")], capture_output=True, text=True)
+        check("a legitimate output path still renders", r.returncode == 0, (r.stderr or r.stdout)[-160:])
+    # NOT with --check: that returns before the engine is resolved. Give it a temp --tex so the
+    # rejection is the only thing being tested and no stray file lands in examples/.
+    with tempfile.TemporaryDirectory() as td:
+        r = subprocess.run(
+            [sys.executable, str(REPO / "tools/render_resume.py"),
+             str(REPO / "examples/sample-run/master-resume.json"),
+             "--tex", str(Path(td) / "e.tex"), "--out", str(Path(td) / "e.pdf"),
+             "--engine", "/bin/sh"], capture_output=True, text=True)
+        check("--engine only accepts a known TeX engine",
+              "unknown engine" in (r.stderr + r.stdout), (r.stderr + r.stdout)[-160:])
+
+    ST = [sys.executable, str(REPO / "tools/state.py")]
+    ws = REPO / "workspace" / "_smoke_state"
+    try:
+        subprocess.run(ST + ["init", str(ws), "--name", "Jane"], capture_output=True, text=True)
+        r = subprocess.run(ST + ["validate", str(ws)], capture_output=True, text=True)
+        check("a fresh manifest validates", r.returncode == 0, r.stdout[-160:])
+        r = subprocess.run(ST + ["init", str(ws), "--name", "Jane"], capture_output=True, text=True)
+        check("init refuses to overwrite an existing run", r.returncode == 2)
+        subprocess.run(ST + ["lock", str(ws)], capture_output=True, text=True)
+        data = json.loads((ws / ".ascend-state.json").read_text(encoding="utf-8"))
+        check("lock sets master_locked and bumps master_version",
+              data["master_locked"] is True and data["master_version"] == 1)
+        # A malformed manifest must be reported, not silently accepted — this is the case that
+        # strands the interrupt-resume run the v1.0 gate depends on.
+        (ws / ".ascend-state.json").write_text('{"phases":{"99":"maybe"},"master_locked":true}',
+                                               encoding="utf-8")
+        r = subprocess.run(ST + ["validate", str(ws)], capture_output=True, text=True)
+        check("a malformed manifest is reported invalid", r.returncode == 1)
+        for want in ("missing 'name'", "unknown phase", "master_version"):
+            check(f"...names the problem: {want}", want in r.stdout)
+        check("the console validates state instead of trusting it",
+              "stateProblems" in (REPO / "ui/server.py").read_text(encoding="utf-8"))
+    finally:
+        shutil.rmtree(ws, ignore_errors=True)
+
 # ── 4k. The run rubric, executable, and provably able to fail ────────────────
 def test_grade_run():
     """The rubric grader must FAIL on a broken run, not just pass on a good one.
@@ -782,7 +852,7 @@ if __name__ == "__main__":
     for t in (test_server, test_html_json, test_gitignore, test_crossrefs, test_phase_order,
               test_op_parity, test_resume_builder, test_latex_render, test_bash_allowlist,
               test_honesty, test_linter, test_council_gates, test_pipeline, test_registry,
-              test_grade_run, test_scripts):
+              test_grade_run, test_paths_and_state, test_scripts):
         try: t()
         except Exception as e:
             check(f"{t.__name__} raised", False, repr(e))

@@ -12,7 +12,7 @@ see the root `.gitignore`).
 ## `sample-run/` — a complete fictional run
 A made-up candidate (**Jordan Rivera, Senior Product Designer** — deliberately non-engineering, to show
 the system works beyond software roles). It contains a filled `linkedin-analysis.html`, a master resume
-(with the ATS/keyword audit folded in) + a public `resume.json` and rendered one-page PDF, a 15-job
+(with the ATS/keyword audit folded in) + a public `resume.json` and rendered one-page PDF, a triaged
 queue with Fit Scores, an interview packet, two committed job folders (one full **CORE + deep-prep**
 pack, one **CORE-only** pack — the lazy two-tier model), and a `start-here.html` navigator — exactly
 the structure your own `workspace/<name>/` will have. Open `examples/sample-run/start-here.html` in a
