@@ -36,6 +36,9 @@ import tempfile
 import zlib
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import _paths  # noqa: E402  (local helper; see tools/_paths.py for why it is not a command)
+
 REPO = Path(__file__).resolve().parent.parent
 TEMPLATE = REPO / "templates" / "resume-latex.template.tex"
 MARKER = "%%ASCEND-CONTENT%%"
@@ -84,6 +87,12 @@ def tex_escape(s) -> str:
 
 def find_engine(preferred: str | None = None) -> str | None:
     if preferred:
+        # Only the known engines. `--engine` used to spawn any binary shutil.which() could resolve,
+        # which is an arbitrary-executable primitive inside an allow-listed command.
+        if preferred not in ENGINES:
+            print(f"render_resume: unknown engine {preferred!r}. "
+                  f"Choose one of: {', '.join(ENGINES)}", file=sys.stderr)
+            return None
         return preferred if shutil.which(preferred) else None
     for e in ENGINES:
         if shutil.which(e):
@@ -279,8 +288,11 @@ def main() -> int:
         print(f"render_resume: missing template {TEMPLATE}", file=sys.stderr)
         return 2
 
-    out_pdf = Path(a.out) if a.out else src.with_suffix(".pdf")
-    tex_path = Path(a.tex) if a.tex else out_pdf.with_suffix(".tex")
+    # Confine both outputs. The Bash allow-list pins this tool by path prefix and constrains none of
+    # its arguments, so before this an allow-listed `--tex /anywhere` wrote outside the repo and made
+    # CLAUDE.md's "writes only under workspace/" claim false for tools.
+    out_pdf = _paths.guard(a.out, default=src.with_suffix(".pdf"))
+    tex_path = _paths.guard(a.tex, default=out_pdf.with_suffix(".tex"))
 
     raw = TEMPLATE.read_text(encoding="utf-8")
     # Replace the marker LINE, not every occurrence of the string. The marker must

@@ -17,7 +17,7 @@ workspace/<your-name>/
 ├── linkedin-analysis.html       # Phase 1 — open in a browser
 ├── master-resume.md             # Phase 3 — your bullet database (ATS/keyword audit folded in)
 ├── resume.json + a master PDF   # Phase 3 — the public master résumé (builder-rendered, one page)
-├── job-queue.md                 # Phase 4 — 15+ ranked jobs, each with a Fit Score + link status
+├── job-queue.md                 # Phase 4 — triaged wide, up to 8 live jobs with Fit Scores + link status
 ├── interview-packet/            # Phase 6 — thin cross-job prep (enriched on demand)
 ├── jobs/                        # Phase 5 — CORE apply pack per committed job (top 3–5):
 │   ├── 01-<company>-<role>/     #   resume.md · outreach.md · application-log.md
