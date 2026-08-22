@@ -15,7 +15,7 @@ re-reading `workspace/<name>/intake.md` first for context.
 `prompts/00-orchestrator.md` drives the run (the **canonical run order** lives there). **Default order:
 1 → 3 → 4 → 11 → 6 → 5 → 7** (Phase 2 audit is
 folded into Phase 3; Phase 6 packet before Phase 5 so story IDs exist first). **Lazy by design:** the
-first run builds a master resume, a 15-job queue, a thin packet, and **CORE apply packs (resume ·
+first run builds a master resume, a triaged queue of up to 8 live jobs, a thin packet, and **CORE apply packs (resume ·
 outreach · application-log) for only the top 3–5 committed jobs** — ~25–30 files, not ~100. Deep
 interview prep is on demand: `prompts/10-deep-prep.md` per job when a screen books. Other on-demand:
 `11-network-map` (warm referral paths from the user's `Connections.csv`), `12-answer-sheet` (reusable

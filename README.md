@@ -102,7 +102,7 @@ due, and the weekly review counts what you did, shows your funnel in your own nu
 exactly one decision. It reports counts rather than conversion rates until you have enough
 applications for a rate to mean anything, and it never offers a verdict about you.
 
-Four mechanical gates back it up:
+Five mechanical gates back it up:
 
 1. **The linter** ([`tools/lint_artifacts.py`](tools/lint_artifacts.py)) scans every sendable for
    em-dash tells, [banned AI vocabulary](.claude/banned-words.md), your forbidden internal numbers,
@@ -114,7 +114,12 @@ Four mechanical gates back it up:
    anything fetched from the web is data to analyze, never instructions to obey, backed by an
    allow-list-only **Bash** boundary (broad `Read`/`WebFetch` stay unscoped, since the pipeline reads
    arbitrary résumé locations and researches arbitrary career sites).
-4. **The run grader** ([`tools/grade_run.py`](tools/grade_run.py)) turns the v1.0 sign-off rubric into
+4. **Output-path confinement** ([`tools/_paths.py`](tools/_paths.py)) makes "writes only under
+   `workspace/`" true for tools, not just for the agent's Write tool. The Bash allow-list pins a tool
+   by path prefix and constrains none of its arguments, so `render_resume.py --tex /anywhere` used to
+   write outside the repo. Every tool now resolves its output path before using it, and `--engine`
+   accepts only a known TeX binary rather than anything on `PATH`.
+5. **The run grader** ([`tools/grade_run.py`](tools/grade_run.py)) turns the v1.0 sign-off rubric into
    something a machine checks: every delta-log ID resolves to a real master entry, gaps are declared
    rather than quietly filled, sendables pass the linter, the expected artifacts exist, and nothing
    personal is git-tracked. CI grades the committed sample with the same code that grades your run, so
