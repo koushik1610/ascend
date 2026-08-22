@@ -58,6 +58,13 @@ jobs:
           ASCEND_REQUIRE_TEX: "1"
         run: python3 tests/smoke.py
 
+      # The committed sample is the golden fixture: it is the output a new user reads first, and the
+      # only full run in the repo. Grading it with the same code that grades a real workspace means
+      # the fixture and the rubric cannot drift apart, and a prompt change that degrades output has
+      # somewhere to show up. Ten prompt-driven features just landed; nothing else tests their output.
+      - name: Grade the committed sample against the v1.0 run rubric
+        run: python3 tools/grade_run.py examples/sample-run
+
       - name: Validate dashboard render scripts (JS syntax)
         run: |
           set -e

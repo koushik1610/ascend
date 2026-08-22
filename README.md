@@ -65,7 +65,8 @@ Three useful variants:
 |---|---|
 | `linkedin-analysis.html` | Visual audit of your LinkedIn presence: findability score, keyword gaps, network reach, plus **10 ranked next steps**. |
 | `master-resume.md` | Your superset résumé. Every achievement, tagged and ID'd, with a metrics bank. Per-job résumés are *selected* from it, never rewritten. Also rendered to a generic public PDF. |
-| `job-queue.md` | **15+ ranked live openings** with an explainable 0–100 Fit Score each. Links are fetched and honestly marked verified or unverified. |
+| `job-queue.md` | Cast wide (40–60), **triage cheap**, then score the survivors properly. A live queue of up to 8, each with an explainable 0–100 Fit Score and a "why you'd lose this one" line. Links are fetched and honestly marked verified or unverified. |
+| `reviews/week-NN.md` | The weekly review: what you did, what moved, your funnel in your own numbers, and exactly one decision. A search dies from attrition, not from a bad résumé. |
 | `jobs/<NN-company-role>/` | An apply pack per job: tailored résumé (markdown + `resume.json` + a clean one-page **ATS-safe PDF**), referral-first outreach, application log with a referral hard gate. |
 | `interview-packet/` | Cross-job prep: STAR stories, positioning hooks, metrics cheat-sheet. Deep per-job prep is built **when a screen books**, not speculatively. |
 | `start-here.html` | The front door: weekly action loop, application funnel, every job. **Open this first.** |
@@ -80,10 +81,13 @@ everything resumable: close your laptop mid-run, say *"Run Ascend resume"* later
   0  Intake interview ......... your name, data paths, targets, honest gaps
   1  LinkedIn analysis ........ linkedin-analysis.html + 10 next steps
   3  Master resume ............ master-resume.md (audit folded in) → LOCK IT
-  4  Job search ............... job-queue.md, live research, Fit Scores
+  4  Job search ............... triage 40-60 cheap → Fit-Score the survivors → queue of 8
+ 11  Network map .............. who you already know, primary + fallback per company
   6  Interview packet ......... thin now, enriched on demand
   5  Apply packs .............. résumé · outreach · log (+ one-page PDF each)
   7  Navigator ................ start-here.html
+
+  then, every week ........... /ascend log as things happen · /ascend week to review
 ```
 
 The engine behind the quality is one idea: **lock the master, then only select.** Once you approve
@@ -91,7 +95,14 @@ your master résumé, it freezes. Every downstream résumé reorders and trims l
 ID in a delta log. A job that needs a bullet you don't have produces a MASTER GAP note, and the fix
 happens at the source. That is what makes tailoring fast and fabrication structurally hard.
 
-Three mechanical gates back it up:
+**Launching a search is not running one.** Everything above gets you to your first applications; what
+happens over the next three months decides the outcome. So the pipeline ends in a loop rather than a
+handoff: `log` captures each event as it happens, the daily brief reads that to nudge what's actually
+due, and the weekly review counts what you did, shows your funnel in your own numbers, and asks for
+exactly one decision. It reports counts rather than conversion rates until you have enough
+applications for a rate to mean anything, and it never offers a verdict about you.
+
+Four mechanical gates back it up:
 
 1. **The linter** ([`tools/lint_artifacts.py`](tools/lint_artifacts.py)) scans every sendable for
    em-dash tells, [banned AI vocabulary](.claude/banned-words.md), your forbidden internal numbers,
@@ -103,6 +114,12 @@ Three mechanical gates back it up:
    anything fetched from the web is data to analyze, never instructions to obey, backed by an
    allow-list-only **Bash** boundary (broad `Read`/`WebFetch` stay unscoped, since the pipeline reads
    arbitrary résumé locations and researches arbitrary career sites).
+4. **The run grader** ([`tools/grade_run.py`](tools/grade_run.py)) turns the v1.0 sign-off rubric into
+   something a machine checks: every delta-log ID resolves to a real master entry, gaps are declared
+   rather than quietly filled, sendables pass the linter, the expected artifacts exist, and nothing
+   personal is git-tracked. CI grades the committed sample with the same code that grades your run, so
+   the example and the standard cannot drift apart. It reports *no detectable fiction* — never
+   "verified true," which no tool can claim.
 
 First master résumé draft feeling weak? That is the system working: the bullet-quality gate flags
 weak bullets and tells you what evidence would fix them. Expect one revision pass. The iteration is
@@ -119,6 +136,14 @@ where the quality comes from.
 | `"Ascend prep 03"` *(beta)* | Deep interview prep for job #3 when a screen books |
 | `"Ascend today"` *(beta)* | Daily briefing: 3 actions + follow-up nudges, drafted |
 | `"Ascend network"` *(beta)* | Who you already know at each target company |
+| `"Ascend log 03 applied"` *(beta)* | **Record what actually happened.** One command, and every number downstream updates |
+| `"Ascend week"` *(beta)* | The 15-minute weekly review: count, capture, calibrate, decide one thing |
+| `"Ascend rejected 03"` *(beta)* | Close out a rejection in 90 seconds and activate a named replacement |
+
+**`log` is the one worth making a habit.** The daily brief, the funnel, the follow-up nudges and the
+weekly review all read from it. Before it existed, the only way to record that you had applied was to
+open a markdown file and hand-edit a date, so those fields stayed empty and the ghost detector was
+reading nothing.
 
 <details>
 <summary><b>All commands (including the beta ops)</b></summary>
@@ -138,6 +163,7 @@ where the quality comes from.
 | "Ascend degenericize" *(beta)* | Swap generic text for your real evidence |
 | "Ascend negotiate Acme" *(beta)* | Salary plan: market anchors, your numbers, scripts |
 | "Run Ascend maintenance" *(beta)* | Weekly: new/closed jobs, follow-ups due, retro patterns |
+| "Ascend titles" *(beta)* | Job titles your own evidence already supports, that you aren't searching for |
 
 Who uses each command, when, and with what preconditions lives in
 [`WORKFLOW.md`](WORKFLOW.md).

@@ -16,6 +16,13 @@ Covers the regressions a human won't catch by eye, all fast:
      bypasses (bash -c, python3 file.py, env/xargs/find -exec, …) do not.
  11. Honesty gates on the committed sample: sendable artifacts carry no internal-number/codename leak
      and no fiction marker; every per-job résumé has a DELTA LOG (selection, not invention).
+ 12. The 2026-08-20 council regressions: each is a reproducer for a gate that reported success while
+     checking nothing. Every one passed CLEAN/green before its fix.
+ 13. tools/pipeline.py, the capture act: a status write must update the fenced state block and the
+     append-only ledger while leaving the user's hand-written prose untouched (workspace/ has no
+     version history, so a regeneration bug there is unrecoverable).
+ 14. tools/grade_run.py, the v1.0 run rubric made executable — asserted to FAIL on a deliberately
+     broken run, not merely to pass on a good one.
 Exits non-zero if anything fails — wired into CI (.github/workflows/ci.yml).
 """
 import http.client, json, os, re, shutil, subprocess, sys, tempfile, time, zlib
@@ -712,6 +719,47 @@ def test_pipeline():
     finally:
         shutil.rmtree(ws, ignore_errors=True)
 
+# ── 4k. The run rubric, executable, and provably able to fail ────────────────
+def test_grade_run():
+    """The rubric grader must FAIL on a broken run, not just pass on a good one.
+
+    A gate that only ever passes is the exact failure mode test_council_gates documents five times
+    over, so this test breaks a copy of the sample three ways and asserts each is caught.
+    """
+    print("grade_run (the v1.0 rubric, executable)")
+    TOOL = [sys.executable, str(REPO / "tools/grade_run.py")]
+    check("grade_run.py compiles",
+          subprocess.run([sys.executable, "-m", "py_compile", str(REPO / "tools/grade_run.py")]).returncode == 0)
+    r = subprocess.run(TOOL + [str(REPO / "examples/sample-run")], capture_output=True, text=True)
+    check("the committed sample passes the rubric", r.returncode == 0,
+          "\n".join(l for l in r.stdout.splitlines() if "FAIL" in l)[:400])
+
+    with tempfile.TemporaryDirectory() as td:
+        bad = Path(td) / "run"
+        shutil.copytree(REPO / "examples/sample-run", bad)
+        j1 = bad / "jobs/01-northwind-health-staff-product-designer"
+        j2 = bad / "jobs/02-lumen-retail-lead-product-designer"
+        # (a) a Delta Log citing an ID the master never declares = an invented bullet
+        t = (j1 / "resume.md").read_text(encoding="utf-8")
+        (j1 / "resume.md").write_text(t.replace("    Summary A", "    E99 (invented)\n    Summary A", 1),
+                                      encoding="utf-8")
+        # (b) a résumé that never says whether a needed bullet was missing
+        t2 = (j2 / "resume.md").read_text(encoding="utf-8")
+        (j2 / "resume.md").write_text(t2.replace("MASTER GAPS", "GAPS"), encoding="utf-8")
+        # (c) AI slop in a sendable
+        with (j1 / "outreach.md").open("a", encoding="utf-8") as fh:
+            fh.write("\n- Spearheaded a robust synergy — leveraging cutting-edge paradigms.\n")
+        r = subprocess.run(TOOL + [str(bad)], capture_output=True, text=True)
+        check("a broken run FAILS the rubric", r.returncode == 1)
+        check("catches a cited ID absent from the master", "every cited ID exists" in
+              "".join(l for l in r.stdout.splitlines() if "FAIL" in l))
+        check("catches a missing MASTER GAP declaration", "declares MASTER GAP" in
+              "".join(l for l in r.stdout.splitlines() if "FAIL" in l))
+        check("catches banned vocabulary in a sendable", "lint_artifacts is clean" in
+              "".join(l for l in r.stdout.splitlines() if "FAIL" in l))
+    check("CI grades the sample", "grade_run.py examples/sample-run" in
+          (REPO / ".github/workflows/ci.yml").read_text(encoding="utf-8"))
+
 # ── 4j. The op/phase registry is the single source ───────────────────────────
 def test_registry():
     print("ops.json registry (single source)")
@@ -734,7 +782,7 @@ if __name__ == "__main__":
     for t in (test_server, test_html_json, test_gitignore, test_crossrefs, test_phase_order,
               test_op_parity, test_resume_builder, test_latex_render, test_bash_allowlist,
               test_honesty, test_linter, test_council_gates, test_pipeline, test_registry,
-              test_scripts):
+              test_grade_run, test_scripts):
         try: t()
         except Exception as e:
             check(f"{t.__name__} raised", False, repr(e))
