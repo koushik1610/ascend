@@ -11,6 +11,32 @@ _Working toward v1.0. Real-run gate: **1 of 2–3 runs signed off** (2026-07-01,
 see `docs/ROADMAP.md` → sign-off log); cases (b) no-résumé/non-tech and (c) resume-after-interruption
 remain, plus a green CI run on the remote + a demo GIF._
 
+### Added: 2026-09-11 résumé-optimizer gaps (audited against an external prompt)
+Checked Ascend against a widely-circulated "optimize my résumé" prompt. Most of it was already
+covered, several parts more rigorously. Four things were genuinely missing.
+
+- **Filler constructions are now linted** (`filler` category). *Responsible for · worked on · helped
+  with · assisted with · involved in · tasked with · duties included · participated in · contributed
+  to · exposure to · familiar with · various · several different* describe proximity to work rather
+  than the work. `resume-writing-rules.md` already used "Responsible for…" as its worked ❌ example
+  and nothing enforced it. Bullet lines only, so conversational outreach is unaffected.
+- **The positive bullet shape is now stated**: `[what you did] + [how / with what] + [what changed]`.
+  The rules were strong on what to remove and silent on what a good bullet looks like. Includes the
+  case that matters most under the honesty gates: when no metric exists, name the concrete
+  consequence rather than trailing off after the mechanism, and never invent a number.
+- **Two section orders, not one.** The default (Experience leads) is wrong for freshers, new grads
+  and career changers, where it buries the two things that actually qualify them. Early-career order
+  is Contact → Skills → Education → Experience/Internships → Projects, chosen once at master-résumé
+  time and recorded as `§0 Section order` so every derived résumé inherits it.
+- **"Does the top third carry the strongest signal?" is now an audit step** (`02-resume-audit.md`
+  §3b). It existed only as a keyword-placement instruction. Reordering is free and is usually the
+  highest-value edit in an audit, so it deserved its own question.
+- **The audit checkpoint is now three short blocks** — CHANGED / NEED FROM YOU / ADD THESE WORDS —
+  with ADD THESE WORDS drawn only from the missing-but-claimable column, never from true gaps.
+- Also documented: contact details belong in the document body, never a page header or footer, since
+  parsers routinely drop that region. The LaTeX template already enforced this by construction; the
+  rule matters when a user brings their own file.
+
 ### Fixed: 2026-08-21 the leftovers — a real write-escape, an unvalidated contract, a stale test list
 - **The `workspace/**` write fence did not hold for tools, and this was verified, not theorised.**
   `CLAUDE.md` and the README both promise the agent writes only under `workspace/`. The Bash
