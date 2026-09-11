@@ -32,10 +32,20 @@ by *selecting* bullets — never by writing new ones. If tailoring later needs a
 exist here, that's a defect in THIS file to fix, not a license to invent.
 
 ## Build it to `../templates/master-resume-template.md`
+**First, pick the section order and record it.** `../reference/resume-writing-rules.md → Structure`
+defines two: the default (Experience leads) and the early-career order (Skills and Education lead).
+Choose from `intake.md` — years of relevant full-time work, internships-only, or a career change where
+the new field's evidence sits in projects rather than jobs. Write the choice into the master as
+`§0 Section order: default | early-career` so every derived résumé inherits it instead of re-deciding.
+Leading with a thin Experience section is the most common early-career self-inflicted wound, and it is
+free to fix.
+
 Fill every section with this user's real content:
 
 1. **Header** — name, contact, links, location, work authorization (only if the user stated it),
-   certifications with status (mark expired/in-progress honestly).
+   certifications with status (mark expired/in-progress honestly). Contact details belong in the
+   document **body**, never a page header or footer: parsers routinely drop the header region, and a
+   résumé that parses with no email is worse than one that never parsed at all.
 2. **Positioning summaries** — 2–3 per-audience summaries (their main target lane + alternates), each
    in a 40-word and 80-word version, liftable verbatim. Lead with the user's strongest differentiator.
 3. **Metrics bank** — ONE table of every number the user can claim: metric, exact value, public/
