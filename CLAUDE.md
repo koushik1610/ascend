@@ -61,8 +61,9 @@ rule sources; prompts reference them rather than re-stating them. Templates: `te
   and the interactive path. Details: `prompts/08-export-pdf.md`.
 - **`tools/lint_artifacts.py`** — the honesty + language gate over any sendable artifact: em/en-dash
   breaks, banned vocabulary (`.claude/banned-words.md`), clause-joining semicolons, dramatic colons,
-  the user's forbidden numbers + retracted claims (from `workspace/<name>/lint-config.json`), and
-  Delta-Log provenance. Phases 3/5/8 and every language-gated prompt call it before "done" — zero
+  the user's forbidden numbers + retracted claims (from `workspace/<name>/lint-config.json`),
+  Delta-Log provenance, and the résumé scan gate (date order and format, icon glyphs, headline vs.
+  the posting's exact title). Phases 3/5/8 and every language-gated prompt call it before "done" — zero
   findings, or each finding surfaced to the user.
 - **Lock the master.** Once `.ascend-state.json` has `"master_locked": true`, downstream work is
   **selection-only**: reorder/trim locked bullets, never reword, never add unlisted ones. MASTER GAP →

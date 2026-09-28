@@ -79,6 +79,10 @@ person describing their work, or a press release? → plainer if the latter.
 ## Structure & format (ATS-safe)
 - Reverse-chronological. Sections: Header → Summary → Experience → Skills → Education → (optional)
   Projects/Certs. Standard section *names* (ATS matches on them).
+- **Header headline = the posting's exact title** on a per-job résumé (e.g. `Senior Product Manager ·
+  Payments`), never a synonym. Held titles under Experience stay as held. Why and how it is checked:
+  `ats-and-keywords.md → How screening works`.
+- **Dates:** one format for every role, `Mon YYYY – Mon YYYY` or `Mon YYYY – Present`.
   **Relevance ordering applies to bullets WITHIN a role, never across roles.** A current role listed
   below an older one reads as concealment and is one of the fastest rejects in a résumé screen. This
   is now gated mechanically: `tools/lint_artifacts.py` fails a `resume.json` whose `work[]` entries

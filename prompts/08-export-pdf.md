@@ -33,7 +33,7 @@ Parse the finalized `resume.md` into `resume.json` next to it, using the builder
 
 ```json
 {
-  "basics":   { "name": "", "label": "<target role>", "email": "", "phone": "",
+  "basics":   { "name": "", "label": "<JD title> · <focus>", "email": "", "phone": "",
                 "location": "City, ST", "url": "<portfolio/linkedin>", "summary": "" },
   "work":     [ { "company": "", "position": "", "location": "", "dates": "Mon YYYY - Present",
                   "highlights": ["bullet", "bullet"] } ],
@@ -42,6 +42,11 @@ Parse the finalized `resume.md` into `resume.json` next to it, using the builder
   "skills":   [ "skill", "skill" ]
 }
 ```
+
+**`basics.label`** on a per-job résumé starts with the Delta Log's `JD title (verbatim):` value,
+character for character. On the master public résumé it is the user's primary target title. Every
+`dates` value uses one format, `Mon YYYY – Mon YYYY` / `Mon YYYY – Present`. No icons or emoji in any
+field. The lint gate below checks all three.
 
 Use **public/sanitized** values only (per `../reference/number-and-honesty-policy.md`). Honor the
 **one-page content budget** in `../reference/resume-writing-rules.md` — if the selected bullets exceed
@@ -96,7 +101,8 @@ exactly this.
 
 ## Optional — DOCX export (`/ascend export-docx <company>`)
 Some ATS portals and recruiters still ask for a Word file. The PDF is the default and the one to submit
-when you can; produce a `.docx` only on request, from the **same finalized `resume.md`** so the two never
+when you can; produce a `.docx` on request, when the portal asks for Word, or when a portal's parse
+preview mangles the PDF (see Verify). Always from the **same finalized `resume.md`** so the two never
 drift.
 
 1. Strip the leading Delta-Log HTML comment (everything in `<!-- … -->`) — only the résumé body converts.
@@ -142,6 +148,11 @@ drift.
   "oce", the font is emitting glyphs with no ToUnicode mapping and every keyword containing fi/fl is
   invisible to the parser. The LaTeX template disables common ligatures for exactly this reason. If
   you ever change the font block, re-run this test before trusting the output.
+
+- **After upload, check the portal's parsed fields.** Most portals (Workday, iCIMS, Taleo) prefill a
+  form from the file. If the name, titles, or dates come out wrong there, the recruiter's database has
+  the same wrong values. Fix them in the form, and if the parse is badly broken, re-upload the DOCX
+  (the DOCX export section above). Tell the user to do this on every first application to a new portal.
 
 ## Checkpoint
 Tell the user where the `resume.json`, the `.tex` (and filled `.html` if used), and the `.pdf` are, and
