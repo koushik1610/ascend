@@ -648,6 +648,46 @@ def test_council_gates():
         check("a years-of-experience claim contradicting the dates is caught",
               "claims 8 years" in r.stdout)
 
+        # (5b) The ATS-visibility checks: mixed date shapes, two-digit years, icon glyphs.
+        rj.write_text(json.dumps({
+            "basics": {"label": "Engineer", "phone": "☎ 555-0100"},
+            "work": [{"company": "A", "dates": "Mar 2021 – Present", "highlights": ["a"]},
+                     {"company": "B", "dates": "2018-06 – 2021-02", "highlights": ["b"]},
+                     {"company": "C", "dates": "Jan '16 – May '18", "highlights": ["c"]}]}),
+            encoding="utf-8")
+        r = subprocess.run(LINT + [str(rj)], capture_output=True, text=True)
+        check("mixed work-date formats are caught", "work dates mix formats" in r.stdout, r.stdout[:300])
+        check("a two-digit year is caught", "no four-digit year" in r.stdout, r.stdout[:300])
+        check("an icon glyph is caught", "icon/emoji glyphs" in r.stdout, r.stdout[:300])
+        rj.write_text(json.dumps({
+            "basics": {"label": "Engineer", "phone": "555-0100"},
+            "work": [{"company": "A", "dates": "Mar 2021 – Present", "highlights": ["a"]},
+                     {"company": "B", "dates": "June 2018 - Feb 2021", "highlights": ["b"]}]}),
+            encoding="utf-8")
+        r = subprocess.run(LINT + [str(rj)], capture_output=True, text=True)
+        check("consistent Mon YYYY dates (abbreviated or full, either dash) pass the scan gate",
+              "[scan]" not in r.stdout, r.stdout[:300])
+
+        # (5c) Per-job headline must carry the posting's exact title from the Delta Log.
+        job = td / "jobs" / "01-acme-pm"
+        job.mkdir(parents=True)
+        (job / "resume.md").write_text(
+            "<!--\nDELTA LOG\n- JD title (verbatim): Senior Product Manager\n-->\n# Resume\n",
+            encoding="utf-8")
+        (job / "resume.json").write_text(json.dumps({"basics": {"label": "Product Lead · Payments"}}),
+                                         encoding="utf-8")
+        r = subprocess.run(LINT + [str(job / "resume.json")], capture_output=True, text=True)
+        check("a headline that paraphrases the posting title is caught",
+              "[title]" in r.stdout and "Senior Product Manager" in r.stdout, r.stdout[:300])
+        (job / "resume.json").write_text(
+            json.dumps({"basics": {"label": "Senior Product Manager · Payments"}}), encoding="utf-8")
+        r = subprocess.run(LINT + [str(job / "resume.json")], capture_output=True, text=True)
+        check("a headline carrying the exact posting title passes", "[title]" not in r.stdout,
+              r.stdout[:300])
+        (job / "resume.md").write_text("<!-- DELTA LOG: selected E1 -->\n# Resume\n", encoding="utf-8")
+        r = subprocess.run(LINT + [str(job / "resume.json")], capture_output=True, text=True)
+        check("a Delta Log with no JD title line is flagged", "no 'JD title" in r.stdout, r.stdout[:300])
+
     # (6) The generated dashboards interpolated untrusted posting/CSV text into innerHTML, and were
     #     served with only a frame-ancestors CSP inside a SAMEORIGIN iframe on the token-bearing origin.
     for tpl in ("templates/start-here.template.html", "templates/linkedin-analysis.template.html"):

@@ -39,7 +39,12 @@ for, or above/below it? Name the gap.
 ### 2. ATS pass/fail
 Score the resume 0–100 for ATS parseability and keyword coverage. Check, per
 `../reference/ats-and-keywords.md`:
-- Format hazards (tables, columns, text boxes, headers/footers, graphics, non-standard section names).
+- Format hazards (tables, columns, text boxes, headers/footers, graphics, icons/emoji, non-standard
+  section names). Name or contact details sitting in a page header/footer is a parse failure on its
+  own: many parsers skip that region.
+- **Title match:** does the headline carry the target posting's exact title, or a synonym/vanity
+  title? Quote it next to the posting's title.
+- **Date consistency:** one format across every role? Quote each variant found.
 - Standard section presence and naming (Summary, Experience, Skills, Education).
 - Keyword coverage in *context* (contextualized keywords rank higher than skills-list-only).
 - Knockout-risk items (years of experience phrasing, certs, work authorization).

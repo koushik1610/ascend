@@ -4,6 +4,8 @@
 DELTA LOG, selection record (not a rewrite)
 - Queue entry: #1, Northwind Health · Staff Product Designer
 - JD link: https://jobs.example-greenhouse.io/northwind-health/staff-product-designer (sample/unverified)
+- JD title (verbatim): Staff Product Designer
+    Headline carries it exactly. Held titles under Experience stay as held.
 - Date: 2026-06-11
 - ATS target: Greenhouse · constraints: single-column, standard section names, no tables in body, PDF.
 - Master entries selected, in order, and why:
@@ -17,13 +19,13 @@ DELTA LOG, selection record (not a rewrite)
 - Number policy: all metrics swapped to public/sanitized values (M3 "~32%", M4 "roughly in half",
     M12 "~44%"). Grep for raw internals over this file: PASS (no "31.6", "39,800", "−54", "Keystone").
 - Data model + export: parsed to `resume.json` (JSON Resume), filled into the résumé builder, and
-    auto-rendered one-page via `python3 ui/server.py --render`.
+    rendered one-page via `python3 tools/render_resume.py`.
 - Export filename: Jordan-Rivera-Resume-Northwind-Health.pdf
 - MASTER GAPS: none, every bullet below traces to a master entry ID.
 -->
 
 # Jordan Rivera
-Senior Product Designer · Design Systems & 0→1 · B2B SaaS
+Staff Product Designer · Design Systems & 0→1 · B2B SaaS
 Austin, TX (remote-first / hybrid-OK) · jordan.rivera@example.com · (512) 555-0147
 Portfolio: https://example.com/jordanrivera · LinkedIn: https://example.com/in/jordan-rivera-design
 

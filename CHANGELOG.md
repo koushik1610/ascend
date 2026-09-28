@@ -11,6 +11,23 @@ _Working toward v1.0. Real-run gate: **1 of 2–3 runs signed off** (2026-07-01,
 see `docs/ROADMAP.md` → sign-off log); cases (b) no-résumé/non-tech and (c) resume-after-interruption
 remain, plus a green CI run on the remote + a demo GIF._
 
+### Added: 2026-09-28 ATS visibility checks (title match, date format, icon glyphs)
+Audited the résumé step against a widely shared r/jobsearchhacks write-up on ATS behavior. Most of it
+Ascend already did. Three gaps were real and are now linted, not just written down.
+- **Headline carries the posting's exact title.** Recruiters query the ATS by title, and Jobscan's
+  2.5M-application analysis found about 10.6x the interview rate when the résumé carried the target
+  title (correlational, vendor data). The Delta Log gains a `JD title (verbatim):` line and the new
+  `title` lint category checks `basics.label` against it. Held titles under Experience never change.
+  The committed sample was missing this (a Staff posting with a "Senior" headline) and is fixed.
+- **One work-date format.** Mixed shapes (`Jan 2019` / `2019-01`) and two-digit years are flagged
+  (`scan`), since the ATS computes total experience from them.
+- **No icon or emoji glyphs** anywhere in `resume.json` (`scan`).
+- Rules text: most ATS surface rather than auto-reject, contact details stay out of page
+  headers/footers, never hide keywords, when to upload DOCX instead of PDF, and a post-upload check of
+  the portal's parsed fields.
+- Not adopted: the write-up's "25–35 keywords" band. It is unsourced, and Ascend keeps its
+  in-context coverage rule.
+
 ### Fixed: 2026-08-21 the leftovers — a real write-escape, an unvalidated contract, a stale test list
 - **The `workspace/**` write fence did not hold for tools, and this was verified, not theorised.**
   `CLAUDE.md` and the README both promise the agent writes only under `workspace/`. The Bash

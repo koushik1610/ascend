@@ -25,11 +25,12 @@ shared prep.
 ---
 
 ## 1. `resume.md` — the tailored resume
-- **Top: HTML-comment Delta Log** — queue entry #, JD link, date, ATS target + its constraints, which
+- **Top: HTML-comment Delta Log** — queue entry #, JD link, `JD title (verbatim): <posting title>`
+  (the linter checks the headline against it), date, ATS target + its constraints, which
   master-resume entry IDs were selected and in what order + why, verbatim JD phrases inserted (each
   used ONCE), the number-policy grep confirmation, export filename
   `<name>-resume-<company-role>.pdf`, and a **MASTER GAPS** note if any needed bullet didn't exist.
-- **Body:** full liftable resume — header line, Summary (the matching master §2 summary), Experience
+- **Body:** full liftable resume — header line (headline starts with the posting's exact title), Summary (the matching master §2 summary), Experience
   (bullets selected per the queue delta), optional Selected Projects, Skills (JD-keyword-ordered),
   Certifications (honest status — no "Active" unless true), Education.
 - **Format:** single column, standard section headings, bullets ≤2 lines, no tables in the body.

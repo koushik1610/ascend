@@ -22,8 +22,9 @@ to them — then build their pack with `/ascend job rebuild <NN>` or just "build
 Building 5 packs beats building 15 folders nobody opens.
 
 ## The CORE apply pack (3 files per `_TEMPLATE.md` §1, §5, §8)
-1. **`resume.md`** — the tailored resume + Delta Log (master entry IDs selected, order, why; verbatim
-   JD phrases once each; ATS target; export filename). **Selection only** — a missing bullet is a
+1. **`resume.md`** — the tailored resume + Delta Log (the posting's title on a `JD title (verbatim):`
+   line; master entry IDs selected, order, why; verbatim JD phrases once each; ATS target; export
+   filename). The header headline starts with that exact title (`reference/ats-and-keywords.md`). **Selection only** — a missing bullet is a
    "MASTER GAP" note (fix the master), never an invention. Selected bullets must fit the **one-page
    content budget** (`../reference/resume-writing-rules.md`). Then run **Phase 8** to emit the
    `resume.json`, the filled `<name>-resume-<company-role>.html` (builder), and the auto-rendered

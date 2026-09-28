@@ -4,6 +4,8 @@
 DELTA LOG, selection record (not a rewrite)
 - Queue entry: #2, Lumen Retail · Lead Product Designer
 - JD link: https://jobs.example-greenhouse.io/lumen-retail/lead-product-designer (sample/unverified)
+- JD title (verbatim): Lead Product Designer
+    Headline carries it exactly. Held titles under Experience stay as held.
 - Date: 2026-06-11
 - ATS target: Lever · constraints: single-column, standard headings, no tables in body, PDF.
 - Master entries selected, in order, and why:
@@ -23,7 +25,7 @@ DELTA LOG, selection record (not a rewrite)
 -->
 
 # Jordan Rivera
-Senior Product Designer · Consumer 0→1 & Conversion · Retail / Commerce
+Lead Product Designer · Consumer 0→1 & Conversion · Retail / Commerce
 Austin, TX (remote-first / hybrid-OK) · jordan.rivera@example.com · (512) 555-0147
 Portfolio: https://example.com/jordanrivera · LinkedIn: https://example.com/in/jordan-rivera-design
 
