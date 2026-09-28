@@ -40,6 +40,11 @@ variants** so the user rotates them and never pastes the same block twice:
   open to discussing the full package") — never a number the user didn't authorize.
 - **Logistics screeners** — work authorization, sponsorship need, notice period, location/remote,
   willing-to-relocate, earliest start — straight from `intake.md` (mark any unknown `ASK USER`).
+  These are knockout questions, the one place an application is reliably auto-rejected, so a wrong
+  answer here costs more than any résumé wording.
+- **"Years of experience with <skill>":** compute it from the master's role dates for the roles
+  where the skill is evidenced, rounded down, and record the arithmetic next to the answer. It must
+  agree with the résumé the portal already has. Never round up to clear a threshold.
 - **Voluntary EEO / demographic questions** — note these are **optional**; the honest default guidance
   is "prefer not to answer" unless the user chooses otherwise. Don't auto-fill identity data.
 - **"Anything else we should know?"** — one short, genuine value-add (variant options).
