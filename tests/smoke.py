@@ -657,7 +657,7 @@ def test_council_gates():
             encoding="utf-8")
         r = subprocess.run(LINT + [str(rj)], capture_output=True, text=True)
         check("mixed work-date formats are caught", "work dates mix formats" in r.stdout, r.stdout[:300])
-        check("a two-digit year is caught", "no four-digit year" in r.stdout, r.stdout[:300])
+        check("a two-digit year is caught", "cannot turn into a month" in r.stdout, r.stdout[:300])
         check("an icon glyph is caught", "icon/emoji glyphs" in r.stdout, r.stdout[:300])
         rj.write_text(json.dumps({
             "basics": {"label": "Engineer", "phone": "555-0100"},
@@ -687,6 +687,31 @@ def test_council_gates():
         (job / "resume.md").write_text("<!-- DELTA LOG: selected E1 -->\n# Resume\n", encoding="utf-8")
         r = subprocess.run(LINT + [str(job / "resume.json")], capture_output=True, text=True)
         check("a Delta Log with no JD title line is flagged", "no 'JD title" in r.stdout, r.stdout[:300])
+        check("a Delta Log with no JD keywords line is flagged", "no 'JD keywords" in r.stdout,
+              r.stdout[:300])
+
+        # (5d) Seasonal dates don't convert to months.
+        rj.write_text(json.dumps({"work": [
+            {"company": "A", "dates": "Summer 2019 to Spring 2021", "highlights": ["a"]}]}),
+            encoding="utf-8")
+        r = subprocess.run(LINT + [str(rj)], capture_output=True, text=True)
+        check("a seasonal date range is caught", "cannot turn into a month" in r.stdout, r.stdout[:300])
+
+        # (5e) Every claimable must-have JD keyword is on the page verbatim (recruiter Boolean search).
+        (job / "resume.md").write_text(
+            "<!--\nDELTA LOG\n- JD title (verbatim): Senior Product Manager\n"
+            "- JD keywords (verbatim): SQL | A/B testing | roadmap | Kubernetes\n"
+            "- True gaps: Kubernetes\n-->\n# Resume\n", encoding="utf-8")
+        (job / "resume.json").write_text(json.dumps({
+            "basics": {"label": "Senior Product Manager"},
+            "work": [{"company": "A", "highlights": ["Owned the roadmaps for checkout."]}],
+            "skills": ["SQL"]}), encoding="utf-8")
+        r = subprocess.run(LINT + [str(job / "resume.json")], capture_output=True, text=True)
+        check("a must-have JD keyword missing from the page is caught",
+              "[coverage]" in r.stdout and "'A/B testing'" in r.stdout, r.stdout[:300])
+        check("a plural on the page satisfies the keyword", "'roadmap'" not in r.stdout, r.stdout[:300])
+        check("a keyword listed under True gaps is exempt", "'Kubernetes'" not in r.stdout,
+              r.stdout[:300])
 
     # (6) The generated dashboards interpolated untrusted posting/CSV text into innerHTML, and were
     #     served with only a frame-ancestors CSP inside a SAMEORIGIN iframe on the token-bearing origin.

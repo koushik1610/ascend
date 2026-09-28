@@ -44,7 +44,11 @@ Score the resume 0–100 for ATS parseability and keyword coverage. Check, per
   own: many parsers skip that region.
 - **Title match:** does the headline carry the target posting's exact title, or a synonym/vanity
   title? Quote it next to the posting's title.
-- **Date consistency:** one format across every role? Quote each variant found.
+- **Date consistency:** one format across every role? Quote each variant found. Seasons ("Summer
+  2019", "Fall '22") count as unparseable: an ATS can't turn them into months.
+- **Search test:** write the three to five term Boolean query a recruiter would run for the target
+  role (`"term" AND ("term" OR "term")`). Would this résumé come back? Name each term that isn't on the
+  page in that exact form.
 - Standard section presence and naming (Summary, Experience, Skills, Education).
 - Keyword coverage in *context* (contextualized keywords rank higher than skills-list-only).
 - Knockout-risk items (years of experience phrasing, certs, work authorization).

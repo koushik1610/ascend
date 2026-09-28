@@ -30,7 +30,18 @@ Field-agnostic — the *method* is universal; the *keywords* come from the user'
   stay exactly as held and are never renamed to match. `tools/lint_artifacts.py` checks the headline
   against the `JD title (verbatim):` line in the job's Delta Log (the `title` category).
 - **Knockout questions** (years of experience, certifications, work authorization, location) are hard
-  gates. An expired cert claimed as active fails verification; an unanswered required filter loses.
+  gates, and in practice they are the only reliable auto-reject: recruiters writing from the hiring
+  side agree that outside of knockouts a human clicks reject. An expired cert claimed as active fails
+  verification; an unanswered required filter loses. A "years of experience with X" answer must match
+  what the résumé's own dates support, or the form and the page contradict each other
+  (`12-answer-sheet.md`).
+- **What the recruiter's search looks like.** A Boolean query of three to five must-have terms over the
+  parsed text, e.g. `"python" AND ("aws" OR "gcp")`. Most base-tier parsers (Workday, iCIMS, Taleo,
+  Greenhouse, Lever) tokenize the document and check whether a term appears anywhere; only a minority
+  of add-on layers (Eightfold, Workday Skills Cloud) infer related skills. So each must-have term the
+  user can claim has to be **on the page in the posting's form**. A bullet that shows the skill in
+  other words does not match the search. The per-job Delta Log lists those terms on a
+  `JD keywords (verbatim):` line and the linter checks each one is present (`coverage`).
 
 ## ATS families (observed behaviors)
 | ATS | Notes |
@@ -50,6 +61,9 @@ Field-agnostic — the *method* is universal; the *keywords* come from the user'
    **missing-but-claimable** (evidence exists, resume doesn't say it — fix at the master-resume source),
    or **true gap** (cannot honestly claim — honest handling).
 4. Distribute the claimable keywords across achievement bullets in context — never a stuffed list.
+   **The Skills line is the backstop:** a must-have term the user has evidence for, but that no selected
+   bullet uses naturally, goes in Skills verbatim so the search still matches. Differentiators still
+   belong in bullets (step 5).
 5. **Place the differentiators in bullets, not just the skills line.** The *identification* of
    rare-but-in-demand terms is not done here. It is the **scarcity / white-space scan** in
    `industry-analysis-framework.md` (step 5 and the Demand-Scarcity quadrant it outputs). Do not

@@ -26,7 +26,9 @@ shared prep.
 
 ## 1. `resume.md` — the tailored resume
 - **Top: HTML-comment Delta Log** — queue entry #, JD link, `JD title (verbatim): <posting title>`
-  (the linter checks the headline against it), date, ATS target + its constraints, which
+  (the linter checks the headline against it), `JD keywords (verbatim): a | b | c` (the posting's
+  must-have search terms, in its exact form) and `True gaps: x | y` or `True gaps: none` (the linter
+  checks every keyword not on the gap line is on the page), date, ATS target + its constraints, which
   master-resume entry IDs were selected and in what order + why, verbatim JD phrases inserted (each
   used ONCE), the number-policy grep confirmation, export filename
   `<name>-resume-<company-role>.pdf`, and a **MASTER GAPS** note if any needed bullet didn't exist.

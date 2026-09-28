@@ -29,6 +29,13 @@ Scores and per-job resume deltas are evidence-based, not guessed. Follow
   gaps (→ feed the blockers list below), optional gaps.
 - Cite source + N + date; keep observed data separate from inference; flag any reconciliation gaps.
 
+**Required vs. mentioned.** Classify each qualification by the posting's own words: *required*
+("required", "must have"), *preferred* ("preferred", "nice to have", "bonus"), or *mentioned* (listed
+with neither). Only *required* items are must-haves and only they can become blockers. Degrees are the
+common trap: a scan of 2,905 S&P 500 postings on Greenhouse and Lever found a degree mentioned in
+10–20% of them but explicitly required in under 2%. Don't cap a user's fit on a degree the posting
+only mentions.
+
 The must-haves you surface here feed the **Fit-Score "skills match"** dimension; the verbatim phrases
 strengthen the resume's keyword coverage; the gap map seeds the pre-application blockers. Checkpoint this
 mini-report with the user before the job hunt if the run is interactive.
