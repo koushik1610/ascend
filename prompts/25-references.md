@@ -125,8 +125,12 @@ differs from the referee's, that is the referee's to say.
 
 `workspace/<name>/references.md` — the full bench including `asked` and `candidate` rows, which never
 leave the workspace. The sendable one-pager is generated from the `confirmed` rows on request.
-Log the send against the job: `python3 tools/pipeline.py log workspace/<name> <NN> onsite --note
-"references sent: <names>"` (or the current stage), so the weekly review can see it.
+
+Record a send as a dated line in the job's `application-log.md` prose (who went out, to whom, when),
+and in the bench's own send log. **Do not route this through `tools/pipeline.py log`.** That command
+sets `status:` unconditionally, so logging a reference send as `onsite` on a job already at `offer`
+would walk the funnel backwards and reset `next_action`. Sending references is not a stage change —
+the stage changes when the employer moves, and that is what the capture act records.
 
 ## Verify & checkpoint
 - Every sendable row is `consent: confirmed` with a date. No `asked`, no `candidate`, no exceptions.
