@@ -138,3 +138,64 @@ The formula is universal; the *evidence type* changes by field — engineers qua
 designers quantify funnel/adoption/usability lift, PMs quantify launches/revenue/retention, marketers
 quantify reach/conversion/pipeline, ops quantify cost/throughput/SLA. Keep the verb-scope-outcome
 shape; swap in the metrics that field actually rewards.
+
+## Résumé variants (when the default shape above is wrong)
+Everything above describes the **standard variant**: one page, reverse-chronological, ATS-first. It is
+the right default for the large majority of applications and it is what the renderer enforces. Four
+situations need a different shape, and applying the default to them is itself a defect.
+
+**Pick the variant once, at intake, and record it.** The variant is a property of the *target*, not of
+the artifact: a user applying to both a staff engineering role and a research post needs two. Write the
+choice into `master-resume.md` §1 so every derivative inherits it, and never switch variants silently
+mid-run.
+
+| Variant | Use when | What changes from the default |
+|---|---|---|
+| **Standard** | almost always | nothing — the rules above are it |
+| **Executive** | director and above, or P&L / org ownership | 2 pages is normal. Lead with scope (org size, budget, revenue owned) before activity. A short **Leadership Profile** replaces the summary. Board/advisory and P&L lines earn space. Bullets move up a level: what the org did under you, not what you personally built. |
+| **Academic CV** | faculty, postdoc, research scientist, grants | **length is uncapped and the one-page budget does not apply.** Different section set: Education first, then Appointments, Publications, Grants, Teaching, Service, Talks. Publications in the field's citation style, exhaustive and reverse-chronological, the user's name marked. Metrics are not the currency here — citations, funding amounts and named venues are. No summary. |
+| **Portfolio-led** | design, creative, content, front-end where work is seen | the résumé stays standard and ATS-safe; **the portfolio URL moves into the header** and the strongest 2-3 pieces get a one-line Selected Work block with outcomes. The visual artifact lives in the portfolio, never in the parsed document. See `../prompts/24-work-sample.md`. |
+
+Rules that hold across every variant, no exceptions: single column and no tables in anything a parser
+will read, every claim traceable to a master entry, no decorative graphics in the submitted file. A
+"creative" résumé that a parser cannot read is not a creative choice, it is an unreceived application —
+if a visually designed version is wanted, it is a *second* file sent alongside the parseable one, and
+that is the only arrangement to recommend.
+
+The executive and academic variants exceed the one-page budget **deliberately**. Pass the variant's
+real page count to the renderer (`python3 tools/render_resume.py … --max-pages 2`) rather than letting
+a two-page executive résumé fail the page budget as if it were an overflow bug. An academic CV is not
+rendered by this tool at all — its layout is the field's, not Ascend's.
+
+## Career-change translation (binding method, not a licence to re-label)
+A pivot fails on résumé for one reason: the evidence is stated in the vocabulary of the old field, and
+the screener — human or ATS — is matching the new one. The fix is **translation, not reinvention**.
+
+What translation is, precisely: the same verified fact, named in the target field's words, with the
+original context kept visible. What it is not, and what this method forbids absolutely:
+- **Never re-title a role.** "Teacher" does not become "Learning Experience Designer" on the page. The
+  real title stays; the *bullets* carry the transfer, and a parenthetical scope note is allowed
+  (`Teacher (curriculum design for 240 students/yr)`).
+- **Never claim a target-field tool or method the user has not used.** A transferable skill is the one
+  they exercised; the tool they have not touched is a gap, handled per
+  `number-and-honesty-policy.md`.
+- **Never drop the old field to hide it.** An unexplained gap costs more than a career change does,
+  and the change is the user's most interesting fact in most rooms.
+
+The method, four steps:
+1. **Name the target field's actual vocabulary** from the JD set — the same keyword derivation already
+   done once in Phase 3 §4. Do not guess at it from the field's reputation.
+2. **For each master entry, ask what the underlying activity was**, stripped of domain nouns. "Ran a
+   classroom of 30" is cohort management, curriculum design, stakeholder communication with parents,
+   and performance measurement against a standard. Those are the facts; "teaching" was the label.
+3. **Rewrite in target vocabulary only where the mapping is exact.** Loose mappings get discarded, not
+   softened — an approximate translation is the thing a hiring manager catches in the first interview
+   and it costs more credibility than the gap would have.
+4. **Keep one line that owns the change**, in the summary: what they did, what they are moving to, and
+   the real reason. A pivot stated plainly reads as a decision; an unexplained one reads as a failure
+   elsewhere.
+
+Where a translation is applied, it is a **selection-with-rewording event** on an unlocked master, not a
+derivative edit: translate in `master-resume.md`, re-lock, then derive. A translated bullet appearing
+only on a per-job résumé is indistinguishable from an invented one and the provenance check will
+treat it as such. Adjacent-title targeting for the same situation is `../prompts/22-adjacent-titles.md`.

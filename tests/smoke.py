@@ -10,7 +10,10 @@ Covers the regressions a human won't catch by eye, all fast:
   5. The UI shell scripts pass `bash -n`, server.py compiles, the daily-brief `--check` self-test runs.
   6. The /view reader's scheme allow-list (SEC-CRIT-2) is present and its strict CSP is served.
   7. The phase run-order stays single-sourced (00-orchestrator == CLAUDE.md == ascendui.md).
-  8. On-demand ops stay discoverable on both surfaces (command file ⇄ 00-orchestrator).
+  8. On-demand ops stay discoverable on both surfaces (command file ⇄ 00-orchestrator), and the
+     skill layer stays thin: frontmatter Claude Code can read, a pointer to the canonical prompt,
+     the gates inherited by reference, and short enough that it cannot have smuggled a second copy
+     of a rule that lives in reference/.
   9. The résumé builder is self-contained + `server.py --render` makes a selectable-text PDF (or fails clean).
  10. The Bash permission boundary is allow-list-only: the pipeline's commands run, the council's
      bypasses (bash -c, python3 file.py, env/xargs/find -exec, …) do not.
@@ -198,6 +201,58 @@ def test_op_parity():
     for op in OPS:
         check(f"op '{op}' documented in ascend.md", op in cmd)
         check(f"op '{op}' documented in 00-orchestrator.md", op in orch)
+
+# ── 4c-bis. The skill layer stays thin and stays pointed at the canonical rules ──
+def test_skills():
+    # Ascend's rules have ONE home (reference/) on purpose. A skill that restated the bullet formula
+    # or the banned vocabulary inline would be the fifth copy of a rule the repo spends most of its
+    # machinery keeping single-sourced — and the copy nobody updates. So the properties enforced here
+    # are: a skill is discoverable (frontmatter Claude Code can read), it POINTS at the canonical
+    # prompt, it INHERITS the gates by reference, and it stays short enough that it cannot have
+    # smuggled a second copy of the rules in.
+    print("skill layer (.claude/skills)")
+    reg = json.loads((REPO / "ops.json").read_text(encoding="utf-8"))
+    mapped = {k: v for k, v in reg.get("skills", {}).items() if not k.startswith("_")}
+    root = REPO / ".claude/skills"
+    on_disk = sorted(p.name for p in root.iterdir() if p.is_dir()) if root.is_dir() else []
+    check("skills directory exists", bool(on_disk))
+    check("ops.json skills map matches what is on disk", set(mapped) == set(on_disk),
+          f"registry-only={sorted(set(mapped) - set(on_disk))} "
+          f"disk-only={sorted(set(on_disk) - set(mapped))}")
+    for name in on_disk:
+        f = root / name / "SKILL.md"
+        check(f"{name}: SKILL.md exists", f.is_file())
+        if not f.is_file():
+            continue
+        txt = f.read_text(encoding="utf-8")
+        lines = txt.splitlines()
+        check(f"{name}: frontmatter opens on line 1", bool(lines) and lines[0].strip() == "---",
+              "without a leading --- the whole file is body text and the description never registers")
+        fm = txt.split("---", 2)[1] if txt.startswith("---") and txt.count("---") >= 2 else ""
+        nm = re.search(r"^name:\s*(\S+)\s*$", fm, re.M)
+        check(f"{name}: frontmatter name matches the directory", bool(nm) and nm.group(1) == name,
+              f"frontmatter says {nm.group(1) if nm else None!r}")
+        desc = re.search(r"^description:\s*(.+)$", fm, re.M)
+        d = desc.group(1).strip() if desc else ""
+        check(f"{name}: has a description", len(d) > 40)
+        # Claude Code truncates the listing at 1536 chars across description + when_to_use.
+        check(f"{name}: description fits the listing budget", len(d) <= 1200, f"{len(d)} chars")
+        # Triggering is the whole point of a skill over a prompt file: the description must carry the
+        # phrases a user would actually type, not just a summary of the phase.
+        check(f"{name}: description carries trigger phrases", "'" in d or '"' in d,
+              "no quoted user phrases — nothing for the model to match on")
+        # Points at the canonical prompt rather than reimplementing it.
+        check(f"{name}: references its canonical prompt ({mapped.get(name)})",
+              bool(mapped.get(name)) and mapped[name] in txt)
+        # Inherits the gates by reference. These two are the non-negotiable pair.
+        for ref in ("reference/number-and-honesty-policy.md", "reference/untrusted-content-policy.md"):
+            check(f"{name}: inherits {Path(ref).stem}", ref in txt)
+        check(f"{name}: states the workspace privacy rule", "workspace/<name>/" in txt)
+        # Thin by construction. A skill past this length is restating rules that live in reference/.
+        check(f"{name}: stays a thin trigger surface (≤80 lines)", len(lines) <= 80, f"{len(lines)} lines")
+    # Every mapped prompt must exist — a skill that points at a deleted phase is a dead end.
+    for name, prompt in mapped.items():
+        check(f"{name}: canonical prompt {prompt} exists", (REPO / prompt).is_file())
 
 # ── 4d. Résumé builder + render path ─────────────────────────────────────────
 def test_resume_builder():
@@ -837,11 +892,11 @@ def test_registry():
     check("run_order covers every declared phase",
           set(reg["run_order"]) == set(reg["phases"]), f"{reg['run_order']} vs {list(reg['phases'])}")
     new_ops = [o["op"] for o in reg["ops"] if o.get("new")]
-    check("this PR's new ops are registered", set(new_ops) == {"log", "week", "rejected", "titles"},
-          str(new_ops))
+    check("this PR's new ops are registered",
+          set(new_ops) == {"offers", "work-sample", "references"}, str(new_ops))
     # Each new prompt must exist and carry the injection quarantine, same bar as every other phase.
-    for f in ("prompts/20-weekly-review.md", "prompts/21-rejection-protocol.md",
-              "prompts/22-adjacent-titles.md"):
+    for f in ("prompts/23-offer-compare.md", "prompts/24-work-sample.md",
+              "prompts/25-references.md"):
         txt = (REPO / f).read_text(encoding="utf-8") if (REPO / f).is_file() else ""
         check(f"{f} exists", bool(txt))
         check(f"{f} cites the injection quarantine", "untrusted-content-policy" in txt)
@@ -850,7 +905,7 @@ def test_registry():
 
 if __name__ == "__main__":
     for t in (test_server, test_html_json, test_gitignore, test_crossrefs, test_phase_order,
-              test_op_parity, test_resume_builder, test_latex_render, test_bash_allowlist,
+              test_op_parity, test_skills, test_resume_builder, test_latex_render, test_bash_allowlist,
               test_honesty, test_linter, test_council_gates, test_pipeline, test_registry,
               test_grade_run, test_paths_and_state, test_scripts):
         try: t()

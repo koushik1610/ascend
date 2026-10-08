@@ -169,10 +169,25 @@ reading nothing.
 | "Ascend negotiate Acme" *(beta)* | Salary plan: market anchors, your numbers, scripts |
 | "Run Ascend maintenance" *(beta)* | Weekly: new/closed jobs, follow-ups due, retro patterns |
 | "Ascend titles" *(beta)* | Job titles your own evidence already supports, that you aren't searching for |
+| "Ascend offers" *(beta)* | Compare offers component by component, read the letter, work the timeline |
+| "Ascend work-sample" *(beta)* | The portfolio piece or take-home that decides the loop: build one, re-angle per job |
+| "Ascend references" *(beta)* | A consent-tracked reference bench, plus the brief that changes the call |
 
 Who uses each command, when, and with what preconditions lives in
 [`WORKFLOW.md`](WORKFLOW.md).
 </details>
+
+### You can also just ask
+
+The twelve files under [`.claude/skills/`](.claude/skills) make the common tasks reachable without
+knowing a command. Say *"is my résumé ATS friendly"*, *"should I apply to this"*, *"I got two offers"*,
+*"they asked for references"*, and Claude Code loads the matching skill, which hands it the canonical
+phase prompt and the shared rules in [`reference/`](reference).
+
+They are deliberately **thin**: a trigger surface and a pointer, never a copy of the rules. Ascend's
+honesty gates, bullet formula and banned vocabulary live in one place each, and a skill that restated
+them would be the copy nobody updates. `tests/smoke.py` enforces that — each skill must name a prompt
+that exists, inherit the honesty and untrusted-content policies by reference, and stay under 80 lines.
 
 **The objective is action, not paperwork.** The dashboard leads with a weekly *apply N / ask N
 referrals* loop and a funnel scoreboard. Applications sent and referrals asked get you interviews.

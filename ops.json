@@ -41,13 +41,37 @@
     {"op": "degenericize",  "status": "beta",   "what": "Swap generic text for the user's real evidence"},
     {"op": "negotiate",     "status": "beta",   "what": "Grounded per-offer plan: anchors, scripts, walk-away"},
 
-    {"op": "log",           "status": "beta", "new": true,
-     "what": "Record what actually happened to an application, in one command"},
-    {"op": "week",          "status": "beta", "new": true,
-     "what": "The 15-minute weekly review: count, capture, calibrate, check, decide"},
-    {"op": "rejected",      "status": "beta", "new": true,
-     "what": "Close out a rejection or a ghost, and activate a named replacement"},
-    {"op": "titles",        "status": "beta", "new": true,
-     "what": "Adjacent job titles your evidence already supports, written into your targeting"}
-  ]
+    {"op": "log",           "status": "beta", "what": "Record what actually happened to an application, in one command"},
+    {"op": "week",          "status": "beta", "what": "The 15-minute weekly review: count, capture, calibrate, check, decide"},
+    {"op": "rejected",      "status": "beta", "what": "Close out a rejection or a ghost, and activate a named replacement"},
+    {"op": "titles",        "status": "beta", "what": "Adjacent job titles your evidence already supports, written into your targeting"},
+
+    {"op": "offers",        "status": "beta", "new": true,
+     "what": "Compare offers component by component, read the letter, work the timeline"},
+    {"op": "work-sample",   "status": "beta", "new": true,
+     "what": "The portfolio piece or take-home that decides the loop: build one, re-angle per job"},
+    {"op": "references",    "status": "beta", "new": true,
+     "what": "A consent-tracked reference bench, plus the brief that changes the call"}
+  ],
+  "skills": {
+    "_comment": [
+      "The skill layer: thin trigger surfaces under .claude/skills/, each pointing at the canonical",
+      "prompt and the shared reference rules rather than restating them. Ascend's rules live in",
+      "reference/ precisely so they have one home; a skill that duplicated them would create the",
+      "drift this repo spends most of its machinery preventing. tests/smoke.py derives its skill",
+      "checks from this map, so every skill must name a prompt file that exists."
+    ],
+    "ascend-resume-audit":        "prompts/02-resume-audit.md",
+    "ascend-master-resume":       "prompts/03-master-resume.md",
+    "ascend-score-job":           "prompts/04-job-search.md",
+    "ascend-tailor-resume":       "prompts/05-job-folders.md",
+    "ascend-interview-prep":      "prompts/10-deep-prep.md",
+    "ascend-network-referral":    "prompts/11-network-map.md",
+    "ascend-application-answers": "prompts/12-answer-sheet.md",
+    "ascend-weekly-review":       "prompts/20-weekly-review.md",
+    "ascend-career-change":       "prompts/22-adjacent-titles.md",
+    "ascend-offer-compare":       "prompts/23-offer-compare.md",
+    "ascend-work-sample":         "prompts/24-work-sample.md",
+    "ascend-references":          "prompts/25-references.md"
+  }
 }

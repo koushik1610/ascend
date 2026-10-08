@@ -11,6 +11,70 @@ _Working toward v1.0. Real-run gate: **1 of 2–3 runs signed off** (2026-07-01,
 see `docs/ROADMAP.md` → sign-off log); cases (b) no-résumé/non-tech and (c) resume-after-interruption
 remain, plus a green CI run on the remote + a demo GIF._
 
+### Added: 2026-10-08 a skill layer, and the three stages that had no artifact
+Ascend had 23 phase prompts and two slash commands, and **none of it was discoverable**. Every prompt
+loaded only because `00-orchestrator.md` named it, so a user who did not already know the command
+surface could not reach any of it by describing their problem. Comparing against other open-source
+career-operations modules made the asymmetry plain: they expose each step as an independently
+triggerable skill, which is how a user who has never read the README finds the right step.
+
+- **A 12-skill layer under `.claude/skills/`.** Audit · master résumé · score a job · tailor · interview
+  prep · referrals · application answers · weekly review · career change · offers · work sample ·
+  references. Each is a **thin trigger surface**: a `description` carrying the phrases a user actually
+  types ("why am I not getting interviews", "should I apply", "I got two offers"), a pointer to the
+  canonical prompt, and the gates **inherited by reference**. The peer modules duplicate every rule
+  into every skill file (~350 lines each); Ascend's rules live once in `reference/`, and a second copy
+  is exactly the drift this repo spends most of its machinery preventing. `tests/smoke.py` now enforces
+  the thinness: frontmatter that Claude Code can read, a `name` matching its directory, a prompt file
+  that exists, both policy references present, and **≤80 lines**. All four properties verified to fail
+  on a deliberately broken skill before being called done.
+- **`/ascend offers` — the Offer Decision Room** (`prompts/23-offer-compare.md`). `19-salary-studio.md`
+  negotiates one number well and cannot compare two offers or answer whether to take the job. This
+  builds the component-by-component table (guaranteed cash year 1 stated separately from expected
+  total; equity carries its share count and assumed price, labelled as an assumption; no IPO modelled),
+  scores non-comp factors against **the criteria the user wrote at intake, quoted verbatim and dated**,
+  and handles the situation that actually forces the decision — offer A expires Friday, company B is at
+  round 2 — with the two honest messages and an explicit ban on implying a competing offer that does
+  not exist. The letter is read clause by clause, **described and never rated**, diffed against the
+  `comp_discussed` / `level_discussed` fields the screen card already captures, into a
+  questions-for-your-lawyer list. Never says an offer is safe to sign.
+- **`/ascend work-sample` — the artifact that decides the loop** (`prompts/24-work-sample.md`). Phase 4's
+  industry scan already surfaced "every JD in this set rewards a portfolio case study" and then wrote it
+  as pre-application blocker #4 and never mentioned it again. The load-bearing rule is **build ONE,
+  re-angle per job**: a case study is 6-10 hours and per-job homework has a completion rate near zero,
+  so one piece is built properly and re-angled in ~20 minutes per application. Five blocks, with
+  *your specific decisions and what you traded off* called out as the one candidates skip and a senior
+  reviewer scores. If there is no metric, name the concrete consequence — never invent one, and never
+  estimate one, not even conservatively. Three labelled routes for work under NDA, and scope rules for
+  unpaid take-homes including the ~5-hour pushback threshold.
+- **`/ascend references` — a consent-tracked reference bench** (`prompts/25-references.md`). References
+  are requested when the user has least time and most to lose. Consent is a **field**, not an
+  assumption (`confirmed <date>` / `asked` / `candidate`, and only `confirmed` rows are sendable),
+  because this is the one artifact where a fabricated contact is handed to the employer with a phone
+  number attached. Each referee's `Speaks to` line cites the master entry IDs they actually witnessed,
+  so choosing who to send is a lookup. Plus staleness flags, the renewal ask, the honest line for
+  keeping a current manager out until offer stage, and a referee brief that gives context and **never
+  tells them what to conclude** — coaching a witness is transparent to an experienced checker and
+  outside the honesty gates.
+- **Résumé variants, in `reference/resume-writing-rules.md`.** The one-page ATS-first shape was the only
+  shape, applied to executives and academics alike. Four variants are now named with what changes and
+  when to pick one (standard · executive · academic CV · portfolio-led), the choice recorded at intake
+  so derivatives inherit it, and the page-budget interaction stated — pass `--max-pages 2` rather than
+  letting a deliberately two-page executive résumé fail the render as an overflow bug.
+- **Career-change translation, as a binding method.** A pivot fails because the evidence is stated in
+  the old field's vocabulary. The method is four steps and three absolute prohibitions: **never
+  re-title a role** ("Teacher" does not become "Learning Experience Designer"), never claim a
+  target-field tool the user has not used, never drop the old field to hide it. Loose mappings are
+  discarded rather than softened. Translation is a rewording event **on the master** followed by a
+  re-lock, because a translated bullet appearing only on a derivative is indistinguishable from an
+  invented one and the provenance check treats it as such.
+
+**One thing deliberately not adopted.** A peer module teaches estimating numbers you do not have
+("you think you saved 100 hours → say 75+ hours, estimate low to stay credible"). That is the exact
+failure mode `reference/number-and-honesty-policy.md` exists to prevent: a conservative invention is
+still an invention, and it is one the user has to defend in an interview. Ascend's answer stays "here
+is what to measure", or the concrete consequence with no number at all.
+
 ### Fixed: 2026-08-21 the leftovers — a real write-escape, an unvalidated contract, a stale test list
 - **The `workspace/**` write fence did not hold for tools, and this was verified, not theorised.**
   `CLAUDE.md` and the README both promise the agent writes only under `workspace/`. The Bash

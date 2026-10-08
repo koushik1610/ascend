@@ -160,6 +160,14 @@ interview prep is generated **on demand**, per job, only when a screen is booked
   the stage it died at, and activate a named replacement target: `/ascend rejected <NN>`.
 - `22-adjacent-titles.md` — **Adjacent Titles**: titles the user's own evidence already supports, written
   into their targeting on confirmation so every later search inherits them: `/ascend titles`.
+- `23-offer-compare.md` — **Offer Decision Room**: compare offers component by component, read the
+  letter's clauses in plain language, and handle the timeline where one offer expires before another
+  process finishes: `/ascend offers`. (Phase 19 negotiates one number; this one decides.)
+- `24-work-sample.md` — **Work-Sample Plan**: the portfolio case study, design doc or take-home that
+  decides the loop — one piece, built properly, re-angled per job: `/ascend work-sample [NN]`. Fires
+  when Phase 4's industry scan says the target set rewards an artifact.
+- `25-references.md` — **Reference Bench**: a consent-tracked reference list and the referee brief,
+  built early so the offer-stage request is a lookup rather than a scramble: `/ascend references`.
 
 **Recording what happened (the capture act).** Every status change goes through one command:
 `python3 tools/pipeline.py log workspace/<name> <NN> <status>` — exposed as **`/ascend log <NN> <status>`**.
