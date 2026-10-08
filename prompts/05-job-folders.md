@@ -9,6 +9,8 @@ jobs the user is **actually going to pursue**. Not 8 files × 15 jobs of specula
 files per pursued job; deep interview prep is built later, on demand, only when a screen is booked
 (Phase 10).
 
+**Read the `Résumé variant:` line in `master-resume.md` §1 first** (default `standard`): it sets the section set and the page budget for every résumé built here. See `../reference/resume-writing-rules.md → Résumé variants`.
+
 **Read first:** `workspace/<name>/intake.md`, `job-queue.md`, `master-resume.md`,
 `interview-packet/company-positioning.md` (the hooks/closers), `../templates/job-folder/_TEMPLATE.md`,
 `../reference/`.

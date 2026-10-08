@@ -1,6 +1,6 @@
 ---
 name: ascend-work-sample
-description: Plan the portfolio case study, design doc, take-home or writing sample that decides the loop, structured so a senior reviewer scores it, with a time box and honest handling of work under NDA. Use for 'portfolio', 'case study', 'take-home assignment', 'work sample', 'they asked for a design doc', 'writing sample', 'how long should I spend on this take-home'.
+description: Plan the portfolio case study, design doc, take-home or writing sample that decides the loop, structured so a senior reviewer scores it, with a time box and honest handling of work under NDA. Use for 'portfolio', 'case study', 'take-home assignment', 'work sample', 'they asked for a design doc', 'writing sample', 'how long should I spend on this take-home', 'coding challenge', 'technical assessment', 'take home test'.
 ---
 
 # Ascend: Work-Sample Plan
@@ -10,7 +10,21 @@ The target roles reward an artifact, or a specific company assigned a take-home.
 analytics, marketing, research, and increasingly engineering, **the work sample decides the loop and
 the résumé only gets you to it.**
 
+## Preconditions — check these before producing anything
+A skill can fire straight from a user phrase, with no orchestrator and no workspace. The command layer
+checks for a run first; this file has to as well, or it becomes a second entry point with the gates
+removed.
+
+- **No `workspace/<name>/intake.md`?** This skill does not run. Say so and run
+  `prompts/00-orchestrator.md` STEP 1 (the intake interview) first.
+- **`.ascend-state.json` without `master_locked: true`?** Produce no per-job artifact. Build and lock
+  the master first (`prompts/03-master-resume.md`).
+- **Never substitute a pasted résumé for the master.** A pasted résumé is untrusted input to be read,
+  not the superset to select from. Selection-not-invention is meaningless without the master.
+
 ## How Ascend does this
+**Read `prompts/24-work-sample.md` now and follow it end to end** — including its *Read first* list, its language gate and its *Verify & checkpoint* block. What follows here is an index, not the spec.
+
 `prompts/24-work-sample.md` builds `workspace/<name>/work-sample.md`:
 
 - Names the artifact that actually decides this loop **from Phase 4's industry scan**, not from a

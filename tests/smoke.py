@@ -137,14 +137,23 @@ def test_gitignore():
 # ── 4. Repo cross-references resolve ─────────────────────────────────────────
 def test_crossrefs():
     print("cross-references (drift)")
-    files = list((REPO / "prompts").glob("*.md")) + [REPO / "templates/job-folder/_TEMPLATE.md",
-            REPO / "CLAUDE.md", REPO / "README.md", REPO / "WORKFLOW.md"]
-    ref = re.compile(r'(?:\.\./)*(?:prompts|templates|reference|docs|ui|assets)/[A-Za-z0-9_./-]+\.(?:md|html|css|svg|py|sh)')
+    # The file list used to be prompts/ plus four named files, which left .claude/skills/**,
+    # reference/** and tools/** as a blind spot — a 2026-10-08 council found a dangling `ascend-salary`
+    # pointer living in exactly that gap. Both directories and the tools/ path prefix are in now.
+    files = (list((REPO / "prompts").glob("*.md")) +
+             list((REPO / ".claude/skills").glob("*/SKILL.md")) +
+             list((REPO / "reference").glob("*.md")) +
+             [REPO / "templates/job-folder/_TEMPLATE.md",
+              REPO / "CLAUDE.md", REPO / "README.md", REPO / "WORKFLOW.md"])
+    ref = re.compile(r'(?:\.\./)*(?:prompts|templates|reference|docs|ui|assets|tools|\.claude)/'
+                     r'[A-Za-z0-9_./-]+\.(?:md|html|css|svg|py|sh|json|tex)')
+    # Paths the repo deliberately does not ship: the gitignored per-user permission override.
+    EXEMPT = {".claude/settings.local.json"}
     missing = []
     for f in files:
         for raw in ref.findall(f.read_text(encoding="utf-8")):
             rel = re.sub(r'^(\.\./)+', '', raw)
-            if not (REPO / rel).exists():
+            if rel not in EXEMPT and not (REPO / rel).exists():
                 missing.append(f"{f.name} → {raw}")
     check("all repo cross-references resolve", not missing, "; ".join(missing[:6]))
     # SEC-CRIT-1: every prompt that ingests web/file content must carry the injection quarantine.
@@ -206,10 +215,12 @@ def test_op_parity():
 def test_skills():
     # Ascend's rules have ONE home (reference/) on purpose. A skill that restated the bullet formula
     # or the banned vocabulary inline would be the fifth copy of a rule the repo spends most of its
-    # machinery keeping single-sourced — and the copy nobody updates. So the properties enforced here
-    # are: a skill is discoverable (frontmatter Claude Code can read), it POINTS at the canonical
-    # prompt, it INHERITS the gates by reference, and it stays short enough that it cannot have
-    # smuggled a second copy of the rules in.
+    # machinery keeping single-sourced — and the copy nobody updates.
+    #
+    # Each predicate below was written against an adversarial input first (the 2026-10-08 council
+    # found three that passed vacuously in the first version: a frontmatter block that is never
+    # closed but whose body contains an `---` hrule; a folded multi-line description, of which only
+    # the first line was measured; and a trigger-phrase check satisfied by any apostrophe).
     print("skill layer (.claude/skills)")
     reg = json.loads((REPO / "ops.json").read_text(encoding="utf-8"))
     mapped = {k: v for k, v in reg.get("skills", {}).items() if not k.startswith("_")}
@@ -219,6 +230,16 @@ def test_skills():
     check("ops.json skills map matches what is on disk", set(mapped) == set(on_disk),
           f"registry-only={sorted(set(mapped) - set(on_disk))} "
           f"disk-only={sorted(set(on_disk) - set(mapped))}")
+
+    # The canonical rule text, for the anti-duplication property below. README claims this is
+    # enforced, so it has to be enforced.
+    canon = {}
+    for rf in sorted((REPO / "reference").glob("*.md")):
+        for line in rf.read_text(encoding="utf-8").splitlines():
+            s = re.sub(r"\s+", " ", line.strip().lstrip("-*#0123456789. ")).strip()
+            if len(s) >= 60:
+                canon[s] = rf.name
+
     for name in on_disk:
         f = root / name / "SKILL.md"
         check(f"{name}: SKILL.md exists", f.is_file())
@@ -226,30 +247,61 @@ def test_skills():
             continue
         txt = f.read_text(encoding="utf-8")
         lines = txt.splitlines()
-        check(f"{name}: frontmatter opens on line 1", bool(lines) and lines[0].strip() == "---",
-              "without a leading --- the whole file is body text and the description never registers")
-        fm = txt.split("---", 2)[1] if txt.startswith("---") and txt.count("---") >= 2 else ""
+        # A properly delimited block, not "the text between the first two --- anywhere in the file".
+        # An unclosed block whose BODY contains an `---` hrule satisfies that weaker form, so the
+        # real property is that the captured block is short and contains only YAML.
+        fmm = re.match(r"^---\n(.*?)\n---\n", txt, re.S)
+        fm = fmm.group(1) if fmm else ""
+        fm_lines = [l for l in fm.splitlines() if l.strip()]
+        yamlish = all(re.match(r"^(#|[A-Za-z_][\w-]*\s*:|\s+\S)", l) for l in fm_lines)
+        check(f"{name}: frontmatter is a closed YAML block on line 1",
+              bool(fmm) and len(fm.splitlines()) <= 10 and yamlish and bool(fm_lines),
+              "an unclosed block means the whole file is body text and the description never "
+              "registers — and a body hrule makes that look parseable, so the block's content "
+              "is checked too")
+        if not yamlish:
+            fm = ""        # don't read name/description out of body prose
         nm = re.search(r"^name:\s*(\S+)\s*$", fm, re.M)
         check(f"{name}: frontmatter name matches the directory", bool(nm) and nm.group(1) == name,
               f"frontmatter says {nm.group(1) if nm else None!r}")
-        desc = re.search(r"^description:\s*(.+)$", fm, re.M)
-        d = desc.group(1).strip() if desc else ""
+        # The WHOLE value, including a folded continuation — that is what gets truncated, not line 1.
+        dm = re.search(r"^description:[ \t]*(.*(?:\n[ \t]+.*)*)", fm, re.M)
+        d = re.sub(r"\s+", " ", dm.group(1)).strip() if dm else ""
         check(f"{name}: has a description", len(d) > 40)
         # Claude Code truncates the listing at 1536 chars across description + when_to_use.
         check(f"{name}: description fits the listing budget", len(d) <= 1200, f"{len(d)} chars")
         # Triggering is the whole point of a skill over a prompt file: the description must carry the
-        # phrases a user would actually type, not just a summary of the phase.
-        check(f"{name}: description carries trigger phrases", "'" in d or '"' in d,
-              "no quoted user phrases — nothing for the model to match on")
-        # Points at the canonical prompt rather than reimplementing it.
-        check(f"{name}: references its canonical prompt ({mapped.get(name)})",
-              bool(mapped.get(name)) and mapped[name] in txt)
+        # phrases a user would actually type. Three or more quoted phrases, not one apostrophe.
+        quoted = re.findall(r"'[^']{4,}'", d)
+        check(f"{name}: description carries >=3 quoted trigger phrases", len(quoted) >= 3,
+              f"found {len(quoted)} — nothing for the model to match a user's own words against")
+        # Points at the canonical prompt, and says to READ it. A summary the model treats as the spec
+        # is how every gate in the prompt (Read-first, language gate, checkpoint) gets dropped.
+        prompt = mapped.get(name)
+        check(f"{name}: references its canonical prompt ({prompt})", bool(prompt) and prompt in txt)
+        check(f"{name}: tells the model to READ that prompt, not work from the summary",
+              bool(re.search(r"\*\*Read `[^`]+` now and follow it end to end\*\*", txt)),
+              "without an imperative, the 20-line summary becomes the spec")
+        # A skill is a second entry point into a phase. It must re-assert the preconditions the
+        # command layer checks, or it is that phase with the gates removed.
+        check(f"{name}: states its preconditions (no workspace => do not produce)",
+              "intake.md" in txt and "master_locked" in txt,
+              "a cold trigger with no workspace must refuse, not improvise an artifact")
         # Inherits the gates by reference. These two are the non-negotiable pair.
         for ref in ("reference/number-and-honesty-policy.md", "reference/untrusted-content-policy.md"):
             check(f"{name}: inherits {Path(ref).stem}", ref in txt)
         check(f"{name}: states the workspace privacy rule", "workspace/<name>/" in txt)
         # Thin by construction. A skill past this length is restating rules that live in reference/.
         check(f"{name}: stays a thin trigger surface (≤80 lines)", len(lines) <= 80, f"{len(lines)} lines")
+        # ...and the direct form of the same property: no verbatim run of canonical rule text.
+        dupes = []
+        for line in lines:
+            s = re.sub(r"\s+", " ", line.strip().lstrip("-*#0123456789. ")).strip()
+            if len(s) >= 60 and s in canon:
+                dupes.append(f"{canon[s]}: {s[:60]}…")
+        check(f"{name}: restates no canonical rule text verbatim", not dupes,
+              "; ".join(dupes[:2]) + " — point at the reference file instead, or the two copies diverge")
+
     # Every mapped prompt must exist — a skill that points at a deleted phase is a dead end.
     for name, prompt in mapped.items():
         check(f"{name}: canonical prompt {prompt} exists", (REPO / prompt).is_file())
@@ -401,6 +453,29 @@ def test_latex_render():
     check("template keeps the 0.5in margin floor", "margin=0.5in" in body)
     check("template keeps the 10pt body floor", "letterpaper,10pt" in body)
     check("template keeps the 1.15 leading floor", "setstretch{1.15}" in body)
+
+    # The executive variant renames the summary heading to "Leadership Profile". The heading used to
+    # be hardcoded, so the sanctioned export path silently shipped an executive résumé headed
+    # "Summary" (2026-10-08 council). The label is now an optional key — and because it reaches the
+    # .tex, it is constrained to a plain short label so a crafted resume.json cannot inject LaTeX.
+    import tempfile as _tf
+    with _tf.TemporaryDirectory() as _td:
+        _d = Path(_td)
+        base = {"basics": {"name": "A Person", "email": "a@example.com", "summary": "A line."},
+                "work": [], "projects": [], "education": [], "skills": []}
+        for label, expect in (("Leadership Profile", "Leadership Profile"),
+                              ("\\input{/etc/passwd}", "Summary")):
+            src = _d / "r.json"
+            src.write_text(json.dumps({**base, "basics": {**base["basics"],
+                                                          "summaryLabel": label}}), encoding="utf-8")
+            subprocess.run([sys.executable, str(REPO / "tools/render_resume.py"), str(src),
+                            "--tex", str(_d / "r.tex"), "--out", str(_d / "r.pdf")],
+                           capture_output=True, text=True)
+            tex = (_d / "r.tex").read_text(encoding="utf-8") if (_d / "r.tex").is_file() else ""
+            check(f"summary heading honors summaryLabel={label[:20]!r} → {expect!r}",
+                  f"\\resumesection{{{expect}}}" in tex,
+                  "\n".join(l for l in tex.splitlines() if "resumesection" in l)[:160])
+        check("a crafted summaryLabel cannot inject LaTeX", "input{/etc" not in tex)
     check("template has no tabular (ATS hazard)", "begin{tabular}" not in body)
     # The ligature defence. Dropping it silently breaks every fi/fl keyword.
     check("template disables common ligatures",
@@ -747,7 +822,8 @@ def test_pipeline():
         PROSE = "## My hand-written retro\nInterviewer pushed on sharding. Remember this.\n"
         (job / "application-log.md").write_text(
             "# Log\n\n```ascend-state\nstatus: queued\nreferral_state: asked   # keep me\n"
-            "referral_expires_on: 2026-01-01\n```\n\n" + PROSE, encoding="utf-8")
+            "referral_expires_on: 2026-01-01\nwork_sample: building\n```\n\n" + PROSE,
+            encoding="utf-8")
 
         r = subprocess.run(TOOL + ["log", str(ws), "03", "applied", "--on", "2026-06-01"],
                            capture_output=True, text=True)
@@ -770,6 +846,37 @@ def test_pipeline():
         r = subprocess.run(TOOL + ["overdue", str(ws), "--today", "2026-07-01"],
                            capture_output=True, text=True)
         check("overdue flags an expired referral gate", "referral expired" in r.stdout, r.stdout[-160:])
+
+        # The 2026-10-08 council found two fields that were written and never read: `work_sample`
+        # (set by /ascend work-sample, consumed by nothing) and an offer deadline, which had no
+        # field at all AND whose status was explicitly skipped by cmd_overdue — so the highest-stakes
+        # clock in a search appeared on no surface. Both are asserted here, not just coded.
+        check("overdue surfaces a work-sample blocker", "work sample" in r.stdout, r.stdout[-200:])
+        r = subprocess.run(TOOL + ["log", str(ws), "03", "offer", "--deadline", "2026-07-10",
+                                   "--on", "2026-07-02"], capture_output=True, text=True)
+        body = (ws / "jobs/03-acme-staff-engineer/application-log.md").read_text(encoding="utf-8")
+        check("an offer deadline is recorded in the state block",
+              "offer_deadline: 2026-07-10" in body, body[:300])
+        r = subprocess.run(TOOL + ["overdue", str(ws), "--today", "2026-07-07"],
+                           capture_output=True, text=True)
+        check("overdue reports an offer deadline BEFORE it lands",
+              "OFFER DEADLINE" in r.stdout and "in 3d" in r.stdout, r.stdout[-200:])
+        job2 = ws / "jobs" / "04-lumen-platform-engineer"
+        job2.mkdir(parents=True, exist_ok=True)
+        (job2 / "application-log.md").write_text(
+            "# Log\n\n```ascend-state\nstatus: queued\n```\n", encoding="utf-8")
+        subprocess.run(TOOL + ["log", str(ws), "04", "offer", "--on", "2026-07-02"],
+                       capture_output=True, text=True)
+        r = subprocess.run(TOOL + ["overdue", str(ws), "--today", "2026-07-07"],
+                           capture_output=True, text=True)
+        check("an offer logged with no deadline is flagged, not silently dropped",
+              "no deadline" in r.stdout, r.stdout[-200:])
+        # ...and a re-log without --deadline must not WIPE a deadline already recorded.
+        subprocess.run(TOOL + ["log", str(ws), "03", "offer", "--on", "2026-07-03"],
+                       capture_output=True, text=True)
+        check("a re-log without --deadline keeps the recorded deadline",
+              "offer_deadline: 2026-07-10" in
+              (job / "application-log.md").read_text(encoding="utf-8"))
 
         r = subprocess.run(TOOL + ["funnel", str(ws)], capture_output=True, text=True)
         check("funnel refuses a conversion rate below n=10",

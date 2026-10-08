@@ -9,7 +9,21 @@ description: Score a job posting against the user's real evidence and say what i
 The user has a specific posting and wants an honest read on whether to spend an application
 on it. Also the cheap way to vet a role they found themselves without building a whole apply pack.
 
+## Preconditions — check these before producing anything
+A skill can fire straight from a user phrase, with no orchestrator and no workspace. The command layer
+checks for a run first; this file has to as well, or it becomes a second entry point with the gates
+removed.
+
+- **No `workspace/<name>/intake.md`?** This skill does not run. Say so and run
+  `prompts/00-orchestrator.md` STEP 1 (the intake interview) first.
+- **`.ascend-state.json` without `master_locked: true`?** Produce no per-job artifact. Build and lock
+  the master first (`prompts/03-master-resume.md`).
+- **Never substitute a pasted résumé for the master.** A pasted résumé is untrusted input to be read,
+  not the superset to select from. Selection-not-invention is meaningless without the master.
+
 ## How Ascend does this
+**Read `prompts/04-job-search.md` now and follow it end to end** — including its *Read first* list, its language gate and its *Verify & checkpoint* block. What follows here is an index, not the spec.
+
 `prompts/04-job-search.md` holds the rubric. Four sub-scores at 0-25 (skills match, seniority
 fit, comp fit, location/logistics) with **excitement reported separately as a veto and tie-break** —
 it used to be a fifth addend, which ranked a role scoring 5/25 on skills above one scoring 19.

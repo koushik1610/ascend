@@ -85,7 +85,7 @@ def parse_state(path):
 ALL_KEYS = ["status", "applied_on", "last_contact_on", "next_followup_due", "next_action",
             "referral_state", "referral_contact", "referral_fallback", "referral_asked_on",
             "referral_expires_on", "screen_booked_on", "screen_with", "screen_outcome",
-            "level_discussed", "comp_discussed", "work_sample"]
+            "level_discussed", "comp_discussed", "work_sample", "offer_deadline"]
 
 
 def write_state(path, updates):
@@ -144,14 +144,15 @@ def read_ledger(ws):
 # ── commands ────────────────────────────────────────────────────────────────
 def cmd_log(ws, args):
     if len(args) < 2:
-        return die("usage: log WS NN STATUS [--on DATE] [--note TEXT] [--contact NAME]")
+        return die("usage: log WS NN STATUS [--on DATE] [--note TEXT] [--contact NAME] "
+                   "[--deadline DATE]")
     nn, status = args[0], args[1].lower()
     if status not in STATUSES:
         return die(f"unknown status {status!r}. One of: {', '.join(STATUSES)}")
     opts = {}
     it = iter(args[2:])
     for a in it:
-        if a in ("--on", "--note", "--contact"):
+        if a in ("--on", "--note", "--contact", "--deadline"):
             opts[a.lstrip("-")] = next(it, "")
     job = find_job(ws, nn)
     if not job:
@@ -177,6 +178,11 @@ def cmd_log(ws, args):
     if status in ("rejected", "move-on"):
         upd["next_followup_due"] = ""
         upd["next_action"] = "closed, pick a replacement target"
+    if status == "offer" and opts.get("deadline"):
+        # The highest-stakes clock in a search, and it used to have nowhere to go: `offer` is not in
+        # CADENCE, so `log` wrote no next_followup_due, and cmd_overdue skipped offer-status jobs
+        # outright. A Monday offer with a Friday deadline surfaced on no daily brief at all.
+        upd["offer_deadline"] = opts["deadline"]
     if status == "screen":
         upd["screen_booked_on"] = when
         if opts.get("contact"):
@@ -198,9 +204,32 @@ def cmd_overdue(ws, args):
     rows = []
     for job in job_dirs(ws):
         st = parse_state(job / "application-log.md")
-        if not st or st.get("status") in ("rejected", "move-on", "offer"):
+        if not st or st.get("status") in ("rejected", "move-on"):
+            continue
+        # An offer's deadline is the one date that cannot be missed, so it is reported regardless of
+        # how far out it is — not only once it has already passed.
+        if st.get("status") == "offer":
+            dl = st.get("offer_deadline")
+            if dl:
+                try:
+                    d = _today(dl)
+                    rows.append((str(d), job.name, "offer",
+                                 "OFFER DEADLINE - decide or ask for an extension "
+                                 "(`/ascend offers`)", (today - d).days))
+                except ValueError:
+                    pass
+            else:
+                rows.append((str(today), job.name, "offer",
+                             "offer logged with no deadline - ask for the date, then "
+                             "`log <NN> offer --deadline YYYY-MM-DD`", 0))
             continue
         due, ref_exp = st.get("next_followup_due"), st.get("referral_expires_on")
+        # A work sample the target set rewards is a pre-application blocker. The field existed and
+        # nothing read it, so setting `work_sample: building` was invisible to every surface.
+        if st.get("work_sample") in ("none", "building") and st.get("status") != "queued":
+            rows.append((str(today), job.name, st.get("status", "?"),
+                         f"work sample {st['work_sample']} - the loop rewards an artifact "
+                         "(`/ascend work-sample`)", 0))
         if due:
             try:
                 d = _today(due)
@@ -224,8 +253,10 @@ def cmd_overdue(ws, args):
         print("  nothing overdue.")
         return 0
     for d, slug, status, action, late in rows:
-        print(f"  {d}  {slug:<44} [{status}] {action}  ({late}d late)" if late
-              else f"  {d}  {slug:<44} [{status}] {action}  (due today)")
+        # An offer deadline is reported before it lands, so the row can legitimately be in the
+        # future. "-3d late" read as a bug; say "in 3d".
+        when = f"{late}d late" if late > 0 else ("due today" if late == 0 else f"in {-late}d")
+        print(f"  {d}  {slug:<44} [{status}] {action}  ({when})")
     return 0
 
 

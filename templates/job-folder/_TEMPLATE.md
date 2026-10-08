@@ -138,6 +138,8 @@ shared prep.
   level_discussed:          # the level named out loud on the screen
   comp_discussed:           # the band stated on the screen, for the offer letter to be diffed against
   work_sample: none         # none|building|ready
+  offer_deadline:           # YYYY-MM-DD, set by `log <NN> offer --deadline`. The one date
+                            # `overdue` reports BEFORE it passes.
   ```
 
   **These five fields are a chain, not five independent facts.** `level_discussed` and `comp_discussed`
@@ -152,8 +154,14 @@ shared prep.
 - **Post-loop retro** (fill after each round): questions asked vs predicted | what landed | what
   flopped | story drift | update `interview-questions.md` predictions.
 
-## 9. `cover-letter.md` — OPTIONAL (only if the posting requires/expects a cover letter)
-- Build only when the application asks for one (many don't). A focused ≤250-word letter: the hook
+## 9. `cover-letter.md` — conditional: OPTIONAL for most tech reqs, PRIMARY for several candidate classes
+- **For most corporate tech applications, build only when the application asks for one** (many don't).
+- **But for some classes the letter is mandatory and is the primary screen, outranking the résumé** —
+  faculty and postdoc searches (the committee reads the letter, then the research and teaching
+  statements, and uses the CV to *verify* the letter), grant applications, most non-US applications,
+  and most government and non-profit hiring. For those, build the letter **first** and give it the
+  effort this template gives the résumé. See `../../reference/resume-writing-rules.md → Résumé
+  variants` for which variant the user is on. A focused ≤250-word letter: the hook
   (why this role/company, tied to a real reason), 2–3 sentences of the single most relevant proof
   (selected from the master resume — no new claims), and a confident close.
 - **Personal "why this company" sentences are the user's to write** — provide the structure and the

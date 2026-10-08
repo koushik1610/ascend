@@ -72,6 +72,9 @@
     "ascend-career-change":       "prompts/22-adjacent-titles.md",
     "ascend-offer-compare":       "prompts/23-offer-compare.md",
     "ascend-work-sample":         "prompts/24-work-sample.md",
-    "ascend-references":          "prompts/25-references.md"
+    "ascend-references":          "prompts/25-references.md",
+    "ascend-salary":              "prompts/19-salary-studio.md",
+    "ascend-mock-interview":      "prompts/17-interview-me.md",
+    "ascend-rejection":           "prompts/21-rejection-protocol.md"
   }
 }

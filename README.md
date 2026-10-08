@@ -179,15 +179,19 @@ Who uses each command, when, and with what preconditions lives in
 
 ### You can also just ask
 
-The twelve files under [`.claude/skills/`](.claude/skills) make the common tasks reachable without
-knowing a command. Say *"is my résumé ATS friendly"*, *"should I apply to this"*, *"I got two offers"*,
-*"they asked for references"*, and Claude Code loads the matching skill, which hands it the canonical
-phase prompt and the shared rules in [`reference/`](reference).
+The fifteen files under [`.claude/skills/`](.claude/skills) make the common tasks reachable without
+knowing a command. Say *"is my résumé ATS friendly"*, *"should I apply to this"*, *"is 120k good"*,
+*"I got two offers"*, *"they asked for references"*, *"they ghosted me"*, and Claude Code loads the
+matching skill, which hands it the canonical phase prompt and the shared rules in
+[`reference/`](reference).
 
 They are deliberately **thin**: a trigger surface and a pointer, never a copy of the rules. Ascend's
 honesty gates, bullet formula and banned vocabulary live in one place each, and a skill that restated
-them would be the copy nobody updates. `tests/smoke.py` enforces that — each skill must name a prompt
-that exists, inherit the honesty and untrusted-content policies by reference, and stay under 80 lines.
+them would be the copy nobody updates. `tests/smoke.py` enforces each of those properties — a closed
+YAML frontmatter block with a `name` matching its directory, three or more quoted trigger phrases, a
+prompt file that exists plus an imperative to *read* it, the preconditions a cold trigger has to check
+before producing anything, both policy files referenced, no line of canonical rule text restated
+verbatim, and 80 lines maximum.
 
 **The objective is action, not paperwork.** The dashboard leads with a weekly *apply N / ask N
 referrals* loop and a funnel scoreboard. Applications sent and referrals asked get you interviews.

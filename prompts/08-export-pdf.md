@@ -59,6 +59,11 @@ python3 tools/render_resume.py "<path>/resume.json" \
 
 - Writes `<Name>-Resume-<Company>.tex` beside the PDF, **always**, even with no TeX engine present.
 - Compiles with the first engine it finds (`tectonic`, `latexmk`, `pdflatex`, `xelatex`, `lualatex`).
+- **Read the `Résumé variant:` line in `master-resume.md` §1 before rendering** and pass that
+  variant's page count. Standard and portfolio-led are 1; executive and non-US are 2; an academic
+  CV is not rendered by this tool at all, because its layout is the field's rather than Ascend's.
+  A deliberately two-page executive résumé failing the default budget is a misconfiguration, not
+  an overflow.
 - **Enforces the page budget itself.** Default `--max-pages 1`; pass `--max-pages 2` for the master
   public résumé. If it overflows it fails loudly and tells you to cut content, which is the correct
   response. Never answer an overflow by shrinking type.

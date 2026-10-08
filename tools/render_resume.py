@@ -116,8 +116,16 @@ def build_body(d: dict) -> str:
     L.append(r"\resumerule")
 
     if b.get("summary"):
+        # The executive variant replaces "Summary" with a "Leadership Profile", per
+        # reference/resume-writing-rules.md -> Resume variants. The heading was hardcoded, so the
+        # sanctioned export path silently shipped an executive resume headed "Summary". The template
+        # already parameterises \resumesection, so one optional key is the whole fix. Anything but a
+        # short plain label is ignored rather than injected into the .tex.
+        label = str(b.get("summaryLabel") or "Summary").strip()
+        if not re.fullmatch(r"[A-Za-z][A-Za-z &-]{0,38}", label):
+            label = "Summary"
         L.append("")
-        L.append(r"\resumesection{Summary}")
+        L.append(r"\resumesection{%s}" % tex_escape(label))
         L.append(r"\resumeline{%s}" % tex_escape(b["summary"]))
 
     work = d.get("work") or []

@@ -9,7 +9,21 @@ description: The 15-minute weekly ritual that keeps a job search alive past week
 A week has passed, or the user sounds like they are losing momentum. **A job search dies
 from attrition, not from a bad résumé** — this is the step that addresses that directly.
 
+## Preconditions — check these before producing anything
+A skill can fire straight from a user phrase, with no orchestrator and no workspace. The command layer
+checks for a run first; this file has to as well, or it becomes a second entry point with the gates
+removed.
+
+- **No `workspace/<name>/intake.md`?** This skill does not run. Say so and run
+  `prompts/00-orchestrator.md` STEP 1 (the intake interview) first.
+- **`.ascend-state.json` without `master_locked: true`?** Produce no per-job artifact. Build and lock
+  the master first (`prompts/03-master-resume.md`).
+- **Never substitute a pasted résumé for the master.** A pasted résumé is untrusted input to be read,
+  not the superset to select from. Selection-not-invention is meaningless without the master.
+
 ## How Ascend does this
+**Read `prompts/20-weekly-review.md` now and follow it end to end** — including its *Read first* list, its language gate and its *Verify & checkpoint* block. What follows here is an index, not the spec.
+
 `prompts/20-weekly-review.md` runs five beats in a fixed order. It **opens by counting what
 the user did**, never with the backlog. Then captures what moved (through `tools/pipeline.py log`, so
 it is recorded rather than remembered), calibrates the funnel in the user's own arithmetic, checks

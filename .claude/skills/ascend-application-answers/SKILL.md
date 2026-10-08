@@ -1,6 +1,6 @@
 ---
 name: ascend-application-answers
-description: Answer the open-ended and screener questions on an application form honestly and without pasting the same block twice, including knockout questions where a wrong answer is the one reliable auto-reject. Use for 'application questions', 'why do you want to work here', 'screener questions', 'fill out this application', 'years of experience question'.
+description: Answer the open-ended and screener questions on an application form honestly and without pasting the same block twice, including knockout questions where a wrong answer is the one reliable auto-reject. Use for 'application questions', 'why do you want to work here', 'screener questions', 'fill out this application', 'years of experience question', 'cover letter', 'why should we hire you'.
 ---
 
 # Ascend: Application Form Answers
@@ -8,7 +8,21 @@ description: Answer the open-ended and screener questions on an application form
 ## When to use this skill
 The user is filling in an application form and hit the free-text or screener fields.
 
+## Preconditions — check these before producing anything
+A skill can fire straight from a user phrase, with no orchestrator and no workspace. The command layer
+checks for a run first; this file has to as well, or it becomes a second entry point with the gates
+removed.
+
+- **No `workspace/<name>/intake.md`?** This skill does not run. Say so and run
+  `prompts/00-orchestrator.md` STEP 1 (the intake interview) first.
+- **`.ascend-state.json` without `master_locked: true`?** Produce no per-job artifact. Build and lock
+  the master first (`prompts/03-master-resume.md`).
+- **Never substitute a pasted résumé for the master.** A pasted résumé is untrusted input to be read,
+  not the superset to select from. Selection-not-invention is meaningless without the master.
+
 ## How Ascend does this
+**Read `prompts/12-answer-sheet.md` now and follow it end to end** — including its *Read first* list, its language gate and its *Verify & checkpoint* block. What follows here is an index, not the spec.
+
 `prompts/12-answer-sheet.md` builds a reusable bank with **2-3 phrasing variants** per common
 question, because identical pasted answers across applications are a recruiter tell.
 

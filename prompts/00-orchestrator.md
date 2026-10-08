@@ -53,6 +53,17 @@ at a time). Required answers are marked ★ — do not proceed past Step 2 witho
 - **Compensation** expectations or floor (kept private; used only to filter and to script the
   recruiter-screen comp anchor).
 - **Timeline**: actively applying now, or exploring?
+- ★ **The three or four non-comp factors that would decide between two good offers** (scope, manager,
+  team, commute, remote policy, learning, stability, mission — their words, not a menu). And **the
+  walk-away**: what would make you decline an offer you otherwise wanted? Captured now, while calm,
+  because `prompts/23-offer-compare.md` reads these back verbatim during a 3-to-7-day offer window —
+  which is the one moment the user cannot generate them honestly. Record them dated.
+- **Résumé variant**: is the standard one-page ATS-first résumé right for these targets, or is this
+  an **executive** search (director+, retained search reads it, not an ATS), an **academic CV**
+  (faculty/postdoc — uncapped, and the cover letter is the primary screen), **portfolio-led**, or a
+  **non-US market** (2 pages is standard in the UK/EU)? Default `standard`. Recorded in
+  `master-resume.md` §1 and read by every derivative — see
+  `reference/resume-writing-rules.md → Résumé variants`.
 - **Packet breadth**: build apply packs for the **top 3–5 jobs you commit to** (the lazy default), or
   for **every queued job**? (Full-queue is slower and costs more tokens; the default keeps the first
   run lean. This is an explicit choice — don't silently assume either.)

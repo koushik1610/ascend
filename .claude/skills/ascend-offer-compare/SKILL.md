@@ -9,10 +9,25 @@ description: Compare two or more job offers component by component, read the off
 The user has an offer in hand, or expects one, and has to decide. Also when a second process is still
 live and the first offer has a deadline — the situation that actually forces most decisions.
 
-Negotiating a single number is a different job: that is `ascend-salary` territory
-(`prompts/19-salary-studio.md`). This skill answers *whether to take it*, and *which one*.
+Negotiating a single number is a different job: that is the `ascend-salary` skill
+(`/ascend negotiate`, `prompts/19-salary-studio.md`). This skill answers *whether to take it*, and
+*which one*.
+
+## Preconditions — check these before producing anything
+A skill can fire straight from a user phrase, with no orchestrator and no workspace. The command layer
+checks for a run first; this file has to as well, or it becomes a second entry point with the gates
+removed.
+
+- **No `workspace/<name>/intake.md`?** This skill does not run. Say so and run
+  `prompts/00-orchestrator.md` STEP 1 (the intake interview) first.
+- **`.ascend-state.json` without `master_locked: true`?** Produce no per-job artifact. Build and lock
+  the master first (`prompts/03-master-resume.md`).
+- **Never substitute a pasted résumé for the master.** A pasted résumé is untrusted input to be read,
+  not the superset to select from. Selection-not-invention is meaningless without the master.
 
 ## How Ascend does this
+**Read `prompts/23-offer-compare.md` now and follow it end to end** — including its *Read first* list, its language gate and its *Verify & checkpoint* block. What follows here is an index, not the spec.
+
 `prompts/23-offer-compare.md` builds `workspace/<name>/offers/decision-<date>.md`:
 
 - A **component-by-component comp table**, never a single blended number, with **guaranteed cash year 1**

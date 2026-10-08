@@ -88,6 +88,11 @@ The verdict keyword and the `Company | Role | Score` cells are machine-readable,
 as written. Only the reason is prose.
 
 - **Hard DQ check first.** Any hard disqualifier from the brief caps the score at 2.5 and ends it.
+  **Work authorization is a hard DQ and must be named as one** — a posting that excludes the user's
+  status ("no sponsorship available", citizenship-required, cleared-only) is a DQ, not a low score.
+  `intake.md` already captures the constraint and `profile-brief.md` carries it; for a visa-dependent
+  candidate this is the single highest-cost class of wasted application in the whole search, so the
+  triage line must state which side of it the posting falls on rather than leaving it implied.
 - **Score five dimensions**, 1-5 each: archetype fit (30%), comp vs the floor (25%), location (25%),
   proof-point overlap (15%), soft red flags (−0.5 each). Round to 0.1.
 - **PASS** ≥3.5 · **MARGINAL** 3.0-3.4 · **FAIL** <3.0 · **SKIP** = posting inaccessible or expired.
@@ -113,6 +118,24 @@ Give every surviving job a transparent **Fit Score out of 100**, the sum of four
 | **Seniority fit** | Is the level right — same, a step up (good), or a reach/down-level (note it) |
 | **Comp fit** | Posted/estimated comp vs the user's `intake.md` target/floor |
 | **Location/logistics** | Remote/hybrid/on-site vs the user's constraints + work auth |
+
+**Contract, hourly and agency-mediated postings score differently, and scoring them as salaried is a
+bug.** A posting quoting `$85/hr` against a `$150k` floor passes or fails depending on whether the
+model multiplied by 2080, and both answers are wrong: there is no benefits load, no PTO, no retirement
+match, no employer payroll tax, utilization is under 100%, and an agency takes a cut of the bill rate.
+So before scoring Comp fit:
+- Mark the row **`engagement: contract|c2c|temp-to-perm|fte`**. Never compare Comp fit across
+  engagement types without the conversion below.
+- Convert to a salary-comparable figure and **name the assumption on the row**, the same discipline as
+  the equity rule in `23-offer-compare.md`: rate × billable hours at a stated utilization, less the
+  benefits and payroll-tax load the user now carries. State the utilization and the load you assumed.
+  If the user has no basis for either, the row reads `comp: not comparable — contract, no basis to
+  convert` rather than a number nobody produced.
+- **The agency duplicate-submission rule, because it silently ends candidacies.** When an agency
+  recruiter is the channel, the user asks *which client, and have you already submitted me?* before
+  giving permission to submit. Two agencies submitting one candidate to one client trips the client's
+  duplicate flag, and the usual resolution is dropping the candidate from the req to avoid a fee
+  dispute. Record which agency was given permission for which company in the job's log.
 
 **Excitement is a veto and a tie-break, not a fifth of the score.** Report it separately as
 `excitement: high|ok|low`. `low` vetoes the entry to the watch list no matter how well it scores;

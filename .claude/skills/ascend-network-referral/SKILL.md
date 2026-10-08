@@ -1,6 +1,6 @@
 ---
 name: ascend-network-referral
-description: Find who the user already knows at a target company from their own LinkedIn export, and run the referral ask as a tracked loop with a paste-ready blurb for the referrer and an expiry clock. Use for 'referral', 'who do I know at', 'warm intro', 'networking', 'ask for a referral', 'cold email'.
+description: Find who the user already knows at a target company from their own LinkedIn export, and run the referral ask as a tracked loop with a paste-ready blurb for the referrer and an expiry clock. Use for 'referral', 'who do I know at', 'warm intro', 'networking', 'ask for a referral', 'cold email', 'do I know anyone at', 'informational interview', 'coffee chat'.
 ---
 
 # Ascend: Warm Network and Referral Loop
@@ -9,7 +9,21 @@ description: Find who the user already knows at a target company from their own 
 The user wants a referral, or wants to know whether they have a warm path into a company.
 Referral rate is the largest single multiplier on interviews-per-application.
 
+## Preconditions — check these before producing anything
+A skill can fire straight from a user phrase, with no orchestrator and no workspace. The command layer
+checks for a run first; this file has to as well, or it becomes a second entry point with the gates
+removed.
+
+- **No `workspace/<name>/intake.md`?** This skill does not run. Say so and run
+  `prompts/00-orchestrator.md` STEP 1 (the intake interview) first.
+- **`.ascend-state.json` without `master_locked: true`?** Produce no per-job artifact. Build and lock
+  the master first (`prompts/03-master-resume.md`).
+- **Never substitute a pasted résumé for the master.** A pasted résumé is untrusted input to be read,
+  not the superset to select from. Selection-not-invention is meaningless without the master.
+
 ## How Ascend does this
+**Read `prompts/11-network-map.md` now and follow it end to end** — including its *Read first* list, its language gate and its *Verify & checkpoint* block. What follows here is an index, not the spec.
+
 `prompts/11-network-map.md` mines the `Connections.csv` in the user's own LinkedIn export (no
 scraping) and names a **primary and a fallback** contact per company, at map time. Naming the
 second-best person later never happens.
