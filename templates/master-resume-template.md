@@ -16,6 +16,7 @@
 | Name | <…> |
 | Email · Phone | <…> |
 | Links | <portfolio / github / linkedin / site> |
+| §0 Section order | <default \| early-career> — chosen once in `../prompts/03-master-resume.md`; see `../reference/resume-writing-rules.md → Structure`. Every derived `resume.json` carries it as `"sectionOrder"`. |
 | Résumé variant | <standard \| executive \| academic-cv \| portfolio-led \| non-us> — from intake; see `../reference/resume-writing-rules.md → Résumé variants`. Governs section set and page budget for every derivative. |
 | Location · work mode | <…> |
 | Work authorization | <only if the user stated it> |

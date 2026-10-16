@@ -64,6 +64,9 @@ python3 tools/render_resume.py "<path>/resume.json" \
 
 - Writes `<Name>-Resume-<Company>.tex` beside the PDF, **always**, even with no TeX engine present.
 - Compiles with the first engine it finds (`tectonic`, `latexmk`, `pdflatex`, `xelatex`, `lualatex`).
+- **Carry `§0 Section order` into `resume.json`** as `"sectionOrder"` (`default` or `early-career`).
+  `tools/render_resume.py` orders the sections from it. Without the key it renders the default
+  Experience-first order, which is wrong for an early-career master.
 - **Read the `Résumé variant:` line in `master-resume.md` §1 before rendering** and pass that
   variant's page count. Standard and portfolio-led are 1; executive and non-US are 2; an academic
   CV is not rendered by this tool at all, because its layout is the field's rather than Ascend's.

@@ -476,6 +476,22 @@ def test_latex_render():
                   f"\\resumesection{{{expect}}}" in tex,
                   "\n".join(l for l in tex.splitlines() if "resumesection" in l)[:160])
         check("a crafted summaryLabel cannot inject LaTeX", "input{/etc" not in tex)
+
+        # The early-career section order (§0 Section order) was a rule with no render path: the
+        # renderer emitted Experience first no matter what the master chose (2026-10-15 review).
+        full = {**base, "work": [{"position": "Intern", "company": "Co", "dates": "2025"}],
+                "education": [{"institution": "U", "studyType": "B.S."}], "skills": ["Python"]}
+        for order, expect in (("early-career", ["Summary", "Skills", "Education", "Experience"]),
+                              (None, ["Summary", "Experience", "Skills", "Education"])):
+            src = _d / "o.json"
+            src.write_text(json.dumps({**full, **({"sectionOrder": order} if order else {})}),
+                           encoding="utf-8")
+            subprocess.run([sys.executable, str(REPO / "tools/render_resume.py"), str(src),
+                            "--tex", str(_d / "o.tex"), "--out", str(_d / "o.pdf")],
+                           capture_output=True, text=True)
+            tex = (_d / "o.tex").read_text(encoding="utf-8") if (_d / "o.tex").is_file() else ""
+            got = re.findall(r"\\resumesection\{([^}]*)\}", tex.split("\\begin{document}")[-1])
+            check(f"sectionOrder={order!r} renders {' → '.join(expect)}", got == expect, str(got))
     check("template has no tabular (ATS hazard)", "begin{tabular}" not in body)
     # The ligature defence. Dropping it silently breaks every fi/fl keyword.
     check("template disables common ligatures",
