@@ -103,6 +103,7 @@ def find_engine(preferred: str | None = None) -> str | None:
 def build_body(d: dict) -> str:
     """resume.json → the macro calls that fill the template's content marker."""
     L: list[str] = []
+    head = L
     b = d.get("basics") or {}
 
     L.append(r"\resumename{%s}" % tex_escape(b.get("name", "")))
@@ -128,6 +129,12 @@ def build_body(d: dict) -> str:
         L.append(r"\resumesection{%s}" % tex_escape(label))
         L.append(r"\resumeline{%s}" % tex_escape(b["summary"]))
 
+    # Sections are built as blocks, then emitted in the order the master's `§0 Section order` chose
+    # (reference/resume-writing-rules.md -> Section order). "early-career" leads with Skills and
+    # Education; anything else, including a missing key, is the default Experience-first order.
+    S = {}
+
+    S["experience"] = L = []
     work = d.get("work") or []
     if work:
         L.append("")
@@ -146,6 +153,7 @@ def build_body(d: dict) -> str:
                 L += [r"  \item %s" % tex_escape(h) for h in highlights]
                 L.append(r"\end{resumebullets}")
 
+    S["projects"] = L = []
     projects = [p for p in (d.get("projects") or []) if (p.get("name") or p.get("description"))]
     if projects:
         L.append("")
@@ -157,12 +165,14 @@ def build_body(d: dict) -> str:
             if desc:
                 L.append(r"\resumeline{%s}" % tex_escape(desc))
 
+    S["skills"] = L = []
     skills = [s for s in (d.get("skills") or []) if str(s).strip()]
     if skills:
         L.append("")
         L.append(r"\resumesection{Skills}")
         L.append(r"\resumeline{%s}" % r" \textbar{} ".join(tex_escape(s) for s in skills))
 
+    S["education"] = L = []
     education = d.get("education") or []
     if education:
         L.append("")
@@ -173,6 +183,7 @@ def build_body(d: dict) -> str:
             if line:
                 L.append(r"\resumeline{%s}" % line)
 
+    S["certifications"] = L = []
     certs = d.get("certifications") or []
     if certs:
         L.append("")
@@ -181,6 +192,13 @@ def build_body(d: dict) -> str:
             certs = [certs]
         L.append(r"\resumeline{%s}" % r" \textbar{} ".join(tex_escape(c) for c in certs))
 
+
+    order = (["skills", "education", "experience", "projects", "certifications"]
+             if str(d.get("sectionOrder") or "").strip().lower() == "early-career"
+             else ["experience", "projects", "skills", "education", "certifications"])
+    L = head
+    for key in order:
+        L += S[key]
     return "\n".join(L)
 
 

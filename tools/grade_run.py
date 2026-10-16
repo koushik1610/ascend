@@ -169,6 +169,11 @@ def grade(ws, g):
                                   str(probe.relative_to(REPO))], cwd=REPO).returncode == 0
         g.add(S, "the workspace is gitignored", ignored,
               "personal output is NOT ignored by git. Nothing may be committed from here.")
+    elif not ws.resolve().is_relative_to(REPO.resolve()):
+        # A real run kept outside the repo (a private notes folder, a synced drive) cannot be
+        # committed from here at all. It used to fall through to the fixture branch and FAIL for not
+        # being labelled fictional, which graded every out-of-repo run as a privacy failure.
+        g.add(S, "the run lives outside the repository, so nothing in it can be committed", True)
     else:
         g.add(S, "committed fixture is deliberately tracked (not a real workspace)", True)
         txt = " ".join(p.read_text(encoding="utf-8", errors="ignore")

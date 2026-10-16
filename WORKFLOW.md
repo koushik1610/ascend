@@ -42,6 +42,8 @@ run. Delete it to wipe yourself entirely; run for a friend and they get their ow
                                                               └────── (each updates the dashboard)
 
   META: J13  Run it for someone else / wipe a person
+  LOOP + LATE STAGE: J14 Weekly review · J15 Rejection · J16 Adjacent titles · J17 Offers
+                     J18 Work sample · J19 References
 ```
 
 The shape: **one setup**, then you live in the **loop** and react to **opportunities**. The dashboard
@@ -236,6 +238,44 @@ Each reacts to a real event and updates the dashboard.
   screeners. Conviction/"why us" answers come out as **honest outlines you finish in your voice**, never
   finished prose.
 - **Implemented by:** [`prompts/12-answer-sheet.md`](prompts/12-answer-sheet.md).
+
+
+### J14: The weekly review *(the 15-minute habit)*
+- **Trigger:** `/ascend week`, once a week from week three.
+- **Path:** counts what you did, captures outcomes with `tools/pipeline.py`, shows the funnel in your own
+  numbers, checks the lead floor, and ends on exactly one decision.
+- **Ends with:** `reviews/week-NN.md`.
+- **Implemented by:** [`prompts/20-weekly-review.md`](prompts/20-weekly-review.md).
+
+### J15: Close out a rejection
+- **Trigger:** `/ascend rejected <NN>` when a "no" lands.
+- **Path:** logs the stage it died at, extracts the one learnable thing if there is one, and activates a
+  named replacement target so the pipeline does not shrink.
+- **Implemented by:** [`prompts/21-rejection-protocol.md`](prompts/21-rejection-protocol.md).
+
+### J16: Widen the search honestly
+- **Trigger:** `/ascend titles` when the queue runs thin.
+- **Path:** surfaces adjacent titles on three labelled axes (lateral, stretch, pivot), each citing master
+  entries and naming its gap, and folds the confirmed ones into targeting.
+- **Implemented by:** [`prompts/22-adjacent-titles.md`](prompts/22-adjacent-titles.md).
+
+### J17: Decide between offers
+- **Trigger:** `/ascend offers` once two processes finish (Phase 19 negotiates one number; this decides).
+- **Path:** compares offers component by component, reads the letter, and works the deadline.
+- **Ends with:** `offers/decision-<date>.md`.
+- **Implemented by:** [`prompts/23-offer-compare.md`](prompts/23-offer-compare.md).
+
+### J18: Build the work sample that decides the loop
+- **Trigger:** `/ascend work-sample [NN]`.
+- **Path:** one portfolio piece or take-home plan, built properly once and re-angled per job.
+- **Ends with:** `work-sample.md`.
+- **Implemented by:** [`prompts/24-work-sample.md`](prompts/24-work-sample.md).
+
+### J19: Keep a reference bench
+- **Trigger:** `/ascend references`, early, so an offer-stage request is a lookup.
+- **Path:** a consent-tracked list of referees plus the brief that shapes each call.
+- **Ends with:** `references.md`.
+- **Implemented by:** [`prompts/25-references.md`](prompts/25-references.md).
 
 ---
 

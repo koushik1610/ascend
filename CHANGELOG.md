@@ -11,6 +11,24 @@ _Working toward v1.0. Real-run gate: **1 of 2–3 runs signed off** (2026-07-01,
 see `docs/ROADMAP.md` → sign-off log); cases (b) no-résumé/non-tech and (c) resume-after-interruption
 remain, plus a green CI run on the remote + a demo GIF._
 
+### Fixed: 2026-10-15 post-merge cohesion review (PRs #9 to #12)
+A full review after #9, #10, #11 and #12 landed together. Smoke, lint and the run grader were green on
+the sample. These gaps were between the PRs, where no single PR's tests looked.
+- **The early-career section order had no render path.** #9 added `§0 Section order: early-career`
+  (Skills and Education lead), but `tools/render_resume.py` emitted Experience first no matter what, and
+  neither 05 nor 08 carried the choice into `resume.json`. The renderer now reads a top-level
+  `"sectionOrder"`, 05 and 08 write it, the master template has a slot for it, and smoke pins both
+  orders.
+- **`grade_run.py` failed every run kept outside the repo.** A workspace not under `workspace/` fell
+  into the committed-fixture branch and failed "labelled fictional". A real run in a private folder
+  now passes privacy correctly, because nothing outside the repo can be committed from it.
+- **WORKFLOW.md stopped at J13** while phases 20 to 25 shipped. J14 to J19 now cover the weekly review,
+  rejection protocol, adjacent titles, offers, work sample and references.
+
+Open question, not changed here: #10 makes the headline carry the posting's exact title. The honesty
+policy never says when that is allowed, and the cases that matter are a stretch level (a Staff title
+on a Senior record) and a manager title with no direct reports.
+
 ### Added: 2026-10-08 a skill layer, and the three stages that had no artifact
 Ascend had 23 phase prompts and two slash commands, and **none of it was discoverable**. Every prompt
 loaded only because `00-orchestrator.md` named it, so a user who did not already know the command
