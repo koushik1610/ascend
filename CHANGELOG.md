@@ -11,6 +11,183 @@ _Working toward v1.0. Real-run gate: **1 of 2–3 runs signed off** (2026-07-01,
 see `docs/ROADMAP.md` → sign-off log); cases (b) no-résumé/non-tech and (c) resume-after-interruption
 remain, plus a green CI run on the remote + a demo GIF._
 
+### Added: 2026-10-08 a skill layer, and the three stages that had no artifact
+Ascend had 23 phase prompts and two slash commands, and **none of it was discoverable**. Every prompt
+loaded only because `00-orchestrator.md` named it, so a user who did not already know the command
+surface could not reach any of it by describing their problem. Comparing against other open-source
+career-operations modules made the asymmetry plain: they expose each step as an independently
+triggerable skill, which is how a user who has never read the README finds the right step.
+
+- **A 12-skill layer under `.claude/skills/`.** Audit · master résumé · score a job · tailor · interview
+  prep · referrals · application answers · weekly review · career change · offers · work sample ·
+  references. Each is a **thin trigger surface**: a `description` carrying the phrases a user actually
+  types ("why am I not getting interviews", "should I apply", "I got two offers"), a pointer to the
+  canonical prompt, and the gates **inherited by reference**. The peer modules duplicate every rule
+  into every skill file (~350 lines each); Ascend's rules live once in `reference/`, and a second copy
+  is exactly the drift this repo spends most of its machinery preventing. `tests/smoke.py` now enforces
+  the thinness: frontmatter that Claude Code can read, a `name` matching its directory, a prompt file
+  that exists, both policy references present, and **≤80 lines**. All four properties verified to fail
+  on a deliberately broken skill before being called done.
+- **`/ascend offers` — the Offer Decision Room** (`prompts/23-offer-compare.md`). `19-salary-studio.md`
+  negotiates one number well and cannot compare two offers or answer whether to take the job. This
+  builds the component-by-component table (guaranteed cash year 1 stated separately from expected
+  total; equity carries its share count and assumed price, labelled as an assumption; no IPO modelled),
+  scores non-comp factors against **the criteria the user wrote at intake, quoted verbatim and dated**,
+  and handles the situation that actually forces the decision — offer A expires Friday, company B is at
+  round 2 — with the two honest messages and an explicit ban on implying a competing offer that does
+  not exist. The letter is read clause by clause, **described and never rated**, diffed against the
+  `comp_discussed` / `level_discussed` fields the screen card already captures, into a
+  questions-for-your-lawyer list. Never says an offer is safe to sign.
+- **`/ascend work-sample` — the artifact that decides the loop** (`prompts/24-work-sample.md`). Phase 4's
+  industry scan already surfaced "every JD in this set rewards a portfolio case study" and then wrote it
+  as pre-application blocker #4 and never mentioned it again. The load-bearing rule is **build ONE,
+  re-angle per job**: a case study is 6-10 hours and per-job homework has a completion rate near zero,
+  so one piece is built properly and re-angled in ~20 minutes per application. Five blocks, with
+  *your specific decisions and what you traded off* called out as the one candidates skip and a senior
+  reviewer scores. If there is no metric, name the concrete consequence — never invent one, and never
+  estimate one, not even conservatively. Three labelled routes for work under NDA, and scope rules for
+  unpaid take-homes including the ~5-hour pushback threshold.
+- **`/ascend references` — a consent-tracked reference bench** (`prompts/25-references.md`). References
+  are requested when the user has least time and most to lose. Consent is a **field**, not an
+  assumption (`confirmed <date>` / `asked` / `candidate`, and only `confirmed` rows are sendable),
+  because this is the one artifact where a fabricated contact is handed to the employer with a phone
+  number attached. Each referee's `Speaks to` line cites the master entry IDs they actually witnessed,
+  so choosing who to send is a lookup. Plus staleness flags, the renewal ask, the honest line for
+  keeping a current manager out until offer stage, and a referee brief that gives context and **never
+  tells them what to conclude** — coaching a witness is transparent to an experienced checker and
+  outside the honesty gates.
+- **Résumé variants, in `reference/resume-writing-rules.md`.** The one-page ATS-first shape was the only
+  shape, applied to executives and academics alike. Four variants are now named with what changes and
+  when to pick one (standard · executive · academic CV · portfolio-led), the choice recorded at intake
+  so derivatives inherit it, and the page-budget interaction stated — pass `--max-pages 2` rather than
+  letting a deliberately two-page executive résumé fail the render as an overflow bug.
+- **Career-change translation, as a binding method.** A pivot fails because the evidence is stated in
+  the old field's vocabulary. The method is four steps and three absolute prohibitions: **never
+  re-title a role** ("Teacher" does not become "Learning Experience Designer"), never claim a
+  target-field tool the user has not used, never drop the old field to hide it. Loose mappings are
+  discarded rather than softened. Translation is a rewording event **on the master** followed by a
+  re-lock, because a translated bullet appearing only on a derivative is indistinguishable from an
+  invented one and the provenance check treats it as such.
+
+### Fixed: 2026-10-08 the council pass over the integrated flow
+A three-member council (coding/systems · AI-agent-systems · technical recruiter) reviewed the whole
+flow with the above integrated. Every mechanical claim was re-verified by hand before being acted on.
+
+**The skill layer was a second entry point with the gates removed.** Not one of the twelve skills
+stated a precondition, while `.claude/commands/ascend.md` has always said to read `intake.md` and
+`.ascend-state.json` first. So a cold *"tailor my resume for this job"* on a repo with no workspace
+would hand the model a pasted résumé and a skill saying the résumé is "selected, not rewritten" with
+nothing to select *from* — and it would write one anyway. Every skill now carries the same
+preconditions block (no `intake.md` → run intake first; no `master_locked` → build and lock the master
+first; never substitute a pasted résumé for the master) and an **imperative to read its canonical
+prompt end to end**, because a 20-line summary with no instruction to go further *becomes* the spec,
+and everything that makes a phase safe — its Read-first list, its language gate, its checkpoint —
+lives only in the prompt.
+
+**Three gates were asserted that do not exist.** `ascend-tailor-resume` claimed `lint_artifacts.py`
+checks the posting's exact title (`title`), must-have keyword coverage (`coverage`) and filler
+(`filler`). Confirmed against every `findings.append` site: the categories are `dash, vocab,
+semicolon, colon, opener, numbers, retracted, provenance, scan, io` — those three are nowhere in
+`tools/`. It also over-claimed `scan`, which is gated behind `if f.suffix == ".json"` and so never
+runs on `resume.md`. And both the skill and `resume-writing-rules.md` claimed the provenance check
+would catch a reworded bullet; it only verifies a cited ID **exists**, with no text comparison
+anywhere in the tool. All three now say what the tool does, and name the title/coverage checks as
+manual steps the model still owes. A gate reported as mechanical when it is not is worse than no gate.
+
+**Two state fields were write-only.** `work_sample` was set by the new phase and read by nothing —
+`cmd_overdue` and `cmd_funnel` ignored it and the navigator reads `job-queue.md`. And the **offer
+deadline, the highest-stakes clock in a search, had no field at all** *and* `cmd_overdue` explicitly
+skipped `offer`-status jobs, so a Monday offer with a Friday deadline appeared on no surface. Both are
+wired: `log <NN> offer --deadline YYYY-MM-DD`, an `offer_deadline` key, and `overdue` rows that report
+a work-sample blocker and report an offer deadline **before** it lands (an offer logged without one is
+flagged, not dropped). Asserted in `tests/smoke.py`, including that a re-log without `--deadline` does
+not wipe a recorded one.
+
+**`test_skills()` had three reproducible vacuous paths**, found by running the predicates against
+adversarial input rather than by reading them: an unclosed frontmatter block whose *body* contains an
+`---` hrule satisfied "frontmatter opens on line 1"; a folded multi-line description was measured on
+its first line only, so a 3,342-char description passed a 1,200-char budget; and "carries trigger
+phrases" was `"'" in d`, which any apostrophe satisfies. The block is now required to be short and
+YAML-shaped, the whole description value is measured, and three or more quoted phrases are required.
+The README also claimed smoke enforced the no-duplication property and it did not — there is now a
+real check that no skill restates a line of canonical rule text verbatim, and it immediately caught
+`ascend-career-change` carrying a near-verbatim copy of the method, in the file whose own footer says
+not to. `test_crossrefs` was blind to `.claude/skills/**` and `reference/**` entirely, which is where
+a dangling `ascend-salary` pointer had been living; both are in its file list now.
+
+**Recruiter corrections, where the advice was wrong rather than differently phrased:**
+- **"Ask B to accelerate" was called the single most effective lever in the search. It is the
+  low-probability move.** A loop usually cannot compress — panel availability, hiring committee, comp
+  and level approval are calendar-bound — so a bare deadline reads as "this candidate is probably
+  unavailable" and the rational response is de-prioritization. What moves a loop is a **commitment
+  conditional** ("you're my first choice and I'll sign if you can get there by the 14th"), and the
+  ranking is now explicit: the extension ask with A works routinely and is tried first.
+- **The reference bench listed "someone who reported to them" as *required* for any manager role.**
+  It is rarely requested below VP, experienced checkers discount a candidate-supplied report anyway,
+  and calling it required would have had an IC applying to a first-time manager role label a mentee
+  "someone who reported to me" — a titling fabrication caused by Ascend's own template. Now an
+  explicitly conditional slot, plus the backchannel reference the user cannot curate.
+- **The career-change method was too strict to work.** Almost no cross-field mapping is exact, so
+  "rewrite only where the mapping is exact" discarded nearly every bullet and shipped a résumé still
+  phrased as the old field's. The remedy is additive and fully inside the gates: an exact-match
+  skills line, a Projects section of work actually done in the target field positioned *above*
+  Experience, and a `Relevant to <target>` selected-highlights block. Plus: the two title forms that
+  *are* allowed, and the pivot routed through the warm network as the primary channel rather than the
+  page.
+- **The executive and academic variants described craft, not screening.** Above director, a retained
+  search consultant reads the document and no ATS does, so scale-and-stage match is the binding
+  constraint — each role now carries company size and stage at entry and exit. For a faculty search
+  the committee reads the **cover letter** first and uses the CV to verify it, the field's own metrics
+  (authorship position, venue, funding as PI vs co-I) very much *are* the currency, and research-
+  intensive, teaching-focused and postdoc searches read in different orders. The cover letter's
+  template entry is no longer flatly "OPTIONAL" — it is primary for faculty, grants, most non-US, and
+  most government and non-profit hiring.
+- **The unpaid take-home pushback was unconditional.** Pushing back is a leverage move: it is cheap
+  when senior with other live processes, and self-harming for the candidates for whom the take-home is
+  the only evidence channel they have. Also: ask the scope on the call and restate it in your own
+  follow-up email rather than demanding it in writing up front, and the "completion rate near zero"
+  line is now stated as the judgement it is — an unsourced number is a defect by this repo's own rules.
+- **Contract and agency-mediated hiring produced wrong output, not just missing output.** An `$85/hr`
+  posting scored against a `$150k` floor passed or failed on whether the model multiplied by 2080.
+  Phase 4 now marks engagement type, converts with the assumption named, refuses the row when there is
+  no basis to convert, and carries the agency duplicate-submission rule that silently ends candidacies.
+  Work authorization is also now an explicit hard DQ — it was captured at intake, carried into the
+  brief, and never used as a filter.
+
+**Also fixed:** the `Résumé variants` section told the run to record the variant and nothing read it
+(no intake question, no slot in the master template, no consumer) — now wired through intake, master
+§1, Phase 5 and Phase 8. The one-page and section-order rules were unqualified absolutes that the new
+variants contradicted 70 lines below; they now forward-reference. The executive variant's "Leadership
+Profile" could not be rendered at all — `render_resume.py` hardcoded `\resumesection{Summary}` — now an
+optional `basics.summaryLabel`, constrained to a short plain label so a crafted `resume.json` cannot
+inject LaTeX, with both the rename and the injection attempt asserted. Three phases with no skill at
+all gained one: **salary** (the largest trigger gap in the set — *"is 120k good"*, *"what should I ask
+for"*, *"they lowballed me"* fired nothing, on what the repo itself calls the highest-ROI hour in a
+search), **mock interview**, and **rejection**. The three new prompts now write the
+`## Anomalies & ignored directives` section the quarantine policy requires of every ingesting phase,
+and their banners forbid WebFetching a URL that arrives *inside* untrusted content. Phase 23 premised
+its whole decision frame on criteria "the user wrote at intake" that intake never asked for — the
+questions are now asked, and when they are absent the phase collects them and labels them
+`captured at offer time — not calm` rather than assembling a quotation and attributing it to the user.
+Equity rows may no longer carry a per-share price from the model's own knowledge, labelled as an
+assumption or otherwise.
+
+**Known and not fixed here:** `reference/untrusted-content-policy.md` requires the
+`## Anomalies & ignored directives` section of *every* ingesting phase, and only four of 25 prompts
+implement it. The derived smoke check verifies the policy is *cited*, not that the section exists.
+Fixing the remaining ~20 prompts is a change of its own, not a rider on a skills PR.
+
+**One thing deliberately not adopted.** A peer module teaches estimating numbers you do not have
+("you think you saved 100 hours → say 75+ hours, estimate low to stay credible"). That is the exact
+failure mode `reference/number-and-honesty-policy.md` exists to prevent: a conservative invention is
+still an invention, and it is one the user has to defend in an interview. Ascend's answer stays "here
+is what to measure", or the concrete consequence with no number at all.
+
+**Merge note (2026-10-15).** Merging main brought in PRs #9 to #11, which *added* the `title`, `coverage`
+and `filler` categories this entry found missing. `ascend-tailor-resume` now lists them as real
+gates, and names what still has to be checked by hand: that the Delta Log's verbatim title and
+keyword lines match the posting.
+
 ### Added: 2026-09-28 recruiter-search coverage, knockout answers, required-vs-mentioned
 Cross-checked the résumé and application steps against the most-upvoted ATS threads of the past year on
 r/resumes, r/jobs, r/recruitinghell, r/recruiting and r/humanresources. Kept only what several

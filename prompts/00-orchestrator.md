@@ -53,6 +53,17 @@ at a time). Required answers are marked ★ — do not proceed past Step 2 witho
 - **Compensation** expectations or floor (kept private; used only to filter and to script the
   recruiter-screen comp anchor).
 - **Timeline**: actively applying now, or exploring?
+- ★ **The three or four non-comp factors that would decide between two good offers** (scope, manager,
+  team, commute, remote policy, learning, stability, mission — their words, not a menu). And **the
+  walk-away**: what would make you decline an offer you otherwise wanted? Captured now, while calm,
+  because `prompts/23-offer-compare.md` reads these back verbatim during a 3-to-7-day offer window —
+  which is the one moment the user cannot generate them honestly. Record them dated.
+- **Résumé variant**: is the standard one-page ATS-first résumé right for these targets, or is this
+  an **executive** search (director+, retained search reads it, not an ATS), an **academic CV**
+  (faculty/postdoc — uncapped, and the cover letter is the primary screen), **portfolio-led**, or a
+  **non-US market** (2 pages is standard in the UK/EU)? Default `standard`. Recorded in
+  `master-resume.md` §1 and read by every derivative — see
+  `reference/resume-writing-rules.md → Résumé variants`.
 - **Packet breadth**: build apply packs for the **top 3–5 jobs you commit to** (the lazy default), or
   for **every queued job**? (Full-queue is slower and costs more tokens; the default keeps the first
   run lean. This is an explicit choice — don't silently assume either.)
@@ -160,6 +171,14 @@ interview prep is generated **on demand**, per job, only when a screen is booked
   the stage it died at, and activate a named replacement target: `/ascend rejected <NN>`.
 - `22-adjacent-titles.md` — **Adjacent Titles**: titles the user's own evidence already supports, written
   into their targeting on confirmation so every later search inherits them: `/ascend titles`.
+- `23-offer-compare.md` — **Offer Decision Room**: compare offers component by component, read the
+  letter's clauses in plain language, and handle the timeline where one offer expires before another
+  process finishes: `/ascend offers`. (Phase 19 negotiates one number; this one decides.)
+- `24-work-sample.md` — **Work-Sample Plan**: the portfolio case study, design doc or take-home that
+  decides the loop — one piece, built properly, re-angled per job: `/ascend work-sample [NN]`. Fires
+  when Phase 4's industry scan says the target set rewards an artifact.
+- `25-references.md` — **Reference Bench**: a consent-tracked reference list and the referee brief,
+  built early so the offer-stage request is a lookup rather than a scramble: `/ascend references`.
 
 **Recording what happened (the capture act).** Every status change goes through one command:
 `python3 tools/pipeline.py log workspace/<name> <NN> <status>` — exposed as **`/ascend log <NN> <status>`**.

@@ -43,7 +43,11 @@ free to fix.
 Fill every section with this user's real content:
 
 1. **Header** — name, contact, links, location, work authorization (only if the user stated it),
-   certifications with status (mark expired/in-progress honestly). Contact details belong in the
+   certifications with status (mark expired/in-progress honestly). **Plus the `Résumé variant:` line**
+   from intake (`standard | executive | academic-cv | portfolio-led | non-us`, default `standard`) —
+   every derivative reads it for its section set and page budget, so a decision recorded nowhere means
+   every derivative silently inherits Standard. See
+   `../reference/resume-writing-rules.md → Résumé variants`. Contact details belong in the
    document **body**, never a page header or footer: parsers routinely drop the header region, and a
    résumé that parses with no email is worse than one that never parsed at all.
 2. **Positioning summaries** — 2–3 per-audience summaries (their main target lane + alternates), each
@@ -116,7 +120,9 @@ real résumé the user can use when no specific JD applies — not the private s
 primary-lane summary and the strongest standard bullets, swap every metric to its **public** value, and
 exclude the private sections (metrics bank, story bank, conflicts log, INTERNAL pairs). Then run
 **Phase 8** to emit `master.resume.json`, the filled builder `.html`, and the rendered PDF. The master
-public résumé is the one exception to the one-page default: **up to 2 pages**, page 1 strongest.
+public résumé is one exception to the one-page default: **up to 2 pages**, page 1 strongest. The
+`Résumé variant:` line in §1 is the other — pass its page count to the renderer rather than letting a
+deliberately longer variant fail the budget as an overflow bug.
 
 ## Verify
 - Every metric/claim traces to the resume, the LinkedIn export, or an intake answer.

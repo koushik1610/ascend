@@ -16,6 +16,7 @@
 | Name | <…> |
 | Email · Phone | <…> |
 | Links | <portfolio / github / linkedin / site> |
+| Résumé variant | <standard \| executive \| academic-cv \| portfolio-led \| non-us> — from intake; see `../reference/resume-writing-rules.md → Résumé variants`. Governs section set and page budget for every derivative. |
 | Location · work mode | <…> |
 | Work authorization | <only if the user stated it> |
 

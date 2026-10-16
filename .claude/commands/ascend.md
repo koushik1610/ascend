@@ -66,6 +66,23 @@ and `workspace/<name>/.ascend-state.json` first, then:
   evidence already supports, on three labeled axes (lateral / stretch / pivot), each citing master
   entry IDs, written into their targeting only on confirmation.
 
+**Late-stage and artifact ops:**
+- **`offers`** → **Offer Decision Room** (`prompts/23-offer-compare.md`): compare two or more offers
+  component by component (guaranteed cash shown separately from expected total, equity with its share
+  count and assumed price), score them against the criteria the user wrote at intake quoted verbatim,
+  work the timeline where offer A expires before process B finishes, and read the letter's clauses in
+  plain language into a questions-for-your-lawyer list. Never rates a clause, never implies a
+  competing offer that doesn't exist. `negotiate` handles one number; this decides.
+- **`work-sample [NN]`** → **Work-Sample Plan** (`prompts/24-work-sample.md`): the portfolio case
+  study, design doc, writing sample or take-home that decides the loop. **One piece built properly
+  (6–10h), re-angled per application (~20 min)**, structured Problem → Constraints → your decisions and
+  trade-offs → Outcome → what you'd do differently, with a written time box and honest routes for work
+  under NDA. Includes unpaid take-home scope rules.
+- **`references`** → **Reference Bench** (`prompts/25-references.md`): a consent-tracked reference list
+  (`confirmed` / `asked` / `candidate`, and only `confirmed` rows are sendable), each referee citing the
+  master entry IDs they actually witnessed, with staleness flags, the ask, the renewal ask, and a
+  referee brief that gives context and never tells them what to conclude.
+
 Honor the binding rules in `CLAUDE.md`: person-agnostic, honesty gates absolute, selection-not-invention,
 all personal output under `workspace/` only, never commit personal data. Update `.ascend-state.json`
 after each phase and each job folder so the run is always resumable.
