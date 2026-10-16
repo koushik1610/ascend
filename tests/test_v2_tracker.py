@@ -85,6 +85,19 @@ class Classifier(unittest.TestCase):
                              "candidates.", "date": "2026-10-01T10:00:00Z"}
         self.assertEqual(classify.classify_message(m)["category"], "rejection")
 
+    def test_unfortunately_in_a_reschedule_is_not_a_rejection(self):
+        import classify
+        m = {"from": "Christine <christine@acme-robotics.example>", "subject": "Rescheduling",
+             "body_excerpt": "Unfortunately the slot we offered no longer works. Could you share your "
+                             "availability for Thursday?", "date": "2026-10-01T00:00:00Z"}
+        self.assertEqual(classify.classify_message(m)["category"], "interview-invite")
+
+    def test_unfortunately_alone_still_reads_as_rejection(self):
+        import classify
+        m = {"from": "careers@contoso.example", "subject": "Your application",
+             "body_excerpt": "Unfortunately, we won't be able to offer you a position.", "date": "2026-10-01T00:00:00Z"}
+        self.assertEqual(classify.classify_message(m)["category"], "rejection")
+
     def test_unrelated_mail_never_goes_to_llm(self):
         import classify
         m = {"from": "receipts@coffee.example", "subject": "Your receipt", "body_excerpt": "Total $4.50",

@@ -36,7 +36,7 @@ def _rx(*parts):
 # Checked in this order; the first category with a hit wins. Rejection comes first because most
 # rejections open with a thank-you that would otherwise read as an acknowledgement.
 RULES = [
-    ("rejection", _rx(r"\bunfortunately\b", r"not (be )?moving forward", r"will not be (moving|proceeding)",
+    ("rejection", _rx(r"not (be )?moving forward", r"will not be (moving|proceeding)",
                       r"not be proceeding", r"decided to (move forward|proceed|pursue|go) with (other|another)",
                       r"pursue other candidates", r"\bother candidates\b", r"\bnot (been )?selected\b",
                       r"position has been filled", r"regret to inform", r"no longer (being )?considered")),
@@ -59,6 +59,10 @@ RULES = [
                               r"role we're opening", r"open to (a )?(quick )?(chat|conversation|call|new roles)",
                               r"opportunity with", r"(great|strong) fit")),
 ]
+# "Unfortunately" on its own is a weak signal: "Unfortunately that slot no longer works, could you
+# share your availability?" is a live interview. It counts as a rejection only when the message asks
+# for no interview and no assessment.
+WEAK_REJECTION = re.compile(r"\bunfortunately\b", re.I)
 # Interview wording only counts in a sentence that is not conditional ("If selected, a recruiter
 # will contact you to schedule a call" is an acknowledgement's promise, not an invitation).
 CONDITIONAL = re.compile(r"\b(if|should|once|when)\b", re.I)
@@ -98,10 +102,15 @@ def classify_message(msg):
     ats = is_ats(msg)
     if sender(msg) in ALERT_SENDERS:
         return {"category": "job-alert", "confidence": 0.95, "rule": "sender:alert", "needs_llm": False}
+    rules = dict(RULES)
     for category, rx in RULES:
         if category == "recruiter-inbound" and ats:
             continue
         hit = _interview_hit(text, rx) if category == "interview-invite" else rx.search(text)
+        if category == "rejection" and not hit:
+            weak = WEAK_REJECTION.search(text)
+            if weak and not _interview_hit(text, rules["interview-invite"]) and not rules["assessment"].search(text):
+                hit = weak
         if hit:
             return {"category": category, "confidence": 0.95 if ats else 0.85,
                     "rule": f"{category}:{hit.group(0).lower()[:40]}", "needs_llm": False}
