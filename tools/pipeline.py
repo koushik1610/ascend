@@ -13,6 +13,7 @@ here just reads what it wrote.
   python3 tools/pipeline.py overdue WS [--today DATE]
   python3 tools/pipeline.py funnel  WS [--json]
   python3 tools/pipeline.py show    WS [NN]
+  python3 tools/pipeline.py ingest  WS [--json]      # Ascend 2.0: classified mail → status changes
 
 WS is the workspace directory (workspace/<name>). Writes stay inside it, always.
 
@@ -141,29 +142,17 @@ def read_ledger(ws):
     return rows
 
 
-# ── commands ────────────────────────────────────────────────────────────────
-def cmd_log(ws, args):
-    if len(args) < 2:
-        return die("usage: log WS NN STATUS [--on DATE] [--note TEXT] [--contact NAME] "
-                   "[--deadline DATE]")
-    nn, status = args[0], args[1].lower()
-    if status not in STATUSES:
-        return die(f"unknown status {status!r}. One of: {', '.join(STATUSES)}")
-    opts = {}
-    it = iter(args[2:])
-    for a in it:
-        if a in ("--on", "--note", "--contact", "--deadline"):
-            opts[a.lstrip("-")] = next(it, "")
-    job = find_job(ws, nn)
-    if not job:
-        return die(f"no unique job folder for {nn!r} under {ws / 'jobs'}")
-    log = job / "application-log.md"
-    if not log.is_file():
-        return die(f"{log} does not exist. Build the CORE apply pack first (Phase 5).")
+def transition(ws, job, status, when, source, note="", opts=None):
+    """Move one job to `status` on `when`: rewrite its state block, append a ledger row.
 
+    The single write path for a status change. `log` (a person typing) and `ingest` (Gmail) both
+    come through here, so the cadence, the follow-up dates and the ledger row are identical no matter
+    who recorded the event. Returns (previous_status, the state keys written).
+    """
+    opts = opts or {}
+    log = job / "application-log.md"
     cur = parse_state(log)
     prev = cur.get("status", "queued")
-    when = opts.get("on") or str(date.today())
     upd = {"status": status, "last_contact_on": when}
 
     if status == "applied":
@@ -189,7 +178,32 @@ def cmd_log(ws, args):
             upd["screen_with"] = opts["contact"]
 
     write_state(log, upd)
-    append_ledger(ws, job.name, when, prev, status, "log", opts.get("note", ""))
+    append_ledger(ws, job.name, when, prev, status, source, note)
+    return prev, upd
+
+
+# ── commands ────────────────────────────────────────────────────────────────
+def cmd_log(ws, args):
+    if len(args) < 2:
+        return die("usage: log WS NN STATUS [--on DATE] [--note TEXT] [--contact NAME] "
+                   "[--deadline DATE]")
+    nn, status = args[0], args[1].lower()
+    if status not in STATUSES:
+        return die(f"unknown status {status!r}. One of: {', '.join(STATUSES)}")
+    opts = {}
+    it = iter(args[2:])
+    for a in it:
+        if a in ("--on", "--note", "--contact", "--deadline"):
+            opts[a.lstrip("-")] = next(it, "")
+    job = find_job(ws, nn)
+    if not job:
+        return die(f"no unique job folder for {nn!r} under {ws / 'jobs'}")
+    log = job / "application-log.md"
+    if not log.is_file():
+        return die(f"{log} does not exist. Build the CORE apply pack first (Phase 5).")
+
+    when = opts.get("on") or str(date.today())
+    prev, upd = transition(ws, job, status, when, "log", opts.get("note", ""), opts)
     print(f"  {job.name}: {prev} → {status}  ({when})")
     if upd.get("next_followup_due"):
         print(f"  next follow-up due {upd['next_followup_due']}: {upd['next_action']}")
@@ -306,6 +320,67 @@ def cmd_show(ws, args):
     return 0
 
 
+# ── ingest: Gmail events → status transitions (Ascend 2.0, M2) ───────────────
+# What each classified email means for the job it is about. Categories not listed (status updates,
+# recruiter inbound, job alerts, other) are information, not a change of state.
+EVENT_STATUS = {"acknowledgement": "applied", "info-request": "responded", "assessment": "responded",
+                "interview-invite": "screen", "rejection": "rejected"}
+TERMINAL = {"offer", "rejected", "move-on"}
+DUE_ACTION = {"info-request": "answer the info request", "assessment": "complete the assessment"}
+
+
+def _job_for_match(ws, match, queue):
+    """An event's `match` is a job folder's NN, or a posting ID that queue.json maps to an NN."""
+    if not match:
+        return None
+    nn = match
+    if not re.fullmatch(r"\d{2,3}", str(match)):
+        nn = next((j.get("nn") for j in queue if j.get("posting_id") == match and j.get("nn")), None)
+    return find_job(ws, nn) if nn else None
+
+
+def cmd_ingest(ws, args):
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import _v2data as d
+    data = ws / "data"
+    done = {r.get("msg_id") for r in d.read_jsonl(data / "ingested.jsonl")}
+    queue = d.read_json(data / "queue.json", {}).get("jobs", [])
+    order = {s: i for i, s in enumerate(STATUSES)}
+    out = {"applied": 0, "skipped": 0, "unmatched": 0, "transitions": []}
+    events = sorted((e for e in d.read_jsonl(data / "events.jsonl") if e.get("msg_id") not in done),
+                    key=lambda e: e.get("date") or "")
+    for e in events:
+        d.append_jsonl(data / "ingested.jsonl", {"msg_id": e.get("msg_id")})
+        target = EVENT_STATUS.get(e.get("category"))
+        if not target:
+            out["skipped"] += 1
+            continue
+        job = _job_for_match(ws, e.get("match"), queue)
+        if not job or not (job / "application-log.md").is_file():
+            out["unmatched"] += 1
+            continue
+        cur = parse_state(job / "application-log.md").get("status", "queued")
+        if cur in TERMINAL or (target != "rejected" and order[target] <= order.get(cur, 0)):
+            out["skipped"] += 1
+            continue
+        when = (e.get("date") or str(date.today()))[:10]
+        prev, _ = transition(ws, job, target, when, "gmail", f"{e.get('category')} {e.get('msg_id')}")
+        if e.get("due") and e.get("category") in DUE_ACTION:
+            write_state(job / "application-log.md",
+                        {"next_followup_due": e["due"], "next_action": DUE_ACTION[e["category"]]})
+        out["applied"] += 1
+        out["transitions"].append({"job": job.name, "from": prev, "to": target, "on": when,
+                                   "msg_id": e.get("msg_id")})
+    if "--json" in args:
+        print(json.dumps(out))
+    else:
+        print(f"  ingested {len(events)} event(s): {out['applied']} status change(s), "
+              f"{out['unmatched']} not matched to a job, {out['skipped']} informational or no-op")
+        for t in out["transitions"]:
+            print(f"    {t['job']}: {t['from']} → {t['to']}  ({t['on']})")
+    return 0
+
+
 def main(argv):
     if len(argv) < 3:
         print(__doc__)
@@ -315,7 +390,8 @@ def main(argv):
         return die(f"workspace not found: {ws}")
     if "workspace" not in ws.parts:
         return die(f"refusing to operate outside a workspace/ directory: {ws}")
-    fn = {"log": cmd_log, "overdue": cmd_overdue, "funnel": cmd_funnel, "show": cmd_show}.get(cmd)
+    fn = {"log": cmd_log, "overdue": cmd_overdue, "funnel": cmd_funnel, "show": cmd_show,
+          "ingest": cmd_ingest}.get(cmd)
     if not fn:
         return die(f"unknown command {cmd!r}")
     return fn(ws, argv[3:])

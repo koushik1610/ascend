@@ -1,0 +1,129 @@
+"""Ascend 2.0 M2: ingest classified mail into the ledger, and the duplicate-apply guard.
+
+Run: python3 -m unittest tests/test_v2_pipeline.py -v
+"""
+
+import json
+import subprocess
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+REPO = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(REPO / "tools"))
+TOOL = [sys.executable, str(REPO / "tools/pipeline.py")]
+
+
+def make_ws(root, jobs):
+    """A workspace with job folders. pipeline.py refuses paths without a `workspace` component."""
+    ws = Path(root) / "workspace" / "tester"
+    for slug, company, role, status in jobs:
+        d = ws / "jobs" / slug
+        d.mkdir(parents=True)
+        log = f"# Application Log: {company}, {role}\n\nNotes the user wrote.\n"
+        if status:
+            log += f"\n```ascend-state\nstatus: {status}\napplied_on: 2026-09-01\n```\n"
+        (d / "application-log.md").write_text(log, encoding="utf-8")
+    (ws / "data").mkdir(parents=True, exist_ok=True)
+    return ws
+
+
+def add_events(ws, events):
+    import _v2data as d
+    for e in events:
+        d.append_jsonl(ws / "data" / "events.jsonl", e)
+
+
+def state(ws, slug):
+    import pipeline
+    return pipeline.parse_state(ws / "jobs" / slug / "application-log.md")
+
+
+def ingest(ws):
+    r = subprocess.run(TOOL + ["ingest", str(ws), "--json"], capture_output=True, text=True)
+    assert r.returncode == 0, r.stderr
+    return json.loads(r.stdout)
+
+
+def ev(msg_id, category, match, date="2026-10-05T10:00:00Z", due=None):
+    return {"msg_id": msg_id, "category": category, "match": match, "date": date, "due": due}
+
+
+class Ingest(unittest.TestCase):
+    def setUp(self):
+        self.td = tempfile.TemporaryDirectory()
+        self.ws = make_ws(self.td.name, [
+            ("01-acme-staff", "Acme Robotics", "Staff Security Engineer", None),
+            ("02-northwind-principal", "Northwind", "Principal Cloud Security Engineer", "applied"),
+            ("03-litware-staff", "Litware", "Staff Detection Engineer", "screen"),
+        ])
+
+    def tearDown(self):
+        self.td.cleanup()
+
+    def test_acknowledgement_moves_queued_to_applied(self):
+        add_events(self.ws, [ev("a1", "acknowledgement", "01")])
+        out = ingest(self.ws)
+        self.assertEqual(out["applied"], 1)
+        st = state(self.ws, "01-acme-staff")
+        self.assertEqual((st["status"], st["applied_on"]), ("applied", "2026-10-05"))
+
+    def test_interview_invite_moves_applied_to_screen(self):
+        add_events(self.ws, [ev("a2", "interview-invite", "02")])
+        ingest(self.ws)
+        self.assertEqual(state(self.ws, "02-northwind-principal")["status"], "screen")
+
+    def test_rejection_after_screen(self):
+        add_events(self.ws, [ev("a3", "rejection", "03")])
+        ingest(self.ws)
+        self.assertEqual(state(self.ws, "03-litware-staff")["status"], "rejected")
+
+    def test_never_moves_backwards(self):
+        add_events(self.ws, [ev("a4", "acknowledgement", "03")])
+        out = ingest(self.ws)
+        self.assertEqual(out["applied"], 0)
+        self.assertEqual(state(self.ws, "03-litware-staff")["status"], "screen")
+
+    def test_assessment_sets_due_date(self):
+        add_events(self.ws, [ev("a5", "assessment", "02", due="2026-10-12")])
+        ingest(self.ws)
+        st = state(self.ws, "02-northwind-principal")
+        self.assertEqual((st["status"], st["next_followup_due"]), ("responded", "2026-10-12"))
+
+    def test_posting_id_resolves_through_queue(self):
+        import _v2data as d
+        d.write_json_atomic(self.ws / "data" / "queue.json",
+                            {"jobs": [{"posting_id": "gh:northwind:2", "company": "Northwind", "nn": "02"}]})
+        add_events(self.ws, [ev("a6", "interview-invite", "gh:northwind:2")])
+        ingest(self.ws)
+        self.assertEqual(state(self.ws, "02-northwind-principal")["status"], "screen")
+
+    def test_unmatched_and_informational_events_are_counted_not_applied(self):
+        add_events(self.ws, [ev("a7", "rejection", None), ev("a8", "status-update", "02"),
+                             ev("a9", "job-alert", None)])
+        out = ingest(self.ws)
+        self.assertEqual((out["applied"], out["unmatched"], out["skipped"]), (0, 1, 2))
+        self.assertEqual(state(self.ws, "02-northwind-principal")["status"], "applied")
+
+    def test_idempotent(self):
+        add_events(self.ws, [ev("b1", "acknowledgement", "01"), ev("b2", "interview-invite", "01",
+                                                                      date="2026-10-07T10:00:00Z")])
+        first = ingest(self.ws)
+        second = ingest(self.ws)
+        self.assertEqual(first["applied"], 2)
+        self.assertEqual(second["applied"] + second["skipped"] + second["unmatched"], 0)
+
+    def test_ledger_rows_are_sourced_gmail_and_prose_survives(self):
+        import pipeline
+        add_events(self.ws, [ev("c1", "acknowledgement", "01")])
+        ingest(self.ws)
+        rows = pipeline.read_ledger(self.ws)
+        self.assertEqual([(r["slug"], r["from"], r["to"], r["source"]) for r in rows],
+                         [("01-acme-staff", "queued", "applied", "gmail")])
+        text = (self.ws / "jobs/01-acme-staff/application-log.md").read_text()
+        self.assertIn("Notes the user wrote.", text)
+
+
+if __name__ == "__main__":
+    unittest.main()
