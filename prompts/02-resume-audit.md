@@ -53,6 +53,23 @@ Then go **section by section** (summary, experience, skills, education) and, for
 **weakest line verbatim** and say which failure class it belongs to and why. One line per section is
 enough. The point is that the user can see the specific sentence, not a category.
 
+### 3b. Does the top third carry the strongest signal for THIS role?
+The decision gets made in the top third of page one: the title line, the summary, and the first two
+or three bullets of the most recent role. Everything below it is corroboration for a reader who has
+already decided to keep going.
+
+Answer three things concretely, quoting what is actually there:
+- **Title line.** Does it name the target role in the words the target market uses, or the user's
+  current internal title? An internal title nobody searches for is a wasted line.
+- **Summary.** Does it lead with the evidence this role buys, or with a generic self-description?
+- **First bullets.** Are the two or three strongest role-relevant achievements above the fold, or is
+  the best material on page two?
+
+Then say plainly what should move up and what should move down, and which Tier-1 keywords are absent
+from the top third specifically. **Reordering is free and it is usually the single highest-value edit
+in the whole audit** — no new claims, no rewriting, just putting the strongest evidence where the
+decision happens.
+
 ### 4. Keyword gap table
 Three columns: **present** (target-role keywords already there), **missing-but-claimable** (the user
 has the evidence but the resume doesn't say it — pull evidence from LinkedIn/intake), **true gaps**
@@ -85,5 +102,20 @@ The improvements ranked by impact. Mark which are pure-formatting (do immediatel
 - ATS score has a transparent rationale.
 
 ## Checkpoint
-Give the user the ATS score, the single biggest fix, and the count of missing-but-claimable keywords
-(the easy wins). Confirm the target keyword set with them before Phase 3.
+The full audit lives in the file. What you show the user in chat is **short and actionable** — three
+blocks, nothing else. The audit's value is the decisions it prompts, and a wall of analysis in the
+terminal gets skimmed:
+
+```
+CHANGED            max 8 lines, one per change, plain language, what and why
+NEED FROM YOU      anything left blank or vague because the user has not supplied it yet
+ADD THESE WORDS    missing target-role keywords the user can HONESTLY claim from evidence already
+                   present, each with exactly where it goes (which section, which bullet)
+```
+
+Rules for the three blocks:
+- **ADD THESE WORDS comes only from the "missing-but-claimable" column**, never from "true gaps".
+  Suggesting a keyword the user cannot back is how a résumé becomes a lie the interview exposes.
+- **NEED FROM YOU is where uncertainty goes.** If a date, a scope or an outcome is unclear, it is
+  left out of the résumé and asked for here. Never guess to fill a line.
+- Then confirm the target keyword set before Phase 3.

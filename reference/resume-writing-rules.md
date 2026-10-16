@@ -36,6 +36,27 @@ Every bullet should answer: *what did you do, how big was it, and what changed b
     tense for current role / past tense for prior.
 
 ## Bullet writing — anti-AI-tell + ATS (binding)
+
+**0. The shape.** Every bullet is one line and answers three things in order:
+
+> **[what you did] + [how / with what] + [what changed]**
+
+The middle term is what makes it yours rather than anyone's — the actual protocol, service, library,
+config or technique. The third term is the one people drop.
+
+- ❌ *Responsible for improving network performance.* (role, not contribution; no mechanism; no outcome)
+- ✅ *Cut p99 handshake latency by replacing the per-connection mutex with a sharded lock table.*
+
+**"What changed" does not have to be a number, and you must never invent one.** When no metric exists,
+name the concrete deliverable or the state change: *"…so retries stopped amplifying under partial
+partition,"* *"…which let the team drop the nightly reconciliation job."* A named consequence beats a
+fabricated percentage every time, and it beats trailing off after the mechanism.
+
+**Filler is linted.** *Responsible for · worked on · helped with · assisted with · involved in · tasked
+with · duties included · participated in · contributed to · exposure to · familiar with · various ·
+several different* all describe proximity to work rather than the work. `tools/lint_artifacts.py`
+flags them in any bullet (the `filler` category).
+
 Two goals that pull apart: ATS wants literal keyword matches; a human recruiter rejects text that reads
 AI-generated. Follow the punctuation/vocabulary bans strictly (zero ATS cost) and integrate keywords
 deliberately (where the real optimization is). Check every bullet against `../.claude/banned-words.md`.
@@ -84,7 +105,23 @@ person describing their work, or a press release? → plainer if the latter.
   is now gated mechanically: `tools/lint_artifacts.py` fails a `resume.json` whose `work[]` entries
   are out of order, along with a years-of-experience claim that contradicts the dates on the same
   page (the `scan` category).
-- Length: 1 page under ~10 years, 2 pages for 10+. Never exceed 2.
+- **Section order depends on where the strongest evidence is, and there are two orders.** The default
+  above is right when work history is the strongest asset. It is wrong for early-career candidates,
+  where leading with a thin Experience section buries the two things that actually qualify them.
+
+  | Situation | Order |
+  |---|---|
+  | **Default** (roughly 3+ years of relevant full-time work) | Contact → Summary → **Experience** → Skills → Education → Projects/Certs |
+  | **Early career** (fresher, new grad, internships-only, <2–3 years, or a career change where the new field's evidence is in projects rather than jobs) | Contact → **Skills** → **Education** → Experience/Internships → Projects |
+
+  Pick once, at master-résumé time, and keep it consistent across every derived résumé. Section
+  *names* stay standard either way — ATS matches on them.
+- **Contact details go in the document body, never in a page header or footer.** Many parsers drop
+  the header region entirely, and a résumé that parses with no email is worse than one that never
+  parsed. Ascend's LaTeX template enforces this by construction (`\pagestyle{empty}`; the contact line
+  is body text), so this rule matters when a user brings their own file or edits the HTML builder.
+- Length: 1 page under ~10 years, 2 pages for 10+. Never exceed 2. **Fresher or new grad: one page,
+  no exceptions** — a two-page early-career résumé reads as padding.
 - Single column. No tables, text boxes, columns, headers/footers, icons, or graphics (parsers drop
   them). PDF unless the portal demands .docx.
 - File name: `<Name>-Resume[-<Company>].pdf` (recruiters search download folders).

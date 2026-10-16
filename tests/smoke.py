@@ -509,7 +509,8 @@ def test_linter():
             "- Leveraged a robust platform — cutting toil by 30%.\n"          # vocab + em dash
             "- Ran the migration; it landed on time.\n"                        # clause semicolon
             "- The result: a seamless rollout.\n"                              # dramatic colon + vocab
-            "- Managed the fleet of 1,234 internal nodes.\n",                  # forbidden number (config)
+            "- Managed the fleet of 1,234 internal nodes.\n"                   # forbidden number (config)
+            "- Responsible for various performance work.\n",                   # filler x2
             encoding="utf-8")
         cfg = d / "lint-config.json"
         cfg.write_text(json.dumps({"forbidden_patterns": [r"1,234"],
@@ -517,7 +518,7 @@ def test_linter():
         r = subprocess.run([sys.executable, LINT, str(job), "--config", str(cfg)],
                            capture_output=True, text=True)
         check("dirty artifact exits nonzero", r.returncode == 1, f"rc={r.returncode}")
-        for cat in ("[dash]", "[vocab]", "[semicolon]", "[colon]", "[numbers]", "[provenance]"):
+        for cat in ("[dash]", "[vocab]", "[semicolon]", "[colon]", "[numbers]", "[provenance]", "[filler]"):
             check(f"flags {cat}", cat in r.stdout, r.stdout[:200])
         # a clean sendable (with provenance) must pass. The master must exist: provenance now
         # verifies each cited ID against it, and reports UNVERIFIED when it can't (2026-08-20).
