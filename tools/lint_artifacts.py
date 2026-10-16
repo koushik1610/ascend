@@ -56,6 +56,16 @@ DRAMATIC_COLON = re.compile(
     r"\b(the\s+)?(result|results|outcome|impact|payoff|bottom\s+line|takeaway)\s*:", re.I
 )
 BAD_OPENER = re.compile(r"^\s*[-*•]\s*(successfully|effectively|proactively)\b[, ]", re.I)
+# Filler constructions that describe a ROLE instead of a CONTRIBUTION. "Responsible for the migration"
+# says you were near it; "Cut migration time by rewriting the batch loader" says you did it. These are
+# the most common early-career résumé tell and the rules file already shows "Responsible for…" as its
+# worked ❌ example — it just was not enforced. Bullet lines only: "worked on" is unremarkable in
+# conversational outreach and only reads as filler in a résumé bullet.
+BULLET_LINE = re.compile(r"^\s*[-*•]\s")
+FILLER = re.compile(
+    r"\b(responsible for|worked on|helped (?:with|to)|assisted (?:with|in)|involved in|"
+    r"tasked with|duties included|participated in|contributed to|exposure to|"
+    r"familiar with|various|several different)\b", re.I)
 # A clause-joining semicolon. Digits count as a clause end ("...NPS from 22 to 41; mentors...") and
 # the second clause may wrap to the next line, so also flag a trailing semicolon at end of line.
 # Both forms shipped undetected in examples/sample-run (2026-08-20 council).
@@ -256,6 +266,11 @@ def lint_text(text, fname, vocab_regexes, forbidden, retracted, allowed_vocab=fr
             findings.append((fname, i, "colon", f"dramatic-reveal colon: {m.group(0)!r}"))
         if BAD_OPENER.search(line):
             findings.append((fname, i, "opener", "bullet opens with Successfully/Effectively/Proactively"))
+        if BULLET_LINE.match(line):
+            for m in FILLER.finditer(line):
+                findings.append((fname, i, "filler",
+                                 f"{m.group(0)!r} describes proximity to the work, not the work. "
+                                 "Say what you did, how, and what changed."))
         for rx in vocab_regexes:
             for m in rx.finditer(line):
                 # group(1) is the uninflected stem for the word alternation ("optimized" → "optimize"
