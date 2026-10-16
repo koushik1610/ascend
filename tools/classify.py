@@ -10,7 +10,9 @@ Email content is UNTRUSTED DATA (reference/untrusted-content-policy.md). This mo
 patterns against it. Nothing in a message is ever executed, fetched or followed.
 """
 
+import math
 import re
+from datetime import date, datetime, timedelta
 
 CATEGORIES = ["acknowledgement", "rejection", "info-request", "assessment", "interview-invite",
               "status-update", "recruiter-inbound", "job-alert", "other"]
@@ -103,3 +105,82 @@ def classify_message(msg):
                     "rule": f"{category}:{hit.group(0).lower()[:40]}", "needs_llm": False}
     return {"category": "other", "confidence": 0.5, "rule": "none",
             "needs_llm": bool(ats or JOBBY.search(text))}
+
+
+# ── Matching mail to a queued job ────────────────────────────────────────────
+SUFFIXES = {"inc", "llc", "ltd", "corp", "corporation", "co", "company", "technologies", "group", "plc", "gmbh"}
+
+
+def company_tokens(name):
+    words = re.findall(r"[a-z0-9]+", (name or "").lower())
+    return [w for w in words if w not in SUFFIXES] or words
+
+
+def _alnum(s):
+    return re.sub(r"[^a-z0-9]", "", (s or "").lower())
+
+
+def match_job(msg, jobs):
+    """The queued job this message is about: its `nn` when it has a folder, else its `posting_id`.
+
+    Three signals, any one is enough: the company in an ATS sender's local part
+    (nvidia@myworkday.com), the company as the sender's own domain (x@acme-robotics.example), or the
+    company name as whole words in the subject or body. Whole words, so 'HP' never matches 'Champion'.
+    """
+    local, _, domain = sender(msg).partition("@")
+    first_label = _alnum(domain.split(".")[0]) if domain and not is_ats(msg) else ""
+    text = _text(msg)
+    hits = []
+    for job in jobs:
+        tokens = company_tokens(job.get("company"))
+        if not tokens:
+            continue
+        key = "".join(tokens)
+        by_sender = is_ats(msg) and _alnum(local) == key
+        by_domain = bool(first_label) and first_label == key
+        by_text = re.search(r"\b" + r"[\W_]*".join(map(re.escape, tokens)) + r"\b", text, re.I)
+        if by_sender or by_domain or by_text:
+            hits.append(job)
+    if not hits:
+        return None
+    best = next((j for j in hits if j.get("nn")), hits[0])
+    return best.get("nn") or best.get("posting_id")
+
+
+# ── Due dates for info requests and assessments ──────────────────────────────
+MONTHS = {m: i for i, m in enumerate(["january", "february", "march", "april", "may", "june", "july",
+                                       "august", "september", "october", "november", "december"], 1)}
+WITHIN = re.compile(r"within (\d{1,3}) (business |calendar )?(day|hour)s?", re.I)
+BY_DATE = re.compile(r"\bby (" + "|".join(MONTHS) + r") (\d{1,2})\b", re.I)
+DEFAULT_DAYS = 3
+
+
+def _msg_date(msg):
+    try:
+        return datetime.fromisoformat((msg.get("date") or "").replace("Z", "+00:00")).date()
+    except ValueError:
+        return date.today()
+
+
+def due_date(msg, category):
+    """ISO due date for info-request and assessment mail, else None."""
+    if category not in ("info-request", "assessment"):
+        return None
+    sent = _msg_date(msg)
+    text = _text(msg)
+    m = WITHIN.search(text)
+    if m:
+        n = int(m.group(1))
+        days = math.ceil(n / 24) if m.group(3).lower() == "hour" else n
+        return (sent + timedelta(days=days)).isoformat()
+    m = BY_DATE.search(text)
+    if m:
+        month, day = MONTHS[m.group(1).lower()], int(m.group(2))
+        try:
+            d = date(sent.year, month, day)
+            if d < sent:
+                d = date(sent.year + 1, month, day)
+            return d.isoformat()
+        except ValueError:
+            pass
+    return (sent + timedelta(days=DEFAULT_DAYS)).isoformat()

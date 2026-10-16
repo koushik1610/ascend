@@ -107,5 +107,65 @@ class Classifier(unittest.TestCase):
         self.assertTrue(0 < r["confidence"] <= 1)
 
 
+class Matching(unittest.TestCase):
+    JOBS = [{"posting_id": "gh:acme:1", "company": "Acme Robotics, Inc.", "title": "Staff Security Engineer", "nn": "03"},
+            {"posting_id": "wd:nvidia:9", "company": "NVIDIA", "title": "Principal Cloud Security Engineer"}]
+
+    def msg(self, frm, subject="", body=""):
+        return {"from": frm, "subject": subject, "body_excerpt": body, "date": "2026-10-01T00:00:00Z"}
+
+    def test_workday_local_part_matches_company(self):
+        import classify
+        self.assertEqual(classify.match_job(self.msg("nvidia@myworkday.com", "Application update"), self.JOBS),
+                         "wd:nvidia:9")
+
+    def test_company_name_in_subject_prefers_nn(self):
+        import classify
+        m = self.msg("no-reply@ashbyhq.com", "Thanks for applying to Acme Robotics")
+        self.assertEqual(classify.match_job(m, self.JOBS), "03")
+
+    def test_company_domain_matches(self):
+        import classify
+        self.assertEqual(classify.match_job(self.msg("christine@acme-robotics.example", "Next steps"), self.JOBS), "03")
+
+    def test_no_match(self):
+        import classify
+        self.assertIsNone(classify.match_job(self.msg("x@y.example", "Hello"), self.JOBS))
+
+    def test_short_company_name_needs_word_boundary(self):
+        import classify
+        jobs = [{"posting_id": "gh:hp:1", "company": "HP", "title": "Security Engineer"}]
+        self.assertIsNone(classify.match_job(self.msg("a@b.example", "Champion of the month"), jobs))
+        self.assertEqual(classify.match_job(self.msg("hp@myworkday.com", "Your application"), jobs), "gh:hp:1")
+
+
+class DueDates(unittest.TestCase):
+    def msg(self, body):
+        return {"subject": "", "body_excerpt": body, "date": "2026-10-01T09:00:00Z"}
+
+    def test_within_days(self):
+        import classify
+        self.assertEqual(classify.due_date(self.msg("Please complete it within 5 days."), "assessment"), "2026-10-06")
+
+    def test_within_hours_rounds_up_to_a_day(self):
+        import classify
+        self.assertEqual(classify.due_date(self.msg("Respond within 48 hours."), "info-request"), "2026-10-03")
+
+    def test_by_month_day(self):
+        import classify
+        self.assertEqual(classify.due_date(self.msg("Please submit it by October 12."), "assessment"), "2026-10-12")
+
+    def test_by_month_day_rolls_to_next_year(self):
+        import classify
+        m = {"subject": "", "body_excerpt": "Reply by January 5.", "date": "2026-12-20T09:00:00Z"}
+        self.assertEqual(classify.due_date(m, "info-request"), "2027-01-05")
+
+    def test_default_three_days_and_none_for_other_categories(self):
+        import classify
+        m = self.msg("Please answer a few questions.")
+        self.assertEqual(classify.due_date(m, "info-request"), "2026-10-04")
+        self.assertIsNone(classify.due_date(m, "rejection"))
+
+
 if __name__ == "__main__":
     unittest.main()
