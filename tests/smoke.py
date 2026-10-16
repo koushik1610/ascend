@@ -1139,11 +1139,22 @@ def test_industry_research():
     check("shipped reference is not gitignored", not ignored)
     check("state.py knows phase 26", '"26"' in (REPO / "tools/state.py").read_text(encoding="utf-8"))
 
+# ── 4l. Ascend 2.0 unit suites (stdlib unittest) ─────────────────────────────
+def test_v2_units():
+    # v2 modules carry their own focused unittest files; smoke runs them so CI covers them without a
+    # second workflow step, and a red v2 test fails the same gate as a red v1 check.
+    print("ascend 2.0 units")
+    for f in sorted((REPO / "tests").glob("test_v2_*.py")):
+        r = subprocess.run([sys.executable, "-m", "unittest", str(f.relative_to(REPO))],
+                           cwd=REPO, capture_output=True, text=True)
+        tail = (r.stderr or r.stdout).strip().splitlines()[-1:] or [""]
+        check(f"{f.name} passes", r.returncode == 0, tail[0])
+
 if __name__ == "__main__":
     for t in (test_server, test_html_json, test_gitignore, test_crossrefs, test_phase_order,
               test_op_parity, test_skills, test_resume_builder, test_latex_render, test_bash_allowlist,
               test_honesty, test_linter, test_council_gates, test_pipeline, test_registry,
-              test_grade_run, test_paths_and_state, test_scripts, test_industry_research):
+              test_grade_run, test_paths_and_state, test_scripts, test_industry_research, test_v2_units):
         try: t()
         except Exception as e:
             check(f"{t.__name__} raised", False, repr(e))

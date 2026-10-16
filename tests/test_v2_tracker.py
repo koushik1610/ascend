@@ -167,5 +167,71 @@ class DueDates(unittest.TestCase):
         self.assertIsNone(classify.due_date(m, "rejection"))
 
 
+class RunCommand(unittest.TestCase):
+    TOOL = [sys.executable, str(REPO / "tools/classify.py")]
+
+    def seed(self, ws):
+        import _v2data as d
+        dd = d.data_dir(ws)
+        for m in d.read_jsonl(FIX / "mailbox.jsonl"):
+            d.append_jsonl(dd / "mail.jsonl", {k: v for k, v in m.items() if k != "_expect"})
+        d.write_json_atomic(dd / "queue.json", d.read_json(FIX / "queue.json", {}))
+        return dd
+
+    def test_run_is_incremental_and_complete(self):
+        import _v2data as d
+        with tempfile.TemporaryDirectory() as td:
+            ws = Path(td) / "ws"
+            dd = self.seed(ws)
+            r1 = subprocess.run(self.TOOL + ["run", str(ws), "--json"], capture_output=True, text=True)
+            self.assertEqual(r1.returncode, 0, r1.stderr)
+            out1 = json.loads(r1.stdout)
+            events = d.read_jsonl(dd / "events.jsonl")
+            self.assertEqual(out1["new"], len(events))
+            self.assertEqual(len(events), len(d.read_jsonl(dd / "mail.jsonl")))
+            r2 = subprocess.run(self.TOOL + ["run", str(ws), "--json"], capture_output=True, text=True)
+            self.assertEqual(json.loads(r2.stdout)["new"], 0)
+            self.assertEqual(len(d.read_jsonl(dd / "events.jsonl")), len(events))
+
+    def test_events_carry_match_due_and_pending(self):
+        import _v2data as d
+        with tempfile.TemporaryDirectory() as td:
+            ws = Path(td) / "ws"
+            dd = self.seed(ws)
+            subprocess.run(self.TOOL + ["run", str(ws)], capture_output=True, text=True, check=True)
+            ev = {e["msg_id"]: e for e in d.read_jsonl(dd / "events.jsonl")}
+            self.assertEqual(ev["m03"]["match"], "wd:nvidia:3")
+            self.assertEqual(ev["m13"]["match"], "01")
+            self.assertEqual(ev["m10"]["due"], "2026-10-12")
+            self.assertIsNone(ev["m30"]["match"])
+            self.assertEqual({p["msg_id"] for p in d.read_jsonl(dd / "classify-pending.jsonl")}, {"m33"})
+
+    def test_run_without_queue_still_classifies(self):
+        import _v2data as d
+        with tempfile.TemporaryDirectory() as td:
+            ws = Path(td) / "ws"
+            dd = self.seed(ws)
+            (dd / "queue.json").unlink()
+            r = subprocess.run(self.TOOL + ["run", str(ws), "--json"], capture_output=True, text=True)
+            self.assertEqual(r.returncode, 0, r.stderr)
+            events = d.read_jsonl(dd / "events.jsonl")
+            self.assertEqual(len(events), len(d.read_jsonl(dd / "mail.jsonl")))
+            self.assertTrue(all(e["match"] is None for e in events))
+
+    def test_one_command(self):
+        r = subprocess.run(self.TOOL + ["one", "--from", "no-reply@greenhouse.io", "--subject", "Coding challenge",
+                                        "--body", "Please complete the HackerRank assessment within 7 days.",
+                                        "--date", "2026-10-01T00:00:00Z"], capture_output=True, text=True)
+        out = json.loads(r.stdout)
+        self.assertEqual((out["category"], out["due"]), ("assessment", "2026-10-08"))
+
+    def test_usage_error_exits_2(self):
+        self.assertEqual(subprocess.run(self.TOOL + ["nope"], capture_output=True).returncode, 2)
+
+    def test_refuses_workspace_outside_allowed_roots(self):
+        r = subprocess.run(self.TOOL + ["run", "/etc/ascend-ws"], capture_output=True, text=True)
+        self.assertEqual(r.returncode, 2)
+
+
 if __name__ == "__main__":
     unittest.main()

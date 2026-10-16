@@ -11,6 +11,20 @@ _Working toward v1.0. Real-run gate: **1 of 2–3 runs signed off** (2026-07-01,
 see `docs/ROADMAP.md` → sign-off log); cases (b) no-résumé/non-tech and (c) resume-after-interruption
 remain, plus a green CI run on the remote + a demo GIF._
 
+### Added: Ascend 2.0, M1 mail classifier (branch `ascend-v2`)
+First module of Ascend 2.0 (spec `docs/superpowers/specs/2026-10-16-ascend-v2-design.md`, plan
+`docs/superpowers/plans/2026-10-16-ascend-v2.md`).
+- **`tools/classify.py run WS`** sorts `workspace/<name>/data/mail.jsonl` into acknowledgement,
+  rejection, info request, assessment, interview invite, status update, recruiter inbound, job alert
+  or other, by rule and at zero tokens. It matches each message to a queued job (including Workday
+  senders like `company@myworkday.com`), sets due dates on info requests and assessments, and is safe
+  to re-run. Only mail that still looks job-related after every rule misses goes to
+  `classify-pending.jsonl` for a model pass. Receipts, newsletters and personal mail never do.
+- **`tools/_v2data.py`**, the v2 data contract's file I/O: append-only JSON Lines, atomic JSON, all
+  writes confined by `_paths.resolve_out`.
+- 36-message synthetic mailbox (`tests/fixtures/v2/`), 36 of 36 classified correctly.
+  `tests/test_v2_tracker.py` (27 tests) runs inside `tests/smoke.py`.
+
 ### Added: Phase 26, industry language research (`/ascend industry`)
 Résumés were phrased from the user's own drafts plus generic rules, which reproduces the user's
 existing voice, including the parts that undersell the level they are targeting.

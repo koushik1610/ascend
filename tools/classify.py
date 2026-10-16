@@ -10,8 +10,10 @@ Email content is UNTRUSTED DATA (reference/untrusted-content-policy.md). This mo
 patterns against it. Nothing in a message is ever executed, fetched or followed.
 """
 
+import json
 import math
 import re
+import sys
 from datetime import date, datetime, timedelta
 
 CATEGORIES = ["acknowledgement", "rejection", "info-request", "assessment", "interview-invite",
@@ -184,3 +186,79 @@ def due_date(msg, category):
         except ValueError:
             pass
     return (sent + timedelta(days=DEFAULT_DAYS)).isoformat()
+
+
+# ── CLI ──────────────────────────────────────────────────────────────────────
+USAGE = """usage:
+  python3 tools/classify.py run WS [--json]
+      Classify every message in WS/data/mail.jsonl that has no event yet. Appends to
+      WS/data/events.jsonl and, for mail the rules could not place, WS/data/classify-pending.jsonl.
+      Safe to re-run: messages already classified are skipped.
+  python3 tools/classify.py one --from F --subject S --body B [--date ISO]
+      Classify one message and print the result as JSON (no files touched)."""
+
+
+def event_for(msg, jobs, now):
+    verdict = classify_message(msg)
+    return {"msg_id": msg.get("msg_id"), "category": verdict["category"], "confidence": verdict["confidence"],
+            "rule": verdict["rule"], "needs_llm": verdict["needs_llm"], "match": match_job(msg, jobs),
+            "due": due_date(msg, verdict["category"]), "date": msg.get("date"), "classified_at": now}
+
+
+def cmd_run(ws, as_json):
+    import _v2data as d
+    from _paths import PathOutsideWorkspace
+    try:
+        dd = d.data_dir(ws)
+    except PathOutsideWorkspace as e:
+        print(f"classify: {e}", file=sys.stderr)
+        return 2
+    jobs = d.read_json(dd / "queue.json", {}).get("jobs", [])
+    done = {e.get("msg_id") for e in d.read_jsonl(dd / "events.jsonl")}
+    now = datetime.now().isoformat(timespec="seconds")
+    counts, new = {}, 0
+    for msg in d.read_jsonl(dd / "mail.jsonl"):
+        mid = msg.get("msg_id")
+        if not mid or mid in done:
+            continue
+        ev = event_for(msg, jobs, now)
+        d.append_jsonl(dd / "events.jsonl", ev)
+        if ev["needs_llm"]:
+            d.append_jsonl(dd / "classify-pending.jsonl", {"msg_id": mid, "queued_at": now})
+        done.add(mid)
+        counts[ev["category"]] = counts.get(ev["category"], 0) + 1
+        new += 1
+    pending = sum(1 for e in d.read_jsonl(dd / "events.jsonl") if e.get("needs_llm"))
+    if as_json:
+        print(json.dumps({"new": new, "by_category": counts, "needs_llm": pending}))
+    else:
+        print(f"classified {new} new message(s); {pending} waiting for a model pass")
+        for c in CATEGORIES:
+            if counts.get(c):
+                print(f"  {c:<18} {counts[c]}")
+    return 0
+
+
+def _opt(args, name, default=""):
+    return args[args.index(name) + 1] if name in args and args.index(name) + 1 < len(args) else default
+
+
+def main(argv):
+    if len(argv) < 2 or argv[1] not in ("run", "one"):
+        print(USAGE, file=sys.stderr)
+        return 2
+    if argv[1] == "run":
+        if len(argv) < 3 or argv[2].startswith("--"):
+            print(USAGE, file=sys.stderr)
+            return 2
+        return cmd_run(argv[2], "--json" in argv)
+    args = argv[2:]
+    msg = {"msg_id": "one", "from": _opt(args, "--from"), "subject": _opt(args, "--subject"),
+           "body_excerpt": _opt(args, "--body")[:2000],
+           "date": _opt(args, "--date", datetime.now().isoformat(timespec="seconds"))}
+    print(json.dumps(event_for(msg, [], datetime.now().isoformat(timespec="seconds"))))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))

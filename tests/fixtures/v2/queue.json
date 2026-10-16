@@ -1,0 +1,10 @@
+{
+  "jobs": [
+    {"posting_id": "ashby:acme:1", "company": "Acme Robotics", "title": "Staff Security Engineer", "nn": "01", "state": "applied"},
+    {"posting_id": "gh:northwind:2", "company": "Northwind", "title": "Principal Cloud Security Engineer", "nn": "02", "state": "applied"},
+    {"posting_id": "wd:nvidia:3", "company": "NVIDIA", "title": "Principal Cloud Security Engineer", "state": "applied"},
+    {"posting_id": "lever:contoso:4", "company": "Contoso", "title": "Security Engineer", "state": "applied"},
+    {"posting_id": "gh:litware:5", "company": "Litware", "title": "Staff Detection Engineer", "state": "applied"},
+    {"posting_id": "wd:fabrikam:6", "company": "Fabrikam", "title": "Cloud Security Engineer", "state": "applied"}
+  ]
+}
