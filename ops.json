@@ -11,9 +11,10 @@
     "status: 'stable' = exercised on real data. 'beta' = built and code-checked, not yet proven on a",
     "real run (see docs/V1-READINESS.md). Be honest here; the README's maturity claim reads from it."
   ],
-  "run_order": ["1", "3", "4", "11", "6", "5", "7"],
+  "run_order": ["1", "26", "3", "4", "11", "6", "5", "7"],
   "phases": {
     "1":  {"file": "prompts/01-linkedin-analysis.md", "produces": "linkedin-analysis.html"},
+    "26": {"file": "prompts/26-industry-language.md", "produces": "industryresearch/<industry>/<domain>/industry-language.md (shared) + industry-fit.md"},
     "3":  {"file": "prompts/03-master-resume.md",     "produces": "master-resume.md + profile-brief.md"},
     "4":  {"file": "prompts/04-job-search.md",        "produces": "job-queue.md"},
     "11": {"file": "prompts/11-network-map.md",       "produces": "network-map.md"},
@@ -46,12 +47,15 @@
     {"op": "rejected",      "status": "beta", "what": "Close out a rejection or a ghost, and activate a named replacement"},
     {"op": "titles",        "status": "beta", "what": "Adjacent job titles your evidence already supports, written into your targeting"},
 
-    {"op": "offers",        "status": "beta", "new": true,
+    {"op": "offers",        "status": "beta",
      "what": "Compare offers component by component, read the letter, work the timeline"},
-    {"op": "work-sample",   "status": "beta", "new": true,
+    {"op": "work-sample",   "status": "beta",
      "what": "The portfolio piece or take-home that decides the loop: build one, re-angle per job"},
-    {"op": "references",    "status": "beta", "new": true,
-     "what": "A consent-tracked reference bench, plus the brief that changes the call"}
+    {"op": "references",    "status": "beta",
+     "what": "A consent-tracked reference bench, plus the brief that changes the call"},
+
+    {"op": "industry",      "status": "beta", "new": true,
+     "what": "How people at your target level write about their work: a monthly, shared phrasing reference"}
   ],
   "skills": {
     "_comment": [

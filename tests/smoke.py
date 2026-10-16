@@ -1082,21 +1082,68 @@ def test_registry():
           set(reg["run_order"]) == set(reg["phases"]), f"{reg['run_order']} vs {list(reg['phases'])}")
     new_ops = [o["op"] for o in reg["ops"] if o.get("new")]
     check("this PR's new ops are registered",
-          set(new_ops) == {"offers", "work-sample", "references"}, str(new_ops))
+          set(new_ops) == {"industry"}, str(new_ops))
     # Each new prompt must exist and carry the injection quarantine, same bar as every other phase.
     for f in ("prompts/23-offer-compare.md", "prompts/24-work-sample.md",
-              "prompts/25-references.md"):
+              "prompts/25-references.md", "prompts/26-industry-language.md"):
         txt = (REPO / f).read_text(encoding="utf-8") if (REPO / f).is_file() else ""
         check(f"{f} exists", bool(txt))
         check(f"{f} cites the injection quarantine", "untrusted-content-policy" in txt)
     # The console must seed the honesty-gate config; without it every UI run lost the gate silently.
     check("the UI seeds lint-config.json", "lint-config.json" in (REPO / "ui/server.py").read_text(encoding="utf-8"))
 
+# ── 4k. Phase 26: shared industry-language research ──────────────────────────
+def test_industry_research():
+    # The reference is shared across users and may be committed to a public repo, so the freshness
+    # rule has to be mechanical and the privacy rule has to be checked, not trusted.
+    print("industry research (Phase 26)")
+    tool = [sys.executable, str(REPO / "tools/industry_research.py")]
+    def st(*a):
+        r = subprocess.run(tool + ["status", *a], capture_output=True, text=True, cwd=REPO)
+        return r.returncode, r.stdout.strip()
+    rc, out = st("tech", "cloudsecurity", "--today", "2026-10-31")
+    check("same calendar month → FRESH (exit 0)", rc == 0 and out.startswith("FRESH"), out)
+    rc, out = st("tech", "cloudsecurity", "--today", "2026-11-01")
+    check("next month → STALE (exit 3)", rc == 3 and out.startswith("STALE"), out)
+    rc, out = st("tech", "cloudsecurity", "--today", "2027-10-16")
+    check("same month next year → STALE, not FRESH", rc == 3, out)
+    rc, out = st("Tech", "Cloud Security", "--today", "2026-10-20")
+    check("slugs normalize ('Cloud Security' → cloudsecurity)", rc == 0, out)
+    rc, out = st("media", "journalism")
+    check("unknown field → MISSING (exit 4)", rc == 4 and out.startswith("MISSING"), out)
+    r = subprocess.run(tool + ["path", "finance", "Investment Banking"], capture_output=True, text=True, cwd=REPO)
+    check("path is industryresearch/<industry>/<domain>/industry-language.md",
+          r.stdout.strip() == "industryresearch/finance/investmentbanking/industry-language.md", r.stdout)
+    with tempfile.TemporaryDirectory() as td:
+        sys.path.insert(0, str(REPO / "tools"))
+        import industry_research as ir
+        f = Path(td) / "x.md"; f.write_text("# no stamp\n", encoding="utf-8")
+        check("a file with no Built stamp reads as undated", ir.built_date(f) is None)
+
+    shipped = REPO / "industryresearch/tech/cloudsecurity/industry-language.md"
+    txt = shipped.read_text(encoding="utf-8") if shipped.is_file() else ""
+    check("shipped reference exists", bool(txt))
+    check("shipped reference carries a Built stamp", bool(re.search(r"^\*\*Built:\*\* \d{4}-\d{2}-\d{2}$", txt, re.M)))
+    secs = re.findall(r"^## (\d+)\. ", txt, re.M)
+    check("shipped reference keeps sections 1 to 10 (prompts cite them by number)",
+          secs == [str(i) for i in range(1, 11)], str(secs))
+    for pat, why in ((r"linkedin\.com/in/", "profile URL"), (r"[\w.+-]+@[\w-]+\.[\w.]+", "email address")):
+        check(f"shared research holds no {why}", not any(re.search(pat, p.read_text(encoding="utf-8"))
+              for p in (REPO / "industryresearch").rglob("*.md")))
+    allow = json.loads((REPO / ".claude/settings.json").read_text(encoding="utf-8"))["permissions"]["allow"]
+    check("Phase 26 can write only its own folder outside workspace/",
+          "Write(industryresearch/**)" in allow and not any(a.startswith("Write(") and a not in
+          ("Write(workspace/**)", "Write(industryresearch/**)") for a in allow), str(allow))
+    check("the freshness tool is allow-listed", "Bash(python3 tools/industry_research.py*)" in allow)
+    ignored = subprocess.run(["git", "check-ignore", "-q", str(shipped.relative_to(REPO))], cwd=REPO).returncode == 0
+    check("shipped reference is not gitignored", not ignored)
+    check("state.py knows phase 26", '"26"' in (REPO / "tools/state.py").read_text(encoding="utf-8"))
+
 if __name__ == "__main__":
     for t in (test_server, test_html_json, test_gitignore, test_crossrefs, test_phase_order,
               test_op_parity, test_skills, test_resume_builder, test_latex_render, test_bash_allowlist,
               test_honesty, test_linter, test_council_gates, test_pipeline, test_registry,
-              test_grade_run, test_paths_and_state, test_scripts):
+              test_grade_run, test_paths_and_state, test_scripts, test_industry_research):
         try: t()
         except Exception as e:
             check(f"{t.__name__} raised", False, repr(e))

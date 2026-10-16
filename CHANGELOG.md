@@ -11,6 +11,29 @@ _Working toward v1.0. Real-run gate: **1 of 2–3 runs signed off** (2026-07-01,
 see `docs/ROADMAP.md` → sign-off log); cases (b) no-résumé/non-tech and (c) resume-after-interruption
 remain, plus a green CI run on the remote + a demo GIF._
 
+### Added: Phase 26, industry language research (`/ascend industry`)
+Résumés were phrased from the user's own drafts plus generic rules, which reproduces the user's
+existing voice, including the parts that undersell the level they are targeting.
+- **`prompts/26-industry-language.md`.** Reads 30 to 50 profiles of people at and around the target
+  level in the user's field (LinkedIn through the user's own browser if connected, otherwise public bios
+  and pages, plus a few postings) and writes an anonymized phrasing reference: strong vs. weak profile
+  patterns, bullet templates, level vocabulary for IC and leadership, verb bank, noun phrases, keyword
+  clusters with honest counts, and rewrite rules. It then maps the user's evidence against it in
+  `workspace/<name>/industry-fit.md`.
+- **Runs every time, researches at most monthly.** Run order is now `1 → 26 → 3 → 4 → 11 → 6 → 5 → 7`.
+  `tools/industry_research.py status <industry> <domain>` returns FRESH (built this calendar month,
+  reuse), STALE, MISSING or UNDATED, with distinct exit codes the orchestrator branches on.
+- **Any field.** The intake records `industry` and `domain` slugs, so the reference lives at
+  `industryresearch/<industry>/<domain>/` and a journalist or banker gets their own, not a security
+  engineer's. Ships with `tech/cloudsecurity` (49 profiles, October 2026).
+- **Phrasing, never facts.** Phases 3 and 5 use only vocabulary `industry-fit.md` shows the user can
+  evidence; Phase 18 hunts the field's weak patterns first.
+- **One scoped shared write.** `Write`/`Edit(industryresearch/**)` and the new tool are allow-listed;
+  the shared file carries no personal data by rule, and smoke checks it.
+- Registered in `ops.json`, `tools/state.py` (phase 26), the console's phase list, `ascend.md`,
+  `ascendui.md`, `CLAUDE.md`, `README.md` and `WORKFLOW.md` (J20). WORKFLOW's run order also had
+  drifted to omit Phase 11; fixed in passing.
+
 ### Fixed: 2026-10-15 post-merge cohesion review (PRs #9 to #12)
 A full review after #9, #10, #11 and #12 landed together. Smoke, lint and the run grader were green on
 the sample. These gaps were between the PRs, where no single PR's tests looked.

@@ -13,7 +13,9 @@ files per pursued job; deep interview prep is built later, on demand, only when 
 
 **Read first:** `workspace/<name>/intake.md`, `job-queue.md`, `master-resume.md`,
 `interview-packet/company-positioning.md` (the hooks/closers), `../templates/job-folder/_TEMPLATE.md`,
-`../reference/`.
+`../reference/`, and `workspace/<name>/industry-fit.md` (which of the field's keyword clusters the
+user's evidence supports; Phase 26). Selection stays selection: a posting keyword outside
+`industry-fit.md`'s supported set is a MASTER GAP, not a résumé word.
 
 ---
 
