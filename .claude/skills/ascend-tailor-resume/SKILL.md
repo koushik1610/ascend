@@ -27,17 +27,20 @@ removed.
 rewritten: an HTML-comment **Delta Log** at the top records the posting's verbatim title, its must-have
 keywords, which master entry IDs were chosen and in what order and why, and any MASTER GAPS.
 
-`tools/lint_artifacts.py` then checks what it can check mechanically: every cited ID exists in the
-master (`provenance`), no AI-tell vocabulary or banned punctuation survives (`vocab`, `dash`,
-`semicolon`, `colon`, `opener`), and no forbidden number or retracted claim appears (`numbers`,
-`retracted`). The `scan` gate — reverse-chronological work history, one date format, a
-years-of-experience claim that matches the dates — runs on **`resume.json` at export**, not on
-`resume.md`.
+`tools/lint_artifacts.py` then checks what it can check mechanically. On `resume.md`: every cited ID
+exists in the master (`provenance`), and no AI-tell vocabulary, banned punctuation or filler construction
+survives (`vocab`, `dash`, `semicolon`, `colon`, `opener`, `filler`), and no forbidden number or retracted
+claim appears (`numbers`, `retracted`). On the per-job **`resume.json` at export**: reverse-chronological
+work history, one date format, a years-of-experience claim that matches the dates, no icon glyphs
+(`scan`); the headline carries the title recorded on the Delta Log's `JD title (verbatim):` line
+(`title`); and every term on its `JD keywords (verbatim):` line is on the page unless listed under
+`True gaps:` (`coverage`).
 
-**What the tool does NOT check, so the model still owes it by hand:** that the headline carries the
-posting's exact title, and that each claimable must-have term is on the page in the posting's own
-form. Those are the prompt's checkpoint items. And `provenance` only verifies a cited ID **exists** —
-there is no text comparison anywhere in the tool, so a reworded bullet under a valid ID passes clean.
+**What the tool does NOT check, so the model still owes it by hand:** that those two Delta Log lines
+are themselves right. `title` and `coverage` compare the page against the log, never the log against
+the posting, so a title or keyword copied wrong into the log passes clean. And `provenance` only
+verifies a cited ID **exists**. There is no text comparison anywhere in the tool, so a reworded bullet
+under a valid ID passes clean.
 That is exactly why rewording belongs on the master, never on a derivative.
 
 ## Run it
