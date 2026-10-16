@@ -43,7 +43,7 @@ run. Delete it to wipe yourself entirely; run for a friend and they get their ow
 
   META: J13  Run it for someone else / wipe a person
   LOOP + LATE STAGE: J14 Weekly review · J15 Rejection · J16 Adjacent titles · J17 Offers
-                     J18 Work sample · J19 References
+                     J18 Work sample · J19 References · J20 Industry language
 ```
 
 The shape: **one setup**, then you live in the **loop** and react to **opportunities**. The dashboard
@@ -61,7 +61,7 @@ The shape: **one setup**, then you live in the **loop** and react to **opportuni
   of Claude working).
 - **Trigger:** `/ascend` (or *"Run Ascend"*).
 - **Path:** intake interview (name, data paths, targets, gaps, sanitization rules) → confirms an
-  Intake Summary → builds `workspace/<name>/` → runs phases **1 → 3 → 4 → 6 → 5 → 7**, checkpointing
+  Intake Summary → builds `workspace/<name>/` → runs phases **1 → 26 → 3 → 4 → 11 → 6 → 5 → 7**, checkpointing
   after each so you can stop, skip, or redirect.
 - **Ends with:** `linkedin-analysis.html`, `master-resume.md`, a 15+ job `job-queue.md` (each link
   marked verified/unverified), a thin `interview-packet/`, CORE apply packs for the **top 3–5 jobs you
@@ -276,6 +276,18 @@ Each reacts to a real event and updates the dashboard.
 - **Path:** a consent-tracked list of referees plus the brief that shapes each call.
 - **Ends with:** `references.md`.
 - **Implemented by:** [`prompts/25-references.md`](prompts/25-references.md).
+
+### J20: Learn how your target level writes
+- **Trigger:** automatic as Phase 26 of every run (after intake, before the master résumé), or
+  `/ascend industry` on demand.
+- **Path:** `python3 tools/industry_research.py status <industry> <domain>`. FRESH (built this calendar
+  month) → reuse. STALE or MISSING → read 30 to 50 profiles at and around the target level, write the
+  anonymized shared reference under `industryresearch/<industry>/<domain>/`, lint it. Either way, map
+  the user's evidence against it in `industry-fit.md`.
+- **Ends with:** `industryresearch/<industry>/<domain>/industry-language.md` (shared) and
+  `workspace/<name>/industry-fit.md` (personal).
+- **Implemented by:** [`prompts/26-industry-language.md`](prompts/26-industry-language.md) and
+  [`tools/industry_research.py`](tools/industry_research.py).
 
 ---
 

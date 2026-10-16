@@ -11,7 +11,9 @@ conviction outlines — and replaces it with the user's own specific, evidence-g
 
 **Read first:** the target artifact (a `jobs/<NN>/resume.md` / `outreach.md`, `answer-sheet.md`, etc.),
 `master-resume.md` (the real evidence to swap *in*), `intake.md` (voice/field),
-`../reference/resume-writing-rules.md`, `../reference/number-and-honesty-policy.md`.
+`../reference/resume-writing-rules.md`, `../reference/number-and-honesty-policy.md`, and §2 of the Phase 26
+reference (`industryresearch/<industry>/<domain>/industry-language.md`): its list of what weak profiles in
+the user's field do is the first set of patterns to hunt.
 
 > **Honesty (non-negotiable):** specificity must come from **real evidence**, not invention. If a bullet
 > is vague because the underlying fact is thin, the fix is to cite a real number/artifact from the master

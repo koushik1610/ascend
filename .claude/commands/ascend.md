@@ -62,6 +62,11 @@ and `workspace/<name>/.ascend-state.json` first, then:
 - **`rejected <NN>`** → **Rejection Protocol** (`prompts/21-rejection-protocol.md`): capture what was
   actually said, verbatim, record the stage it died at, and activate a named replacement target.
   90 seconds. Never asks the user to theorize about why.
+- **`industry`** → **Industry Language** (`prompts/26-industry-language.md`): how people at the user's
+  target level, in their field, phrase their work. Shared across users under
+  `industryresearch/<industry>/<domain>/`, rebuilt only when not from this calendar month
+  (`python3 tools/industry_research.py status <industry> <domain>`), then mapped against the user's
+  own evidence in `workspace/<name>/industry-fit.md`. Runs automatically as Phase 26 of every run.
 - **`titles`** → **Adjacent Titles** (`prompts/22-adjacent-titles.md`): job titles the user's own
   evidence already supports, on three labeled axes (lateral / stretch / pivot), each citing master
   entry IDs, written into their targeting only on confirmation.

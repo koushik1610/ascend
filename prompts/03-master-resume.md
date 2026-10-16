@@ -10,7 +10,13 @@ single most important artifact in the system; get it right and tailoring becomes
 
 **Read first:** `workspace/<name>/intake.md`, the user's resume + LinkedIn export,
 `../templates/master-resume-template.md` (the structure to follow), `../reference/ats-and-keywords.md`,
-`../reference/resume-writing-rules.md`, `../reference/number-and-honesty-policy.md`.
+`../reference/resume-writing-rules.md`, `../reference/number-and-honesty-policy.md`, and the Phase 26
+phrasing reference: `industryresearch/<industry>/<domain>/industry-language.md` (path from
+`python3 tools/industry_research.py path <industry> <domain>`) plus `workspace/<name>/industry-fit.md`.
+
+> **Phrasing, never facts.** Apply the reference's §9 rewrite rules and §3 bullet templates to every
+> entry, and take vocabulary from §4 to §6 **only where `industry-fit.md` shows the user's evidence
+> supports it.** A level signal or keyword cluster the user cannot evidence stays out of the master.
 
 **Audit folded in (was Phase 2):** before building, do a quick ATS + 2026-trends pass on the user's
 current resume (per `../reference/ats-and-keywords.md`). **Apply the two rigor rules at the top of

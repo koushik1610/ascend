@@ -48,6 +48,10 @@ at a time). Required answers are marked ★ — do not proceed past Step 2 witho
   Designer," "Data Engineering Lead.") List the title you want recruiters to search for.
 - ★ What **seniority** are you targeting — same level, a step up, or a stretch?
 - Target **companies or industries** (named companies, company types, or "open").
+- ★ **Industry and domain** for Phase 26, as two short slugs you propose and they confirm (e.g.
+  `tech` / `cloudsecurity`, `media` / `journalism`, `finance` / `investmentbanking`). Ascend keeps one
+  shared phrasing reference per pair under `industryresearch/`, so pick the pair another person in the
+  same field would pick.
 - **Location / work mode**: remote-only, hybrid-OK (which metros), on-site-OK (where), relocation
   appetite, work authorization constraints.
 - **Compensation** expectations or floor (kept private; used only to filter and to script the
@@ -101,7 +105,7 @@ workspace/<name>/
 Also create `.ascend-state.json` (see **State & resumability** below) and update it after every phase
 and every job folder, so a later session can resume deterministically.
 
-Write `intake.md` with: name, materials paths, targeting, calibration, the honesty/sanitization rule
+Write `intake.md` with: name, materials paths, targeting, the `industry` and `domain` slugs, calibration, the honesty/sanitization rule
 for this user, and the date. Every later phase reads `intake.md` first.
 
 ---
@@ -114,6 +118,7 @@ user unless they've told you to run straight through.
 | Phase | Prompt file | Produces |
 |---|---|---|
 | 1 | `01-linkedin-analysis.md` | `linkedin-analysis.html` — visual profile audit + **10 actionable next steps** |
+| 26 | `26-industry-language.md` | `industryresearch/<industry>/<domain>/industry-language.md`: how people at the target level phrase their work (**shared, reused when built this calendar month**, rebuilt otherwise) + `industry-fit.md` mapping the user's evidence against it |
 | 3 | `03-master-resume.md` | `master-resume.md` — the superset bullet database. **The resume audit (old Phase 2) is folded in here** as the opening "gaps & fixes" section — no separate `resume-audit.md` artifact by default. |
 | 4 | `04-job-search.md` | `job-queue.md` — **triage 40-60, score the survivors, live queue caps at 8** |
 | 11 | `11-network-map.md` | `network-map.md` — warm referral paths (primary + fallback per company) |
@@ -124,8 +129,8 @@ user unless they've told you to run straight through.
 <!-- CANONICAL RUN ORDER — single source of truth. CLAUDE.md and .claude/commands/ascendui.md restate
 this for convenience; tests/smoke.py asserts all three match, so change the order HERE and keep them in
 sync. -->
-**Default run order: 1 → 3 → 4 → 11 → 6 → 5 → 7.** (Phase 6 before 5 so the packet's story IDs exist
-before anything references them. Phase 2 is merged into 3. **Phase 11 is now declared rather than
+**Default run order: 1 → 26 → 3 → 4 → 11 → 6 → 5 → 7.** (Phase 6 before 5 so the packet's story IDs exist
+before anything references them. Phase 2 is merged into 3. **Phase 26 runs every time but skips its own research** when `tools/industry_research.py status` says the shared file is from this calendar month, so it costs a few seconds on most runs. **Phase 11 is now declared rather than
 hidden**: Phase 5's referral-first pack requires `network-map.md`, and it used to say "build it first
 if missing," so the run order was quietly lying about its own duration. Skip 11 if the export has no
 `Connections.csv`.) The registry in `../ops.json` holds this order too, and `tests/smoke.py` asserts
@@ -177,6 +182,8 @@ interview prep is generated **on demand**, per job, only when a screen is booked
 - `24-work-sample.md` — **Work-Sample Plan**: the portfolio case study, design doc or take-home that
   decides the loop — one piece, built properly, re-angled per job: `/ascend work-sample [NN]`. Fires
   when Phase 4's industry scan says the target set rewards an artifact.
+- `26-industry-language.md`: **Industry Language**: rebuild or inspect the shared phrasing reference
+  for the user's industry/domain outside a full run (normally Phase 26 of the run order): `/ascend industry`.
 - `25-references.md` — **Reference Bench**: a consent-tracked reference list and the referee brief,
   built early so the offer-stage request is a lookup rather than a scramble: `/ascend references`.
 

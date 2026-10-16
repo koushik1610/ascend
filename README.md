@@ -80,6 +80,7 @@ everything resumable: close your laptop mid-run, say *"Run Ascend resume"* later
 ```
   0  Intake interview ......... your name, data paths, targets, honest gaps
   1  LinkedIn analysis ........ linkedin-analysis.html + 10 next steps
+ 26  Industry language ........ how your target level writes about its work (reused if built this month)
   3  Master resume ............ master-resume.md (audit folded in) → LOCK IT
   4  Job search ............... triage 40-60 cheap → Fit-Score the survivors → queue of 8
  11  Network map .............. who you already know, primary + fallback per company
@@ -115,7 +116,8 @@ Five mechanical gates back it up:
    allow-list-only **Bash** boundary (broad `Read`/`WebFetch` stay unscoped, since the pipeline reads
    arbitrary résumé locations and researches arbitrary career sites).
 4. **Output-path confinement** ([`tools/_paths.py`](tools/_paths.py)) makes "writes only under
-   `workspace/`" true for tools, not just for the agent's Write tool. The Bash allow-list pins a tool
+   `workspace/`" true for tools, not just for the agent's Write tool. (The agent may also write the
+   anonymized, shared `industryresearch/` reference; see below.) The Bash allow-list pins a tool
    by path prefix and constrains none of its arguments, so `render_resume.py --tex /anywhere` used to
    write outside the repo. Every tool now resolves its output path before using it, and `--engine`
    accepts only a known TeX binary rather than anything on `PATH`.
@@ -125,6 +127,36 @@ Five mechanical gates back it up:
    personal is git-tracked. CI grades the committed sample with the same code that grades your run, so
    the example and the standard cannot drift apart. It reports *no detectable fiction* — never
    "verified true," which no tool can claim.
+
+### Industry language research
+
+Before writing your master résumé, Ascend checks how people already at your target level, in your
+field, describe their work. Phase 26 ([`prompts/26-industry-language.md`](prompts/26-industry-language.md))
+reads 30 to 50 profiles (LinkedIn through your own browser if you connect it, otherwise public bios and
+pages, plus a few postings) and writes a phrasing reference: what strong profiles do that weak ones
+don't, bullet templates, level vocabulary for IC and leadership tracks, a verb bank, and keyword
+clusters with honest counts.
+
+```
+industryresearch/
+  README.md
+  tech/cloudsecurity/industry-language.md        ← shipped example (49 profiles, Oct 2026)
+  media/journalism/industry-language.md          ← built the first time a journalist runs Ascend
+  finance/investmentbanking/industry-language.md ← and so on, one folder per industry/domain pair
+```
+
+- **Monthly, shared, and skipped when fresh.** Every run calls
+  `python3 tools/industry_research.py status <industry> <domain>`. If the file was built this calendar
+  month the run reuses it in seconds; otherwise it rebuilds it. The industry and domain come from your
+  intake, so a finance or journalism user gets their own field's reference, not a security engineer's.
+- **Phrasing, never facts.** Phases 3, 5 and 18 use it to choose how to say something true. What is
+  true still comes only from your evidence. Your personal mapping against it (which clusters you can
+  claim, which are gaps) goes to `workspace/<name>/industry-fit.md`, never into the shared file.
+- **Anonymized.** No names, no profile URLs, no employer attached to a person's career path, and
+  phrases are short fragments rather than copied bullets. See [`industryresearch/README.md`](industryresearch/README.md).
+- **The one shared write.** This folder is the only place a run writes outside `workspace/`, through a
+  scoped `Write(industryresearch/**)` permission. Whether to commit a refreshed file back is your call;
+  it holds no personal data by construction.
 
 First master résumé draft feeling weak? That is the system working: the bullet-quality gate flags
 weak bullets and tells you what evidence would fix them. Expect one revision pass. The iteration is
@@ -168,6 +200,7 @@ reading nothing.
 | "Ascend degenericize" *(beta)* | Swap generic text for your real evidence |
 | "Ascend negotiate Acme" *(beta)* | Salary plan: market anchors, your numbers, scripts |
 | "Run Ascend maintenance" *(beta)* | Weekly: new/closed jobs, follow-ups due, retro patterns |
+| "Ascend industry" *(beta)* | Rebuild or inspect the phrasing reference for your field (runs monthly by itself) |
 | "Ascend titles" *(beta)* | Job titles your own evidence already supports, that you aren't searching for |
 | "Ascend offers" *(beta)* | Compare offers component by component, read the letter, work the timeline |
 | "Ascend work-sample" *(beta)* | The portfolio piece or take-home that decides the loop: build one, re-angle per job |
