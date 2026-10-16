@@ -125,5 +125,65 @@ class Ingest(unittest.TestCase):
         self.assertIn("Notes the user wrote.", text)
 
 
+class Guard(unittest.TestCase):
+    def setUp(self):
+        import _v2data as d
+        self.td = tempfile.TemporaryDirectory()
+        self.ws = make_ws(self.td.name, [
+            ("01-acme-staff", "Acme Robotics", "Staff Security Engineer", "applied"),
+            ("02-litware-queued", "Litware", "Staff Detection Engineer", None),
+        ])
+        d.write_json_atomic(self.ws / "data" / "queue.json", {"jobs": [
+            {"posting_id": "gh:northwind:2", "company": "Northwind", "title": "Sr. Staff Security Engineer",
+             "state": "applied", "applied_on": "2026-10-01"},
+            {"posting_id": "gh:contoso:4", "company": "Contoso", "title": "Security Engineer", "state": "matched"}]})
+
+    def tearDown(self):
+        self.td.cleanup()
+
+    def guard(self, *args):
+        return subprocess.run(TOOL + ["guard", str(self.ws), *args], capture_output=True, text=True)
+
+    def test_same_posting_id_blocks(self):
+        r = self.guard("--company", "Northwind", "--title", "Anything", "--posting-id", "gh:northwind:2",
+                       "--today", "2026-10-10")
+        self.assertEqual(r.returncode, 3)
+        self.assertIn("DUPLICATE", r.stdout)
+
+    def test_same_company_and_normalized_title_within_60_days_blocks(self):
+        r = self.guard("--company", "Northwind, Inc.", "--title", "Senior Staff Security Engineer",
+                       "--today", "2026-11-29")
+        self.assertEqual(r.returncode, 3)
+
+    def test_same_pair_after_60_days_is_allowed(self):
+        r = self.guard("--company", "Northwind", "--title", "Senior Staff Security Engineer",
+                       "--today", "2026-12-01")
+        self.assertEqual((r.returncode, r.stdout.strip()), (0, "OK"))
+
+    def test_different_title_same_company_is_allowed(self):
+        r = self.guard("--company", "Northwind", "--title", "Security Engineering Manager", "--today", "2026-10-10")
+        self.assertEqual(r.returncode, 0)
+
+    def test_applied_job_folder_blocks_same_title(self):
+        r = self.guard("--company", "Acme Robotics", "--title", "Staff Security Engineer", "--today", "2026-10-10")
+        self.assertEqual(r.returncode, 3)
+
+    def test_queued_folder_and_matched_queue_entry_never_block(self):
+        self.assertEqual(self.guard("--company", "Litware", "--title", "Staff Detection Engineer",
+                                    "--today", "2026-10-10").returncode, 0)
+        self.assertEqual(self.guard("--company", "Contoso", "--title", "Security Engineer",
+                                    "--posting-id", "gh:contoso:4", "--today", "2026-10-10").returncode, 0)
+
+    def test_missing_args_exit_2(self):
+        r = self.guard("--company", "Acme")
+        self.assertEqual(r.returncode, 2)
+        self.assertIn("usage: guard", r.stderr)
+
+    def test_normalize_title(self):
+        import pipeline
+        self.assertEqual(pipeline.normalize_title("Sr. Staff Security Eng (Remote)"),
+                         pipeline.normalize_title("Senior Staff Security Engineer"))
+
+
 if __name__ == "__main__":
     unittest.main()

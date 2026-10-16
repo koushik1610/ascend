@@ -14,6 +14,7 @@ here just reads what it wrote.
   python3 tools/pipeline.py funnel  WS [--json]
   python3 tools/pipeline.py show    WS [NN]
   python3 tools/pipeline.py ingest  WS [--json]      # Ascend 2.0: classified mail → status changes
+  python3 tools/pipeline.py guard   WS --company C --title T [--posting-id P]   # exit 3 = duplicate
 
 WS is the workspace directory (workspace/<name>). Writes stay inside it, always.
 
@@ -381,6 +382,74 @@ def cmd_ingest(ws, args):
     return 0
 
 
+# ── guard: never apply to the same job twice (Ascend 2.0, M2) ────────────────
+GUARD_DAYS = 60
+BLOCKING = {"applied", "applying", "applied?"}
+TITLE_SYNONYMS = {"sr": "senior", "jr": "junior", "eng": "engineer", "engr": "engineer", "mgr": "manager",
+                  "mgmt": "management", "sec": "security"}
+TITLE_NOISE = {"remote", "hybrid", "onsite", "us", "usa", "the"}
+LOG_HEADING = re.compile(r"^#\s*Application Log:\s*(.+?),\s*(.+?)\s*$", re.M)
+
+
+def normalize_title(t):
+    """'Sr. Staff Security Eng (Remote)' and 'Senior Staff Security Engineer' compare equal."""
+    t = re.sub(r"\(.*?\)", " ", (t or "").lower())
+    words = [TITLE_SYNONYMS.get(w, w) for w in re.findall(r"[a-z0-9]+", t)]
+    return " ".join(w for w in words if w not in TITLE_NOISE)
+
+
+def _company_key(name):
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from classify import company_tokens
+    return "".join(company_tokens(name))
+
+
+def _applied_records(ws):
+    """(posting_id, company_key, title_key, applied_on) for everything already sent."""
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import _v2data as d
+    recs = []
+    for j in d.read_json(ws / "data" / "queue.json", {}).get("jobs", []):
+        if j.get("state") in BLOCKING:
+            recs.append((j.get("posting_id"), _company_key(j.get("company")), normalize_title(j.get("title")),
+                         j.get("applied_on")))
+    for job in job_dirs(ws):
+        log = job / "application-log.md"
+        st = parse_state(log)
+        if st.get("status", "queued") == "queued" or not log.is_file():
+            continue
+        m = LOG_HEADING.search(log.read_text(encoding="utf-8"))
+        if m:
+            recs.append((None, _company_key(m.group(1)), normalize_title(m.group(2)), st.get("applied_on")))
+    return recs
+
+
+def cmd_guard(ws, args):
+    opts, it = {}, iter(args)
+    for a in it:
+        if a in ("--company", "--title", "--posting-id", "--today"):
+            opts[a.lstrip("-")] = next(it, "")
+    if not opts.get("company") or not opts.get("title"):
+        return die("usage: guard WS --company C --title T [--posting-id P] [--today YYYY-MM-DD]")
+    today = _today(opts.get("today"))
+    company, title, pid = _company_key(opts["company"]), normalize_title(opts["title"]), opts.get("posting-id")
+    for rpid, rco, rtitle, applied_on in _applied_records(ws):
+        if pid and rpid and pid == rpid:
+            print(f"DUPLICATE already applied to posting {pid}" + (f" on {applied_on}" if applied_on else ""))
+            return 3
+        if rco == company and rtitle == title:
+            try:
+                age = (today - _today(applied_on)).days if applied_on else 0
+            except ValueError:
+                age = 0
+            if age <= GUARD_DAYS:
+                print(f"DUPLICATE applied to {opts['company']} / {opts['title']} {age} day(s) ago "
+                      f"(window {GUARD_DAYS} days)")
+                return 3
+    print("OK")
+    return 0
+
+
 def main(argv):
     if len(argv) < 3:
         print(__doc__)
@@ -391,7 +460,7 @@ def main(argv):
     if "workspace" not in ws.parts:
         return die(f"refusing to operate outside a workspace/ directory: {ws}")
     fn = {"log": cmd_log, "overdue": cmd_overdue, "funnel": cmd_funnel, "show": cmd_show,
-          "ingest": cmd_ingest}.get(cmd)
+          "ingest": cmd_ingest, "guard": cmd_guard}.get(cmd)
     if not fn:
         return die(f"unknown command {cmd!r}")
     return fn(ws, argv[3:])
