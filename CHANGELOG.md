@@ -11,6 +11,41 @@ _Working toward v1.0. Real-run gate: **1 of 2–3 runs signed off** (2026-07-01,
 see `docs/ROADMAP.md` → sign-off log); cases (b) no-résumé/non-tech and (c) resume-after-interruption
 remain, plus a green CI run on the remote + a demo GIF._
 
+### Added: 2026-09-28 recruiter-search coverage, knockout answers, required-vs-mentioned
+Cross-checked the résumé and application steps against the most-upvoted ATS threads of the past year on
+r/resumes, r/jobs, r/recruitinghell, r/recruiting and r/humanresources. Kept only what several
+independent threads agreed on, or what working recruiters confirmed in the comments.
+- **Search coverage is now linted.** Recruiters find applicants with short Boolean queries over the
+  parsed text, and most base-tier parsers only check whether a term appears. The Delta Log gains
+  `JD keywords (verbatim):` and `True gaps:` lines, and the new `coverage` category flags any
+  claimable keyword not on the page (plain plurals count). It caught a real drift in the sample: the
+  Delta Log claimed "design system at scale" was inserted verbatim, but the page said "design
+  systems at scale". Fixed.
+- **Seasonal dates** ("Summer 2019", "Fall '22") are flagged. They do not convert to months.
+- **Knockout questions** are named as the one reliable auto-reject, and a "years of experience with X"
+  answer is computed from the master's dates, rounded down, never up.
+- **Required vs. mentioned.** Phase 4 classifies each qualification by the posting's own words, and
+  only "required" items become must-haves or blockers (degrees especially).
+- Audit gains a recruiter search test. The Skills line is named as the verbatim backstop for
+  must-have terms no bullet carries.
+
+### Added: 2026-09-28 ATS visibility checks (title match, date format, icon glyphs)
+Audited the résumé step against a widely shared r/jobsearchhacks write-up on ATS behavior. Most of it
+Ascend already did. Three gaps were real and are now linted, not just written down.
+- **Headline carries the posting's exact title.** Recruiters query the ATS by title, and Jobscan's
+  2.5M-application analysis found about 10.6x the interview rate when the résumé carried the target
+  title (correlational, vendor data). The Delta Log gains a `JD title (verbatim):` line and the new
+  `title` lint category checks `basics.label` against it. Held titles under Experience never change.
+  The committed sample was missing this (a Staff posting with a "Senior" headline) and is fixed.
+- **One work-date format.** Mixed shapes (`Jan 2019` / `2019-01`) and two-digit years are flagged
+  (`scan`), since the ATS computes total experience from them.
+- **No icon or emoji glyphs** anywhere in `resume.json` (`scan`).
+- Rules text: most ATS surface rather than auto-reject, contact details stay out of page
+  headers/footers, never hide keywords, when to upload DOCX instead of PDF, and a post-upload check of
+  the portal's parsed fields.
+- Not adopted: the write-up's "25–35 keywords" band. It is unsourced, and Ascend keeps its
+  in-context coverage rule.
+
 ### Added: 2026-09-11 résumé-optimizer gaps (audited against an external prompt)
 Checked Ascend against a widely-circulated "optimize my résumé" prompt. Most of it was already
 covered, several parts more rigorously. Four things were genuinely missing.

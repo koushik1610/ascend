@@ -4,6 +4,8 @@
 DELTA LOG, selection record (not a rewrite)
 - Queue entry: #2, Lumen Retail · Lead Product Designer
 - JD link: https://jobs.example-greenhouse.io/lumen-retail/lead-product-designer (sample/unverified)
+- JD title (verbatim): Lead Product Designer
+    Headline carries it exactly. Held titles under Experience stay as held.
 - Date: 2026-06-11
 - ATS target: Lever · constraints: single-column, standard headings, no tables in body, PDF.
 - Master entries selected, in order, and why:
@@ -16,6 +18,8 @@ DELTA LOG, selection record (not a rewrite)
       is what put a 2018-2021 role above the current one in an earlier draft of this sample, which
       reads as concealment and is a fast reject. Enforced now by lint_artifacts.py's `scan` category.
     Projects: P2 (0→1 onboarding) selected; P1/P3 omitted to keep one page funnel-focused.
+- JD keywords (verbatim): 0→1 | conversion funnel | mentorship | user research | Figma
+- True gaps: none
 - Verbatim JD phrases inserted ONCE each: "0→1", "conversion funnel", "mentorship".
 - Number policy: public values (M5 "41%→24%", M6 "~40k", M7 "+18%"). Grep for raw internals: PASS.
 - Export filename: jordan-rivera-resume-lumen-retail-lead.pdf
@@ -23,7 +27,7 @@ DELTA LOG, selection record (not a rewrite)
 -->
 
 # Jordan Rivera
-Senior Product Designer · Consumer 0→1 & Conversion · Retail / Commerce
+Lead Product Designer · Consumer 0→1 & Conversion · Retail / Commerce
 Austin, TX (remote-first / hybrid-OK) · jordan.rivera@example.com · (512) 555-0147
 Portfolio: https://example.com/jordanrivera · LinkedIn: https://example.com/in/jordan-rivera-design
 
