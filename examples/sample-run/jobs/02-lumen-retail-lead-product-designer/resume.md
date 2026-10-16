@@ -18,6 +18,8 @@ DELTA LOG, selection record (not a rewrite)
       is what put a 2018-2021 role above the current one in an earlier draft of this sample, which
       reads as concealment and is a fast reject. Enforced now by lint_artifacts.py's `scan` category.
     Projects: P2 (0→1 onboarding) selected; P1/P3 omitted to keep one page funnel-focused.
+- JD keywords (verbatim): 0→1 | conversion funnel | mentorship | user research | Figma
+- True gaps: none
 - Verbatim JD phrases inserted ONCE each: "0→1", "conversion funnel", "mentorship".
 - Number policy: public values (M5 "41%→24%", M6 "~40k", M7 "+18%"). Grep for raw internals: PASS.
 - Export filename: jordan-rivera-resume-lumen-retail-lead.pdf

@@ -21,6 +21,8 @@ Checks:
               mixed or unparseable work-date formats, icon/emoji glyphs
   title       (per-job resume.json) the headline carries the posting's exact title, as recorded on
               the sibling resume.md Delta Log's 'JD title (verbatim):' line
+  coverage    (per-job resume.json) every term on the Delta Log's 'JD keywords (verbatim):' line
+              appears on the page, unless it is listed on the 'True gaps:' line
 
 Skipped automatically: fenced code blocks, HTML comments, DELTA LOG blocks, MASTER GAP notes,
 FICTIONAL SAMPLE banners — those are meta, not sendable prose.
@@ -312,7 +314,8 @@ GLYPH_KEYWORDS = [("0→1", ("0 to 1", "zero to one", "zero-to-one", "0-to-1"))]
 # Work dates are classified by shape. Mixing shapes ("Jan 2019", "2019-01", "01/2019") is how an ATS
 # miscalculates total experience, and a two-digit year ("Jan '19") gives it nothing to compute from.
 DATE_SHAPES = (
-    ("Mon YYYY", re.compile(r"^[A-Za-z]{3,9}\.?\s+\d{4}$")),
+    ("Mon YYYY", re.compile(r"^(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s+\d{4}$",
+                            re.I)),
     ("MM/YYYY", re.compile(r"^\d{1,2}/\d{4}$")),
     ("YYYY-MM", re.compile(r"^\d{4}-\d{1,2}$")),
     ("YYYY", re.compile(r"^\d{4}$")),
@@ -328,6 +331,7 @@ def _date_shapes(dates):
         part = part.strip()
         if not part or DATE_OPEN_END.match(part):
             continue
+        # "Summer 2019" or "Fall '22" has no month, so it converts to nothing; treat it as unparseable.
         shapes.append(next((name for name, rx in DATE_SHAPES if rx.match(part)), None))
     return shapes
 
@@ -402,8 +406,9 @@ def lint_scan_gate(data, fname):
         for shape in _date_shapes(w.get("dates")):
             if shape is None:
                 findings.append((fname, 1, "scan",
-                                 f"{w.get('company')!r} dates {w.get('dates')!r} have an end with no "
-                                 "four-digit year. Use 'Mon YYYY' (e.g. 'Jan 2020 – Mar 2023')"))
+                                 f"{w.get('company')!r} dates {w.get('dates')!r} have an end an ATS "
+                                 "cannot turn into a month (a season, a two-digit year). Use 'Mon YYYY' "
+                                 "(e.g. 'Jan 2020 – Mar 2023')"))
                 break
             seen.setdefault(shape, w.get("dates"))
     if len(seen) > 1:
@@ -418,6 +423,54 @@ def lint_scan_gate(data, fname):
                          "icon/emoji glyphs " + " ".join(repr(g) for g in glyphs)
                          + " are noise to a parser. Replace with plain text"))
     return findings
+
+
+JD_KEYWORDS = re.compile(r"^[\s-]*JD keywords[^:\n]*:\s*(.+?)\s*$", re.I | re.M)
+TRUE_GAPS = re.compile(r"^[\s-]*True gaps[^:\n]*:\s*(.+?)\s*$", re.I | re.M)
+
+
+def _term_list(m):
+    if not m or m.group(1).strip().lower() in ("none", "-", "n/a"):
+        return []
+    return [t.strip().strip('"“”') for t in m.group(1).split("|") if t.strip()]
+
+
+def lint_keyword_coverage(data, fname, resume_md_text):
+    """Every must-have JD keyword the user can claim appears verbatim somewhere on the résumé.
+
+    Recruiters find applicants with Boolean searches over the parsed text ("python AND aws"). A term
+    that is not on the page, in the posting's exact form, is a search the résumé cannot match, however
+    good the bullets are. A plain plural still counts ("design systems" for "design system"). Terms the user cannot honestly claim go on the Delta Log's "True gaps:" line
+    and are exempt: they are handled in the interview, never added to the résumé.
+    """
+    block = delta_block(resume_md_text) or ""
+    wanted = _term_list(JD_KEYWORDS.search(block))
+    if not wanted:
+        return [(fname, 1, "coverage",
+                 "the sibling resume.md Delta Log has no 'JD keywords (verbatim): a | b | c' line, so "
+                 "search coverage cannot be checked")]
+    gaps = {t.lower() for t in _term_list(TRUE_GAPS.search(block))}
+    page = " ".join(str(v) for v in _strings(data)).lower()
+    missing = [t for t in wanted if t.lower() not in gaps
+               and not re.search(r"(?<![a-z0-9])" + re.escape(t.lower()) + r"(?:s|es)?(?![a-z0-9])", page)]
+    if missing:
+        return [(fname, 1, "coverage",
+                 "JD keywords not on the page verbatim: " + ", ".join(repr(t) for t in missing)
+                 + ". A recruiter searching for them will not find this résumé. Select a master bullet "
+                 "that uses the term, add it to Skills if the evidence exists, or list it under "
+                 "'True gaps:'")]
+    return []
+
+
+def _strings(node):
+    if isinstance(node, str):
+        yield node
+    elif isinstance(node, dict):
+        for v in node.values():
+            yield from _strings(v)
+    elif isinstance(node, list):
+        for v in node:
+            yield from _strings(v)
 
 
 JD_TITLE = re.compile(r"^[\s-]*JD title[^:\n]*:\s*(.+?)\s*$", re.I | re.M)
@@ -519,7 +572,9 @@ def main(argv):
                 all_findings += lint_scan_gate(data, str(f))
                 md = f.with_name("resume.md")
                 if f.name == "resume.json" and f.parent.parent.name == "jobs" and md.is_file():
-                    all_findings += lint_title_match(data, str(f), md.read_text(encoding="utf-8"))
+                    md_text = md.read_text(encoding="utf-8")
+                    all_findings += lint_title_match(data, str(f), md_text)
+                    all_findings += lint_keyword_coverage(data, str(f), md_text)
         if f.name == "resume.md" and f.parent.parent.name == "jobs":
             mp = Path(master_path) if master_path else find_master(f)
             all_findings += lint_provenance(text, str(f),

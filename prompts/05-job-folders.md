@@ -23,7 +23,8 @@ Building 5 packs beats building 15 folders nobody opens.
 
 ## The CORE apply pack (3 files per `_TEMPLATE.md` §1, §5, §8)
 1. **`resume.md`** — the tailored resume + Delta Log (the posting's title on a `JD title (verbatim):`
-   line; master entry IDs selected, order, why; verbatim JD phrases once each; ATS target; export
+   line; its must-have terms on `JD keywords (verbatim):` and the ones the user can't claim on
+   `True gaps:`; master entry IDs selected, order, why; verbatim JD phrases once each; ATS target; export
    filename). The header headline starts with that exact title (`reference/ats-and-keywords.md`). **Selection only** — a missing bullet is a
    "MASTER GAP" note (fix the master), never an invention. Selected bullets must fit the **one-page
    content budget** (`../reference/resume-writing-rules.md`). Then run **Phase 8** to emit the

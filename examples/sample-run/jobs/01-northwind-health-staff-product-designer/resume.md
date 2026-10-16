@@ -14,6 +14,8 @@ DELTA LOG, selection record (not a rewrite)
       with E9 IC-leadership folded into the same bullet) → E5 (0→1 range). Leads with DS pillar to match
       the JD's #1 ask.
     Projects: P1 (design system) selected; P2/P3 omitted to keep one page focused on systems.
+- JD keywords (verbatim): design system at scale | accessibility-first | design-engineering partnership | design tokens | Figma | Storybook | WCAG 2.1 AA
+- True gaps: none
 - Verbatim JD phrases inserted ONCE each: "design system at scale", "accessibility-first",
     "design-engineering partnership".
 - Number policy: all metrics swapped to public/sanitized values (M3 "~32%", M4 "roughly in half",
@@ -31,7 +33,7 @@ Portfolio: https://example.com/jordanrivera · LinkedIn: https://example.com/in/
 
 ## Summary
 Senior Product Designer with 10 years across fintech, marketplace, and agency work, specializing in
-**design systems at scale** and 0→1 product design. Built a 120-component, tokenized system adopted by
+building a **design system at scale** and 0→1 product design. Built a 120-component, tokenized system adopted by
 5 product teams that lifted new-feature adoption ~32% and cut design QA rework roughly in half. An
 **accessibility-first** IC who pairs through implementation, targeting Staff-scope design-systems
 ownership.

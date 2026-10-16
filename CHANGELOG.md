@@ -11,6 +11,24 @@ _Working toward v1.0. Real-run gate: **1 of 2–3 runs signed off** (2026-07-01,
 see `docs/ROADMAP.md` → sign-off log); cases (b) no-résumé/non-tech and (c) resume-after-interruption
 remain, plus a green CI run on the remote + a demo GIF._
 
+### Added: 2026-09-28 recruiter-search coverage, knockout answers, required-vs-mentioned
+Cross-checked the résumé and application steps against the most-upvoted ATS threads of the past year on
+r/resumes, r/jobs, r/recruitinghell, r/recruiting and r/humanresources. Kept only what several
+independent threads agreed on, or what working recruiters confirmed in the comments.
+- **Search coverage is now linted.** Recruiters find applicants with short Boolean queries over the
+  parsed text, and most base-tier parsers only check whether a term appears. The Delta Log gains
+  `JD keywords (verbatim):` and `True gaps:` lines, and the new `coverage` category flags any
+  claimable keyword not on the page (plain plurals count). It caught a real drift in the sample: the
+  Delta Log claimed "design system at scale" was inserted verbatim, but the page said "design
+  systems at scale". Fixed.
+- **Seasonal dates** ("Summer 2019", "Fall '22") are flagged. They do not convert to months.
+- **Knockout questions** are named as the one reliable auto-reject, and a "years of experience with X"
+  answer is computed from the master's dates, rounded down, never up.
+- **Required vs. mentioned.** Phase 4 classifies each qualification by the posting's own words, and
+  only "required" items become must-haves or blockers (degrees especially).
+- Audit gains a recruiter search test. The Skills line is named as the verbatim backstop for
+  must-have terms no bullet carries.
+
 ### Added: 2026-09-28 ATS visibility checks (title match, date format, icon glyphs)
 Audited the résumé step against a widely shared r/jobsearchhacks write-up on ATS behavior. Most of it
 Ascend already did. Three gaps were real and are now linted, not just written down.
