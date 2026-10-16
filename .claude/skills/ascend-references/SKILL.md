@@ -29,8 +29,10 @@ removed.
 
 - **Consent is a field, not an assumption.** Every row is `confirmed <date>` / `asked <date>` /
   `candidate`, and the sendable one-pager is generated from `confirmed` rows only.
-- Four slots rather than a list of everyone: direct manager · peer or cross-functional partner ·
-  someone who reported to them (required for any manager role) · skip-level, client or professor.
+- Slots rather than a list of everyone: direct manager · peer or cross-functional partner · a second
+  manager, skip-level, client or professor. A former direct report is a **conditional** slot, not a
+  required one — rarely asked for below VP, and discounted when candidate-supplied. Plus the
+  backchannel reference the user never gets told about and cannot curate.
 - Each referee's **`Speaks to` line cites master entry IDs they actually witnessed**, so choosing who
   to send for a given job is a lookup, and nobody gets asked about work they never saw.
 - `as of DATE` stamps on title and employer, and a `STALE — reconfirm` flag past 12 months, because a
