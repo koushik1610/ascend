@@ -51,5 +51,61 @@ class DataIO(unittest.TestCase):
             d.append_jsonl(Path("/etc/ascend-should-not-write.jsonl"), {"x": 1})
 
 
+class Classifier(unittest.TestCase):
+    def mailbox(self):
+        import _v2data as d
+        return d.read_jsonl(FIX / "mailbox.jsonl")
+
+    def test_fixture_covers_every_category_three_times(self):
+        import classify
+        counts = {}
+        for m in self.mailbox():
+            counts[m["_expect"]] = counts.get(m["_expect"], 0) + 1
+        thin = {c: counts.get(c, 0) for c in classify.CATEGORIES if counts.get(c, 0) < 3}
+        self.assertEqual(thin, {})
+
+    def test_accuracy_at_least_95_percent(self):
+        import classify
+        msgs = self.mailbox()
+        wrong = [(m["msg_id"], m["_expect"], classify.classify_message(m)["category"])
+                 for m in msgs if classify.classify_message(m)["category"] != m["_expect"]]
+        self.assertLessEqual(len(wrong) / len(msgs), 0.05, wrong)
+
+    def test_conditional_interview_wording_is_acknowledgement(self):
+        import classify
+        m = {"from": "no-reply@ashbyhq.com", "subject": "Thanks for applying to Acme",
+             "body_excerpt": "We received your application. If your background is a match, we will reach out "
+                             "to schedule an interview.", "date": "2026-10-01T10:00:00Z"}
+        self.assertEqual(classify.classify_message(m)["category"], "acknowledgement")
+
+    def test_polite_rejection_is_rejection(self):
+        import classify
+        m = {"from": "acme@myworkday.com", "subject": "Your application to Acme",
+             "body_excerpt": "Thank you for applying. Unfortunately we have decided to move forward with other "
+                             "candidates.", "date": "2026-10-01T10:00:00Z"}
+        self.assertEqual(classify.classify_message(m)["category"], "rejection")
+
+    def test_unrelated_mail_never_goes_to_llm(self):
+        import classify
+        m = {"from": "receipts@coffee.example", "subject": "Your receipt", "body_excerpt": "Total $4.50",
+             "date": "2026-10-01T10:00:00Z"}
+        r = classify.classify_message(m)
+        self.assertEqual((r["category"], r["needs_llm"]), ("other", False))
+
+    def test_unclear_ats_mail_goes_to_llm(self):
+        import classify
+        m = {"from": "no-reply@ashbyhq.com", "subject": "Your candidate portal",
+             "body_excerpt": "You can now log in to view your documents.", "date": "2026-10-01T10:00:00Z"}
+        r = classify.classify_message(m)
+        self.assertEqual((r["category"], r["needs_llm"]), ("other", True))
+
+    def test_result_shape(self):
+        import classify
+        r = classify.classify_message(self.mailbox()[0])
+        self.assertEqual(set(r), {"category", "confidence", "rule", "needs_llm"})
+        self.assertIn(r["category"], classify.CATEGORIES)
+        self.assertTrue(0 < r["confidence"] <= 1)
+
+
 if __name__ == "__main__":
     unittest.main()
