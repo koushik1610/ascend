@@ -204,7 +204,7 @@ before the last read. The mail Claude reads is untrusted, and the same session c
 treats mail as data, but this repo's settings allow web fetches to any domain, and a narrower allow in a
 local file does not override that. To close it, add `"ask": ["WebFetch"]` to the `permissions` in your own
 `.claude/settings.local.json` so every fetch asks you first, or `"deny": ["WebFetch"]` if you use engine C,
-which never needs one. A deny in this
+which never needs one (that also stops the v1 research prompts from fetching pages in this checkout). A deny in this
 repo's `.claude/settings.json` cannot be reopened from a local file: to let Claude draft mail here, remove
 the entry from `.claude/settings.json` itself. **LinkedIn search** is opt-in on
 every engine. It drives your own logged-in LinkedIn session through Claude in Chrome and reads result

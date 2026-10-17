@@ -139,6 +139,27 @@ class GmailAdd(unittest.TestCase):
         self.assertIn("jobalerts-noreply@linkedin.com", q)
         self.assertNotIn("from:(linkedin.com", q)
 
+    def test_queue_data_never_shapes_the_query(self):
+        import _v2data as d
+        import gmail_sync as g
+        before = g.connector_query(self.ws)
+        d.write_json_atomic(self.ws / "data" / "queue.json", {"jobs": [
+            {"posting_id": "x", "company": 'Evil")) OR (in:anywhere OR ("x', "state": "matched"},
+            {"posting_id": "y", "company": "Google", "state": "matched"},
+            {"posting_id": "z", "company": "Amazon", "state": "matched"}] + [
+            {"posting_id": f"c{i}", "company": f"Company {i}", "state": "matched"} for i in range(200)]})
+        self.assertEqual(g.connector_query(self.ws), before)          # fixed text, fixed length
+        terms = g.query_terms(self.ws)
+        for frm, subject in (("no-reply@accounts.google.com", "123456 is your Google verification code"),
+                             ("ship-confirm@amazon.com", "Your Amazon.com order has shipped")):
+            self.assertFalse(g.query_matches({"from": frm, "subject": subject}, terms), subject)
+
+    def test_a_first_read_that_never_completes_keeps_its_start(self):
+        import gmail_sync as g
+        g.add(self.ws, [{"msg_id": "s1", "from": "r@co.example", "subject": "Hi", "date": "2026-10-10T10:00:00Z"}],
+              today="2026-10-10", complete=False)
+        self.assertIn("after:2026/10/09", g.connector_query(self.ws, today="2026-10-17"))
+
     def test_the_last_read_moves_only_after_a_complete_read(self):
         import _v2data as d
         import gmail_sync as g

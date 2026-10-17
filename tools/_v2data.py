@@ -84,7 +84,9 @@ def write_json_atomic(path, obj):
 
 @contextmanager
 def locked(path):
-    """An exclusive lock on <path>.lock for one read-modify-write. Not re-entrant: never nest two."""
+    """An exclusive lock on <path>.lock for one read-modify-write. Not re-entrant: never take the same file's
+    lock twice. The one nesting allowed is apply-log.jsonl, then queue.json (apply.record); never take them
+    in the other order."""
     p = resolve_out(str(path))
     p.parent.mkdir(parents=True, exist_ok=True)
     with open(p.with_name(p.name + ".lock"), "a") as lk:

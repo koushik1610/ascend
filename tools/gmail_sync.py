@@ -108,14 +108,14 @@ def _iso_date(s):
 
 def query_terms(ws):
     """What the connector search asks for: job senders (ATS and board domains, LinkedIn's job senders,
-    recruiting words in the sender) or job subjects, plus the companies already in the queue."""
+    recruiting words in the sender) or job subjects. A fixed list on purpose: nothing from postings or mail
+    (company names included) ever reaches the query, so third-party text cannot reshape the search, and a
+    queued "Google" never pulls Google's verification codes in."""
     import classify
-    companies = sorted({j.get("company") for j in d.read_json(d.data_dir(ws) / "queue.json", {}).get("jobs", [])
-                        if j.get("company") and len(j["company"]) > 2})
     return {"domains": sorted((classify.ATS_DOMAINS | classify.ALERT_DOMAINS) - {"linkedin.com"}),
             "addresses": sorted(set(LINKEDIN_JOB_SENDERS) | {a for a in classify.ALERT_SENDERS if "linkedin" not in a}),
             "from_words": list(FROM_WORDS),
-            "subjects": list(SUBJECT_TERMS) + [f'"{c}"' for c in companies]}
+            "subjects": list(SUBJECT_TERMS)}
 
 
 def query_matches(msg, terms):
@@ -135,9 +135,11 @@ def query_matches(msg, terms):
 def connector_query(ws, today=None):
     """The Gmail search engines B and C run through the connector: from the day before the last complete
     read (so a gap of days is never skipped), job senders or job subjects only, and the promotions, social
-    and forums tabs only from job senders. Keeps verification codes and personal mail out of Claude's
-    context; a recruiter writing from a personal address with no job word in the subject is missed."""
-    last = d.read_json(d.data_dir(ws) / "sync-state.json", {}).get("connector_last_read")
+    and forums tabs only from job senders. It keeps most personal mail out of Claude's context, not all of
+    it (a role noun or a sender named hr@ can match), and it misses a recruiter writing from a personal
+    address with no job word in the subject."""
+    state = d.read_json(d.data_dir(ws) / "sync-state.json", {})
+    last = state.get("connector_last_read") or state.get("connector_first_partial")
     if last:
         window = "after:" + (date.fromisoformat(last[:10]) - timedelta(days=1)).strftime("%Y/%m/%d")
     else:
@@ -459,6 +461,10 @@ def add(ws, rows, today=None, complete=True):
         out["added"] += 1
     if complete:        # only a read that went through every page moves the window on
         _save_state(ws, {"connector_last_read": today or date.today().isoformat()})
+    elif not d.read_json(d.data_dir(ws) / "sync-state.json", {}).get("connector_last_read"):
+        # A first read that never completed still pins where reading started, so later reads cover the gap.
+        _save_state(ws, {"connector_first_partial": d.read_json(d.data_dir(ws) / "sync-state.json", {})
+                         .get("connector_first_partial") or today or date.today().isoformat()})
     out["window_moved"] = complete
     return out
 
