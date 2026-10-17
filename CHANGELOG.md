@@ -11,6 +11,25 @@ _Working toward v1.0. Real-run gate: **1 of 2–3 runs signed off** (2026-07-01,
 see `docs/ROADMAP.md` → sign-off log); cases (b) no-résumé/non-tech and (c) resume-after-interruption
 remain, plus a green CI run on the remote + a demo GIF._
 
+### Added: Ascend 2.0, M9 engines B and C, LinkedIn search (branch `ascend-v2`)
+- **`finder.py add`** and **`gmail_sync.py add`**: rows Claude produces (engine B's web search,
+  engines B and C's Gmail reads through the connector, LinkedIn search) go through the same validation as
+  the Python stages: required fields, the 2,000-character excerpt cap, no sent mail, drafts or mail
+  from the user's own address, de-duplication. A Greenhouse, Lever or Ashby URL maps to its board ID,
+  so a search result for a board the finder polls is de-duplicated against it, or filed as closed when
+  the board no longer lists it.
+- **`classify.py pending` and `classify.py resolve`**: the model's verdict on mail the rules could not
+  place is an append-only correction. Ingest, the hub and the pending count all use each message's latest
+  verdict, so a resolved "next steps" email moves the job.
+- **Phase 29 (`prompts/29-run-v2.md`)**: the v2 run driver (plan with the token warning, each engine's
+  steps, connector reads, web search, and `linkedin-search`, which reads result cards only).
+- Real checks: a day of real Gmail through the validator (own reply, trash and a duplicate skipped); a
+  real "next steps" email resolved by the model moved that job to screen; a web search added four
+  postings and exposed a stale one, now caught by the board check; a LinkedIn search added seven cards,
+  caught one as a role already known from another source, and passed five. The real runs found two
+  bugs, both fixed test-first: stale search results, and leads without a URL silently blocking every
+  later add.
+
 ### Added: Ascend 2.0, M8 applying in all three modes (branch `ascend-v2`)
 - **`tools/apply.py`**: `sheet` builds a gated apply sheet (the job is approved, or matched at fit 75+
   in automatic mode; not a duplicate; its résumé passes lint; answers only from `data/profile.json`,

@@ -229,7 +229,11 @@ USAGE = """usage:
       WS/data/events.jsonl and, for mail the rules could not place, WS/data/classify-pending.jsonl.
       Safe to re-run: messages already classified are skipped.
   python3 tools/classify.py one --from F --subject S --body B [--date ISO]
-      Classify one message and print the result as JSON (no files touched)."""
+      Classify one message and print the result as JSON (no files touched).
+  python3 tools/classify.py pending WS
+      Message IDs waiting for a model pass (their latest verdict is unplaced, job-looking mail).
+  python3 tools/classify.py resolve WS MSG_ID CATEGORY
+      Record the model's category for one of them. Append-only: the rule verdict stays in the file."""
 
 
 def event_for(msg, jobs, now):
@@ -266,15 +270,48 @@ def cmd_run(ws, as_json):
         done.add(mid)
         counts[ev["category"]] = counts.get(ev["category"], 0) + 1
         new += 1
-    pending = sum(1 for e in d.read_jsonl(dd / "events.jsonl") if e.get("needs_llm"))
+    waiting = len(pending(ws))
     if as_json:
-        print(json.dumps({"new": new, "by_category": counts, "needs_llm": pending}))
+        print(json.dumps({"new": new, "by_category": counts, "needs_llm": waiting}))
     else:
-        print(f"classified {new} new message(s); {pending} waiting for a model pass")
+        print(f"classified {new} new message(s), {waiting} waiting for a model pass")
         for c in CATEGORIES:
             if counts.get(c):
                 print(f"  {c:<18} {counts[c]}")
     return 0
+
+
+def latest_events(events):
+    """One verdict per message: the last one written. A model's resolution is appended after the
+    rule verdict it corrects (the file is append-only), so the last row is the current truth."""
+    out = {}
+    for e in events:
+        out[e.get("msg_id")] = e
+    return list(out.values())
+
+
+def pending(ws):
+    import _v2data as d
+    events = d.read_jsonl(d.data_dir(ws) / "events.jsonl")
+    return [e["msg_id"] for e in latest_events(events) if e.get("needs_llm")]
+
+
+def resolve(ws, msg_id, category, due=None):
+    """Record the model's category for one message the rules could not place."""
+    import _v2data as d
+    if category not in CATEGORIES:
+        raise ValueError(f"unknown category {category!r}; one of {', '.join(CATEGORIES)}")
+    dd = d.data_dir(ws)
+    msg = next((m for m in d.read_jsonl(dd / "mail.jsonl") if m.get("msg_id") == msg_id), None)
+    if msg is None:
+        raise KeyError(msg_id)
+    jobs = d.read_json(dd / "queue.json", {}).get("jobs", [])
+    ev = {"msg_id": msg_id, "category": category, "confidence": 0.8, "rule": "model", "needs_llm": False,
+          "match": match_job(msg, jobs) if category not in ("other", "job-alert") else None,
+          "due": due or due_date(msg, category), "date": msg.get("date"),
+          "classified_at": datetime.now().isoformat(timespec="seconds")}
+    d.append_jsonl(dd / "events.jsonl", ev)
+    return ev
 
 
 def _opt(args, name, default=""):
@@ -282,6 +319,16 @@ def _opt(args, name, default=""):
 
 
 def main(argv):
+    if len(argv) >= 3 and argv[1] == "pending":
+        print(json.dumps(pending(argv[2])))
+        return 0
+    if len(argv) >= 5 and argv[1] == "resolve":
+        try:
+            print(json.dumps(resolve(argv[2], argv[3], argv[4])))
+        except (ValueError, KeyError) as e:
+            print(f"classify: {e}", file=sys.stderr)
+            return 2
+        return 0
     if len(argv) < 2 or argv[1] not in ("run", "one"):
         print(USAGE, file=sys.stderr)
         return 2

@@ -76,13 +76,12 @@ def steps(engine):
     if engine == "A":
         return ["python3 tools/gmail_sync.py sync WS --then-classify"] + find + judge
     if engine == "C":
-        return ["CLAUDE: read new Gmail through the connector into data/mail.jsonl (prompts/27-score-queue.md, engine C)",
+        return ["CLAUDE: read new Gmail through the connector, then python3 tools/gmail_sync.py add WS (prompts/29-run-v2.md)",
                 "python3 tools/classify.py run WS", "python3 tools/pipeline.py ingest WS"] + find + judge
-    return ["CLAUDE: read new Gmail through the connector into data/mail.jsonl",
-            "CLAUDE: classify new mail into data/events.jsonl",
-            "CLAUDE: search the web for matching postings into data/postings.jsonl",
-            "CLAUDE: apply the filters into data/candidates.jsonl",
-            "python3 tools/pipeline.py ingest WS"] + judge
+    return ["CLAUDE: read new Gmail through the connector, then python3 tools/gmail_sync.py add WS (prompts/29-run-v2.md)",
+            "CLAUDE: classify what the rules leave unplaced (python3 tools/classify.py run WS first)",
+            "CLAUDE: search the web for matching postings, then python3 tools/finder.py add WS --source web",
+            "python3 tools/prefilter.py run WS", "python3 tools/pipeline.py ingest WS"] + judge
 
 
 def _opt(args, name, default=None):

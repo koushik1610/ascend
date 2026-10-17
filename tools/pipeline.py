@@ -344,14 +344,23 @@ def cmd_ingest(ws, args):
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     import _v2data as d
     data = ws / "data"
-    done = {r.get("msg_id") for r in d.read_jsonl(data / "ingested.jsonl")}
+    from classify import latest_events
+    # Keyed by message AND category: a model's later resolution of an already-ingested message (rule
+    # said "other", the model says "interview-invite") is a new fact and must be applied.
+    rows = d.read_jsonl(data / "ingested.jsonl")
+    done = {r["key"] for r in rows if r.get("key")} | {r.get("msg_id") for r in rows if not r.get("key")}
     queue = d.read_json(data / "queue.json", {}).get("jobs", [])
     order = {s: i for i, s in enumerate(STATUSES)}
     out = {"applied": 0, "skipped": 0, "unmatched": 0, "transitions": []}
-    events = sorted((e for e in d.read_jsonl(data / "events.jsonl") if e.get("msg_id") not in done),
+
+    def key(e):
+        return f"{e.get('msg_id')}|{e.get('category')}"
+
+    events = sorted((e for e in latest_events(d.read_jsonl(data / "events.jsonl"))
+                     if key(e) not in done and (e.get("rule") == "model" or e.get("msg_id") not in done)),
                     key=lambda e: e.get("date") or "")
     for e in events:
-        d.append_jsonl(data / "ingested.jsonl", {"msg_id": e.get("msg_id")})
+        d.append_jsonl(data / "ingested.jsonl", {"msg_id": e.get("msg_id"), "key": key(e)})
         target = EVENT_STATUS.get(e.get("category"))
         if not target:
             out["skipped"] += 1

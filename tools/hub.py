@@ -80,7 +80,8 @@ def compute(ws, today=None):
     queue = d.read_json(data / "queue.json", {}).get("jobs", [])
     by_nn = {j["nn"]: slug for slug, j in jobs.items()}
     pid_to_nn = {q.get("posting_id"): q.get("nn") for q in queue if q.get("nn")}
-    events = d.read_jsonl(data / "events.jsonl")
+    from classify import latest_events
+    events = latest_events(d.read_jsonl(data / "events.jsonl"))
     ledger = pipeline.read_ledger(ws)
 
     def slug_for(match):

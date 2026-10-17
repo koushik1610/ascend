@@ -4,6 +4,7 @@
   python3 tools/gmail_sync.py connect WS                 # once: sign in with Google in your browser
   python3 tools/gmail_sync.py sync WS [--days N] [--json] [--then-classify]
   python3 tools/gmail_sync.py status WS
+  python3 tools/gmail_sync.py add WS --json '[{...}]'   # engines B and C: mail read through the connector
 
 Setup is in docs/GMAIL-SETUP.md: you create a Desktop OAuth client in your own Google Cloud project and
 save its JSON as workspace/<name>/gmail-client.json. Nobody else's app ever touches your mail.
@@ -317,12 +318,42 @@ def sync(ws, days=30):
     return {"new": new, "mode": mode, "history_id": profile.get("historyId")}
 
 
+def add(ws, rows):
+    """Mail read by Claude through the claude.ai connector (engines B and C), held to the same rules as
+    engine A's sync: required headers, a 2,000-character excerpt, no sent mail or drafts, no mail from
+    the user's own address, no duplicates."""
+    dd = d.data_dir(ws)
+    own = (d.read_json(dd / "profile.json", {}).get("email") or "").lower()
+    known = {m.get("msg_id") for m in d.read_jsonl(dd / "mail.jsonl")}
+    out = {"added": 0, "skipped": 0}
+    for r in rows:
+        sender = (r.get("from") or "").lower()
+        if (not all(r.get(k) for k in ("msg_id", "from", "subject", "date")) or r["msg_id"] in known
+                or SKIP_LABELS & set(r.get("labels") or []) or (own and own in sender)):
+            out["skipped"] += 1
+            continue
+        d.append_jsonl(dd / "mail.jsonl", {"msg_id": r["msg_id"], "thread_id": r.get("thread_id"), "from": r["from"],
+                                           "subject": r["subject"], "date": r["date"], "labels": r.get("labels") or [],
+                                           "body_excerpt": re.sub(r"\s+", " ", r.get("body_excerpt") or "").strip()[:EXCERPT]})
+        known.add(r["msg_id"])
+        out["added"] += 1
+    return out
+
+
 def _then_classify(ws):
     for cmd in (["classify.py", "run", str(ws)], ["pipeline.py", "ingest", str(ws)], ["hub.py", "build", str(ws)]):
         subprocess.run([sys.executable, str(TOOLS / cmd[0]), *cmd[1:]], check=True, stdout=subprocess.DEVNULL)
 
 
 def main(argv):
+    if len(argv) >= 3 and argv[1] == "add" and not argv[2].startswith("--"):
+        rows = json.loads(argv[argv.index("--json") + 1]) if "--json" in argv else json.load(sys.stdin)
+        try:
+            print(json.dumps(add(argv[2], rows)))
+        except PathOutsideWorkspace as e:
+            print(f"gmail_sync: {e}", file=sys.stderr)
+            return 2
+        return 0
     if len(argv) < 3 or argv[1] not in ("connect", "sync", "status") or argv[2].startswith("--"):
         print(__doc__, file=sys.stderr)
         return 2

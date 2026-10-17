@@ -2,6 +2,7 @@
 """finder.py: pull open roles from public ATS job boards at zero tokens (Ascend 2.0, M5).
 
   python3 tools/finder.py run WS [--json]
+  python3 tools/finder.py add WS --source web|linkedin --json '[{...}]'   # rows Claude found
 
 Reads the board list from workspace/<name>/data/sources.json and calls each board's public JSON API:
 Greenhouse, Ashby, Lever, Workable and SmartRecruiters. No login, no scraping, no model.
@@ -157,7 +158,68 @@ def run(ws, today=None):
     return out
 
 
+ATS_URL = [("greenhouse", re.compile(r"https://(?:job-)?boards\.greenhouse\.io/([\w-]+)/jobs/(\d+)")),
+           ("lever", re.compile(r"https://jobs\.lever\.co/([\w-]+)/([0-9a-f-]{8,})")),
+           ("ashby", re.compile(r"https://jobs\.ashbyhq\.com/([\w-]+)/([0-9a-f-]{8,})"))]
+
+
+def ats_id(url):
+    """greenhouse:acme:123 for a posting URL on a board this finder knows how to poll, else None."""
+    for ats, rx in ATS_URL:
+        m = rx.match(url or "")
+        if m:
+            return f"{ats}:{m.group(1)}:{m.group(2)}"
+    return None
+
+
+def add(ws, rows, source):
+    """Postings found by Claude (engine B's web search, LinkedIn search): validated and normalized
+    exactly like board postings, so the prefilter and everything after cannot tell the difference."""
+    if source not in ("web", "linkedin"):
+        raise ValueError("source is web or linkedin")
+    dd = d.data_dir(ws)
+    stored = d.read_jsonl(dd / "postings.jsonl")
+    known = {p.get("url") for p in stored} | {p.get("id") for p in stored}
+    state = d.read_json(dd / "postings-state.json", {})
+    polled = {f"{b['ats']}:{b['slug']}:" for b in d.read_json(dd / "sources.json", {}).get("boards", [])}
+    today = date.today().isoformat()
+    out = {"added": 0, "skipped": 0}
+    for r in rows:
+        url = (r.get("url") or "").strip()
+        board_id = ats_id(url)
+        if not (url.startswith("https://") and r.get("company") and r.get("title")) or url in known or (board_id and board_id in known):
+            out["skipped"] += 1
+            continue
+        # A search result can be months old. If its board is one we poll and the board did not list it
+        # on the last run, the posting has closed: keep it for the record, closed, so it never passes.
+        prefix = board_id.rsplit(":", 1)[0] + ":" if board_id else None
+        closed = bool(prefix in polled and any(k.startswith(prefix) for k in state) and board_id not in state)
+        loc = r.get("location", "") or ""
+        text = clean(r.get("text", ""))
+        p = {"id": board_id or f"{source}:{hashlib.sha1(url.encode()).hexdigest()[:12]}", "ats": source, "source": source,
+             "company": r["company"], "title": r["title"], "location": loc,
+             "remote": r["remote"] if isinstance(r.get("remote"), bool) else _remote_from_text(loc),
+             "comp_min": _money(r.get("comp_min")), "comp_max": _money(r.get("comp_max")), "url": url,
+             "apply_url": r.get("apply_url") or url, "text": text, "first_seen": today,
+             "text_hash": hashlib.sha1((r["title"] + "\n" + text).encode()).hexdigest()}
+        d.append_jsonl(dd / "postings.jsonl", p)
+        state[p["id"]] = {"first_seen": today, "last_seen": today, "closed": closed}
+        known |= {url, p["id"]}
+        out["added"] += 1
+    d.write_json_atomic(dd / "postings-state.json", state)
+    return out
+
+
 def main(argv):
+    if len(argv) >= 3 and argv[1] == "add" and not argv[2].startswith("--"):
+        src = argv[argv.index("--source") + 1] if "--source" in argv else "web"
+        rows = json.loads(argv[argv.index("--json") + 1]) if "--json" in argv else json.load(sys.stdin)
+        try:
+            print(json.dumps(add(argv[2], rows, src)))
+        except (ValueError, PathOutsideWorkspace) as e:
+            print(f"finder: {e}", file=sys.stderr)
+            return 2
+        return 0
     if len(argv) < 3 or argv[1] != "run" or argv[2].startswith("--"):
         print(__doc__, file=sys.stderr)
         return 2

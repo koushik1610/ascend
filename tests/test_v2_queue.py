@@ -158,7 +158,7 @@ class Plan(unittest.TestCase):
         a = run.steps("A")
         self.assertIn("gmail_sync.py sync", a[0])
         self.assertTrue(any(s.startswith("CLAUDE:") for s in a))
-        self.assertTrue(all("gmail_sync" not in s for s in run.steps("C")))
+        self.assertTrue(all("gmail_sync.py sync" not in s for s in run.steps("C")))   # C never uses the OAuth sync
 
 
 class Server(unittest.TestCase):
