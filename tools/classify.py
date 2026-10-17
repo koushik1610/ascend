@@ -319,6 +319,9 @@ def resolve(ws, msg_id, category, due=None):
     msg = next((m for m in d.read_jsonl(dd / "mail.jsonl") if m.get("msg_id") == msg_id), None)
     if msg is None:
         raise KeyError(msg_id)
+    # Only mail the rules sent to a model. A rule verdict is never overwritten by text the model read.
+    if msg_id not in pending(ws):
+        raise ValueError(f"{msg_id} is not waiting for a model: the rules already placed it")
     jobs = d.read_json(dd / "queue.json", {}).get("jobs", [])
     ev = {"msg_id": msg_id, "category": category, "confidence": 0.8, "rule": "model", "needs_llm": False,
           "match": match_job(msg, jobs) if category not in ("other", "job-alert") else None,

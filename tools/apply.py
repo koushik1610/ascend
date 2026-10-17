@@ -29,6 +29,7 @@ import pipeline  # noqa: E402
 
 PROFILE_FIELDS = ["name", "email", "phone", "location", "linkedin", "website", "github",
                   "work_authorization", "sponsorship", "salary_expectation", "start_date"]
+STALE_SECONDS = 60    # the pack builder writes the PDF moments before resume.md; an edit later is stale
 ALWAYS_ASK = ["work_authorization", "sponsorship", "salary_expectation", "start_date"]
 
 
@@ -76,10 +77,14 @@ def sheet(ws, posting_id):
     job = pipeline.find_job(ws, entry["nn"]) if entry.get("nn") else None
     if not job:
         raise Refused("no apply pack yet: build it with Phase 5 (prompts/05-job-folders.md)")
-    pdfs = sorted(job.glob("*.pdf"))
+    pdfs = sorted(job.glob("*-Resume-*.pdf"))
     if not pdfs or not (job / "resume.md").is_file():
         raise Refused(f"no résumé PDF in {job.name}: render it with Phase 8")
+    if len(pdfs) > 1:
+        raise Refused(f"{len(pdfs)} résumé PDFs in {job.name}: keep only the one to send")
     _lint(ws, job / "resume.md")
+    if pdfs[0].stat().st_mtime < (job / "resume.md").stat().st_mtime - STALE_SECONDS:
+        raise Refused(f"{pdfs[0].name} is older than resume.md: render it again with Phase 8")
     profile = d.read_json(ws / "data" / "profile.json", {})
     answers = {k: profile[k] for k in PROFILE_FIELDS if profile.get(k) and k not in ALWAYS_ASK}
     ask = ALWAYS_ASK + [k for k in ("name", "email", "phone") if not profile.get(k)]

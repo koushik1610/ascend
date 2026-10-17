@@ -75,8 +75,9 @@ def candidates(ws, limit=25):
     for c in d.read_jsonl(dd / "candidates.jsonl"):
         latest[c.get("posting_id")] = c
     posts = {p.get("id"): p for p in d.read_jsonl(dd / "postings.jsonl")}
+    closed = {pid for pid, st in d.read_json(dd / "postings-state.json", {}).items() if st.get("closed")}
     rows = [(c, posts[pid]) for pid, c in latest.items() if c.get("passed") and pid not in queued and pid in posts
-            and not already_queued(posts[pid])]
+            and pid not in closed and not already_queued(posts[pid])]
     rows.sort(key=lambda r: -r[0].get("keyword_overlap", 0))
     return [{"posting_id": p["id"], "company": p.get("company"), "title": p.get("title"), "location": p.get("location"),
              "comp": [p.get("comp_min"), p.get("comp_max")], "keyword_overlap": c.get("keyword_overlap"),

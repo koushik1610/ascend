@@ -121,6 +121,31 @@ class Sheet(unittest.TestCase):
             apply.sheet(ws, "greenhouse:acme:1")
         self.assertIn("posting", str(c.exception))
 
+    def test_attaches_the_resume_pdf_not_another_pdf(self):
+        import apply
+        ws = apply_ws(self.td.name)
+        (ws / "jobs/05-acme-staff/A-job-description.pdf").write_bytes(b"%PDF-1.4 jd")
+        self.assertTrue(apply.sheet(ws, "greenhouse:acme:1")["resume_pdf"].endswith("Jordan-Rivera-Resume-Acme.pdf"))
+
+    def test_a_pdf_built_in_the_same_run_as_its_resume_passes(self):
+        import os
+        import apply
+        ws = apply_ws(self.td.name)
+        job = ws / "jobs/05-acme-staff"
+        t = (job / "resume.md").stat().st_mtime
+        os.utime(job / "Jordan-Rivera-Resume-Acme.pdf", (t - 0.5, t - 0.5))     # the builder writes the PDF first
+        self.assertEqual(apply.sheet(ws, "greenhouse:acme:1")["company"], "Acme Robotics")
+
+    def test_refuses_a_pdf_older_than_its_resume(self):
+        import os
+        import apply
+        ws = apply_ws(self.td.name)
+        pdf = ws / "jobs/05-acme-staff/Jordan-Rivera-Resume-Acme.pdf"
+        os.utime(pdf, (1, 1))
+        with self.assertRaises(apply.Refused) as c:
+            apply.sheet(ws, "greenhouse:acme:1")
+        self.assertIn("older", str(c.exception))
+
     def test_refuses_a_resume_that_fails_lint(self):
         import apply
         ws = apply_ws(self.td.name)

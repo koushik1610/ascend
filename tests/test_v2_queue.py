@@ -78,6 +78,12 @@ class Queue(unittest.TestCase):
         self.assertEqual([x["posting_id"] for x in c], ["greenhouse:b:2", "greenhouse:a:1"])
         self.assertLessEqual(len(c[0]["text"]), 1500)
 
+    def test_closed_postings_are_not_candidates(self):
+        import _v2data as d
+        import jobqueue as qt
+        d.write_json_atomic(self.ws / "data" / "postings-state.json", {"greenhouse:b:2": {"closed": True}})
+        self.assertNotIn("greenhouse:b:2", [x["posting_id"] for x in qt.candidates(self.ws)])
+
     def test_score_adds_then_updates(self):
         import _v2data as d
         import jobqueue as qt

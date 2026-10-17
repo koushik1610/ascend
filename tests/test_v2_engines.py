@@ -140,6 +140,16 @@ class Resolve(unittest.TestCase):
         inbox = hub.compute(self.ws)["inbox"]
         self.assertEqual([(i["msg_id"], i["category"]) for i in inbox], [("n1", "interview-invite")])
 
+    def test_resolve_only_touches_mail_waiting_for_a_model(self):
+        import _v2data as d
+        import classify
+        d.append_jsonl(self.ws / "data" / "mail.jsonl", {"msg_id": "r1", "from": "no-reply@greenhouse.io",
+                                                         "subject": "Update on your application", "date": "2026-10-16T22:00:00Z",
+                                                         "body_excerpt": "Unfortunately we have decided not to move forward."})
+        subprocess.run([sys.executable, str(REPO / "tools/classify.py"), "run", str(self.ws)], check=True, capture_output=True)
+        with self.assertRaises(ValueError):
+            classify.resolve(self.ws, "r1", "interview-invite")
+
     def test_resolve_rejects_unknown_category_and_message(self):
         import classify
         with self.assertRaises(ValueError):

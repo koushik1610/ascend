@@ -58,11 +58,13 @@ def fetch_board(ats, slug):
             data = json.loads(r.read().decode("utf-8", "replace"))
     except Exception:
         return None
+    # An answer without the job list (maintenance page, error object) is a failed read, not an empty
+    # board: treating it as empty would close every posting on the board.
     if ats == "lever":
         return data if isinstance(data, list) else None
-    if ats == "smartrecruiters":
-        return data.get("content", [])
-    return data.get("jobs", [])
+    key = "content" if ats == "smartrecruiters" else "jobs"
+    jobs = data.get(key) if isinstance(data, dict) else None
+    return jobs if isinstance(jobs, list) else None
 
 
 def clean(s):

@@ -165,6 +165,21 @@ class Run(Base):
         self.assertTrue(state["greenhouse:acme:2"]["closed"])
         self.assertFalse(state["greenhouse:flaky:9"]["closed"])
 
+    def test_an_odd_answer_never_closes_a_board_or_stops_the_run(self):
+        import _v2data as d
+        import finder
+        self.sources([{"ats": "greenhouse", "slug": "acme", "company": "Acme"},
+                      {"ats": "greenhouse", "slug": "weird", "company": "Weird"}])
+        self.fake.boards["/v1/boards/acme/jobs"] = {"jobs": [gh_job(1, "Staff Security Engineer")]}
+        self.fake.boards["/v1/boards/weird/jobs"] = {"jobs": [gh_job(5, "Staff Security Engineer")]}
+        finder.run(self.ws, today="2026-10-10")
+        self.fake.boards["/v1/boards/acme/jobs"] = ["not", "an", "object"]
+        self.fake.boards["/v1/boards/weird/jobs"] = {"error": "maintenance"}
+        out = finder.run(self.ws, today="2026-10-11")
+        self.assertEqual((out["closed"], sorted(out["failed"])), (0, ["acme", "weird"]))
+        state = d.read_json(self.ws / "data" / "postings-state.json", {})
+        self.assertFalse(state["greenhouse:weird:5"]["closed"])
+
     def test_cli(self):
         self.sources([{"ats": "greenhouse", "slug": "acme", "company": "Acme"}])
         self.fake.boards["/v1/boards/acme/jobs"] = {"jobs": [gh_job(1, "Staff Security Engineer")]}
