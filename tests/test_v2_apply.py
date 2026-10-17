@@ -92,12 +92,15 @@ class Sheet(unittest.TestCase):
         with self.assertRaises(apply.Refused):
             apply.sheet(apply_ws(self.td.name, state="matched"), "greenhouse:acme:1")
 
-    def test_automatic_mode_takes_matched_at_threshold(self):
+    def test_sensitive_answers_are_always_asked_never_filled(self):
+        import _v2data as d
         import apply
-        ws = apply_ws(self.td.name, state="matched", fit=80)
-        self.assertEqual(apply.sheet(ws, "greenhouse:acme:1", mode="automatic")["company"], "Acme Robotics")
-        with self.assertRaises(apply.Refused):
-            apply.sheet(apply_ws(self.td.name + "/b", state="matched", fit=60), "greenhouse:acme:1", mode="automatic")
+        ws = apply_ws(self.td.name)
+        d.write_json_atomic(ws / "data" / "profile.json", dict(PROFILE, salary_expectation="200k", sponsorship="no"))
+        s = apply.sheet(ws, "greenhouse:acme:1")
+        for k in ("work_authorization", "sponsorship", "salary_expectation", "start_date"):
+            self.assertIn(k, s["ask_user"])
+            self.assertNotIn(k, s["answers"])
 
     def test_refuses_a_duplicate(self):
         import apply
@@ -116,45 +119,25 @@ class Sheet(unittest.TestCase):
         self.assertIn("lint", str(c.exception))
 
 
-class Allowed(unittest.TestCase):
-    def test_allow_list(self):
+class AssistedOnly(unittest.TestCase):
+    """Agent-submit and fully automatic live on the ascend-v2-agent-modes branch, not in this release."""
+
+    def test_no_agent_submit_surface(self):
         import apply
-        for u in ["https://boards.greenhouse.io/acme/jobs/1", "https://jobs.lever.co/acme/x/apply",
-                  "https://jobs.ashbyhq.com/acme/u1/application", "https://acme.wd5.myworkdayjobs.com/x"]:
-            self.assertTrue(apply.allowed(u), u)
-        for u in ["http://boards.greenhouse.io/acme/jobs/1", "https://greenhouse.io.evil.example/x",
-                  "https://tracking.us.nylas.com/l/abc", "javascript:alert(1)"]:
-            self.assertFalse(apply.allowed(u), u)
+        for name in ("next", "allowed", "pause", "resume"):
+            self.assertFalse(hasattr(apply, name), name)
+        self.assertFalse((REPO / "tools" / "fakeform.py").exists())
+        r = subprocess.run([sys.executable, str(REPO / "tools/apply.py"), "next", "workspace/x", "--mode", "agent"],
+                           capture_output=True, text=True)
+        self.assertEqual(r.returncode, 2)
 
 
-class NextAndRecord(unittest.TestCase):
+class Record(unittest.TestCase):
     def setUp(self):
         self.td = tempfile.TemporaryDirectory()
 
     def tearDown(self):
         self.td.cleanup()
-
-    def test_pause_and_cap(self):
-        import apply
-        ws = apply_ws(self.td.name)
-        self.assertEqual(apply.next(ws, "agent")["posting_id"], "greenhouse:acme:1")
-        apply.pause(ws, "taking a break")
-        out = apply.next(ws, "agent")
-        self.assertIsNone(out["job"])
-        self.assertIn("paused", out["reason"])
-        apply.resume(ws)
-        self.assertIsNone(apply.next(ws, "agent", cap=0)["job"])
-
-    def test_reply_rate_auto_pause_only_in_automatic(self):
-        import _v2data as d
-        import apply
-        ws = apply_ws(self.td.name, state="matched", fit=90)
-        for i in range(50):
-            d.append_jsonl(ws / "data" / "apply-log.jsonl", {"posting_id": f"p{i}", "result": "submitted",
-                                                              "at": "2026-09-01T00:00:00"})
-        out = apply.next(ws, "automatic")
-        self.assertIsNone(out["job"])
-        self.assertIn("reply rate", out["reason"])
 
     def test_record_submitted_moves_queue_and_folder(self):
         import _v2data as d
@@ -181,32 +164,6 @@ class NextAndRecord(unittest.TestCase):
         ws = apply_ws(self.td.name)
         jobqueue.set_state(ws, "greenhouse:acme:1", "applied")
         self.assertEqual(pipeline.parse_state(ws / "jobs/05-acme-staff/application-log.md")["status"], "applied")
-
-
-class FakeForm(unittest.TestCase):
-    def test_records_submissions_and_serves_variants(self):
-        import http.client
-        import time
-        with tempfile.TemporaryDirectory() as td:
-            log = Path(td) / "submissions.jsonl"
-            proc = subprocess.Popen([sys.executable, str(REPO / "tools/fakeform.py"), "serve", "--port", "8963",
-                                     "--log", str(log)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            try:
-                time.sleep(1.0)
-                def get(path):
-                    c = http.client.HTTPConnection("127.0.0.1", 8963, timeout=5)
-                    c.request("GET", path); r = c.getresponse(); b = r.read().decode(); c.close(); return r.status, b
-                self.assertIn('name="first_name"', get("/apply/plain")[1])
-                self.assertIn("captcha", get("/apply/captcha")[1].lower())
-                self.assertIn("authorized to work", get("/apply/workauth")[1])
-                c = http.client.HTTPConnection("127.0.0.1", 8963, timeout=5)
-                c.request("POST", "/apply/plain", body="first_name=Jordan&email=j%40example.com",
-                          headers={"Content-Type": "application/x-www-form-urlencoded"})
-                r = c.getresponse(); body = r.read().decode(); c.close()
-                self.assertIn("Application received", body)
-                self.assertEqual(json.loads(log.read_text().splitlines()[0])["fields"]["first_name"], "Jordan")
-            finally:
-                proc.terminate(); proc.wait(timeout=5)
 
 
 if __name__ == "__main__":

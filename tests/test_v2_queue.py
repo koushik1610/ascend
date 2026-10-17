@@ -125,6 +125,29 @@ class Queue(unittest.TestCase):
         with self.assertRaises(KeyError):
             qt.set_state(self.ws, "nope", "approved")
 
+    def test_a_sent_job_never_moves_back(self):
+        import jobqueue as qt
+        qt.set_state(self.ws, "greenhouse:d:4", "approved")
+        qt.set_state(self.ws, "greenhouse:d:4", "applied?")
+        for back in ("approved", "matched", "rejected", "needs-you"):
+            with self.assertRaises(ValueError):
+                qt.set_state(self.ws, "greenhouse:d:4", back)
+        self.assertEqual(qt.set_state(self.ws, "greenhouse:d:4", "applied")["state"], "applied")
+        with self.assertRaises(ValueError):
+            qt.set_state(self.ws, "greenhouse:d:4", "approved")
+
+    def test_cli_cannot_approve_or_mark_applied(self):
+        import _v2data as d
+        for state in ("approved", "applied"):
+            r = subprocess.run([sys.executable, str(REPO / "tools/jobqueue.py"), "set-state", str(self.ws),
+                                "greenhouse:d:4", state], capture_output=True, text=True)
+            self.assertEqual(r.returncode, 2, r.stdout)
+            self.assertIn("hub", r.stderr)
+        self.assertNotIn(d.read_json(self.ws / "data" / "queue.json", {})["jobs"][0]["state"], ("approved", "applied"))
+        r = subprocess.run([sys.executable, str(REPO / "tools/jobqueue.py"), "set-state", str(self.ws),
+                            "greenhouse:d:4", "rejected"], capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stderr)
+
 
 class Plan(unittest.TestCase):
     def setUp(self):
@@ -140,18 +163,33 @@ class Plan(unittest.TestCase):
         self.assertFalse(p["ok"])
         self.assertTrue(any("gmail-client.json" in x for x in p["problems"]))
 
-    def test_automatic_needs_typed_confirmation(self):
+    def test_agent_and_automatic_are_not_in_this_release(self):
         import run
-        self.assertFalse(run.plan(self.ws, "B", "automatic")["ok"])
-        self.assertTrue(run.plan(self.ws, "B", "automatic", confirm="I understand")["ok"])
+        for mode in ("agent", "automatic"):
+            out = run.plan(self.ws, "B", mode)
+            self.assertFalse(out["ok"])
+            self.assertIn("not in this release", " ".join(out["problems"]))
 
-    def test_every_mode_warns_about_tokens_and_ok_saves_defaults(self):
+    def test_assisted_warns_about_tokens_and_ok_saves_defaults(self):
+        import _v2data as d
         import run
-        for mode in ("assisted", "agent", "automatic"):
-            p = run.plan(self.ws, "B", mode, confirm="I understand")
-            self.assertIn("tokens", p["warning"])
-        state = json.loads((self.ws / ".ascend-state.json").read_text())
-        self.assertEqual(state["run_defaults"], {"engine": "B", "mode": "automatic"})
+        out = run.plan(self.ws, "B", "assisted")
+        self.assertTrue(out["ok"], out)
+        self.assertIn("tokens", out["warning"])
+        state = d.read_json(Path(self.ws) / ".ascend-state.json", {})
+        self.assertEqual(state["run_defaults"], {"engine": "B", "mode": "assisted"})
+
+    def test_every_engine_states_the_permissions_it_uses(self):
+        import run
+        for engine in ("A", "B", "C"):
+            perms = " ".join(run.plan(self.ws, engine)["permissions"])
+            self.assertIn("never submits", perms)
+            self.assertIn("LinkedIn", perms)
+        self.assertIn("gmail.readonly", " ".join(run.plan(self.ws, "A")["permissions"]))
+        for engine in ("B", "C"):
+            perms = " ".join(run.plan(self.ws, engine)["permissions"])
+            self.assertIn("claude.ai Gmail connector", perms)
+            self.assertIn("denies", perms)
 
     def test_steps(self):
         import run
@@ -212,11 +250,20 @@ class Server(unittest.TestCase):
         self.assertEqual(status, 409, body)
         self.assertIn("not approved", json.loads(body)["error"])
 
-    def test_apply_control_pauses_and_resumes(self):
-        status, body, _ = self.req("POST", "/api/apply-control", {"slug": self.SLUG, "paused": True}, token=self.token)
-        self.assertEqual((status, json.loads(body)["paused"]), (200, True))
-        status, body, _ = self.req("POST", "/api/apply-control", {"slug": self.SLUG, "paused": False}, token=self.token)
-        self.assertEqual(json.loads(body)["paused"], False)
+    def test_no_apply_control_endpoint(self):
+        status, _, _ = self.req("POST", "/api/apply-control", {"slug": self.SLUG, "paused": True}, token=self.token)
+        self.assertEqual(status, 404)
+
+    def test_i_submitted_it_logs_the_send(self):
+        import _v2data as d
+        q = d.read_json(self.ws / "data" / "queue.json", {})
+        q["jobs"].append({"posting_id": "greenhouse:e:5", "company": "Echo", "title": "Staff Engineer", "state": "approved"})
+        d.write_json_atomic(self.ws / "data" / "queue.json", q)
+        status, body, _ = self.req("POST", "/api/queue", {"slug": self.SLUG, "posting_id": "greenhouse:e:5",
+                                                          "action": "applied"}, token=self.token)
+        self.assertEqual(status, 200, body)
+        log = d.read_jsonl(self.ws / "data" / "apply-log.jsonl")
+        self.assertEqual([(r["posting_id"], r["result"]) for r in log], [("greenhouse:e:5", "submitted")])
 
     def test_queue_action_needs_token(self):
         status, _, _ = self.req("POST", "/api/queue", {"slug": self.SLUG, "posting_id": "greenhouse:d:4", "action": "approved"})

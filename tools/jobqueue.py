@@ -24,6 +24,8 @@ sys.path.insert(0, str(TOOLS))
 import _v2data as d  # noqa: E402
 
 STATES = ["matched", "approved", "rejected", "needs-you", "applying", "applied", "applied?", "inbound-filtered"]
+SENT = {"applying", "applied", "applied?"}       # once sent, a job only moves on to applied
+HUB_ONLY = {"approved", "applied"}               # the user's own click in the hub, never a CLI call
 TEXT_BUDGET = 1500
 # Most postings open with paragraphs about the company. The budget goes to the role instead: start at
 # the first heading that introduces it. Found on a real run, where the first 1,500 characters of
@@ -109,6 +111,8 @@ def set_state(ws, posting_id, state):
     entry = next((j for j in q.get("jobs", []) if j.get("posting_id") == posting_id), None)
     if entry is None:
         raise KeyError(posting_id)
+    if entry.get("state") in SENT and state != "applied":
+        raise ValueError(f"{entry.get('company')} is {entry.get('state')}: a sent application cannot move back to {state}")
     entry["state"] = state
     if state == "applied" and not entry.get("applied_on"):
         entry["applied_on"] = date.today().isoformat()
@@ -140,6 +144,8 @@ def main(argv):
             gaps = [g.strip() for g in (_opt(args, "--gaps", "") or "").split(";") if g.strip()]
             out = score(ws, args[0], _opt(args, "--fit"), _opt(args, "--why", ""), gaps)
         else:
+            if args[1] in HUB_ONLY:
+                raise ValueError(f"{args[1]} is set by you in the hub's Queue tab, not from the command line")
             out = set_state(ws, args[0], args[1])
     except (ValueError, KeyError, IndexError) as e:
         print(f"jobqueue: {e}", file=sys.stderr)

@@ -17,7 +17,7 @@ written down anywhere.
 | Finder and prefilter (M5) | 127 company boards | 15,092 postings in 22 seconds at zero tokens, 48 survivors after four rule fixes |
 | Alerts and inbound (M6) | real alert and recruiter mail | one alert lead extracted, three staffing emails filtered as not remote |
 | Scoring and queue (M7) | 10 real survivors scored, 2 approved in the browser | about 5,200 estimated tokens for the batch. Four duplicate roles merged |
-| Apply (M8) | an approved real job up to the apply sheet. Agent fill against a local fake form | every gate held. Plain form submitted, CAPTCHA and work-authorization forms stopped |
+| Apply (M8) | an approved real job up to the apply sheet | every gate held |
 | Engines B and C, LinkedIn (M9) | a day of real Gmail, one web search, one LinkedIn search | a real "next steps" email resolved by the model moved a job to screen. A stale search result and a silent-skip bug found and fixed |
 | Daily sync (M10) | the real workspace | every stage ran in 21 seconds at zero tokens |
 
@@ -25,8 +25,9 @@ written down anywhere.
 
 - **Engine A's live Google sign-in** has run only against a fake Google server. It needs the user's own
   OAuth client (`docs/GMAIL-SETUP.md`), which only the user can create.
-- **Agent-submit and fully automatic** have submitted only to the local fake form. No application has been
-  sent to a real employer by an agent, and none will be until the user runs a mode that does so.
+- **Agent-submit and fully automatic are not in this release.** The council review of PR #15 split them out
+  to the `ascend-v2-agent-modes` branch. They come back as their own PR after assisted mode passes its
+  one-week gate, with the security findings listed in that branch's readiness doc fixed first.
 - **Token figures are estimates** (characters divided by four). They replace the design's defaults after
   three runs of a stage, and the hub labels them as estimates.
 - **LinkedIn card leads carry no description**, so they rank last on keyword overlap until enriched.
@@ -37,7 +38,7 @@ written down anywhere.
 
 ```
 python3 tests/smoke.py                                   # includes every tests/test_v2_*.py suite
-python3 tools/run.py plan workspace/<you> --engine C --mode assisted
+python3 tools/run.py plan workspace/<you> --engine C
 python3 tools/daily.py workspace/<you>
 python3 ui/server.py   # then open /hub?slug=<you>
 ```

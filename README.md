@@ -165,15 +165,16 @@ where the quality comes from.
 ## Ascend 2.0 (beta): find, apply, track
 
 Version 1 builds the apply packs. Version 2 keeps the search running: it finds matching roles every day,
-applies in the mode you choose, and reads your inbox to track what happened, all on your machine.
+prepares the applications you approve, and reads your inbox to track what happened, all on your machine.
+You submit every application yourself. Ascend never sends one.
 
 ```
   every day, zero tokens      finder (public ATS boards) → prefilter → alerts → Gmail sync → classify → ledger → hub
   when you run it             score the survivors (Phase 27) → you approve → apply (Phase 28) → hub
 ```
 
-**You choose two things per run, and see the token estimate before anything is spent**
-(`python3 tools/run.py plan workspace/<you> --engine A --mode assisted`):
+**You choose the engine per run, and see the token estimate and the permissions before anything is spent**
+(`python3 tools/run.py plan workspace/<you> --engine A`):
 
 | Engine | How it gathers | Setup |
 |---|---|---|
@@ -181,17 +182,28 @@ applies in the mode you choose, and reads your inbox to track what happened, all
 | **B** agent-driven | Claude does every stage, including web search | none, but the most tokens |
 | **C** core + connector | Python reads the boards; Claude reads Gmail through the claude.ai connector | none |
 
-| Apply mode | What happens |
-|---|---|
-| **assisted** | The hub shows the apply sheet, the answers to copy, the résumé and the link. You submit. |
-| **agent-submit** | Claude in Chrome fills and submits each job you approved. |
-| **fully automatic** | The same, without per-job approval, up to a daily cap, with a pause switch and an automatic pause when replies dry up. |
+**Applying is assisted.** For each job you approve, the hub shows an apply sheet: the answers to copy,
+the résumé to attach and the application link. You submit and press **I submitted it**. The sheet is
+built only when the job is approved, it is not a duplicate, its résumé passes the linter, and every answer
+comes from your own `data/profile.json`. Work authorization, sponsorship, salary and start date are always
+left for you to answer. Agent-submit and fully automatic modes are being developed separately on the
+`ascend-v2-agent-modes` branch and are not in this release.
 
-Every mode goes through one gate first: the job is approved (or matched at a high fit in automatic
-mode), it is not a duplicate, its résumé passes the linter, and every answer comes from your own
-profile. Work authorization, sponsorship, salary and start date are never filled for you. The agent
-stops on any CAPTCHA, sign-in or question it cannot answer, and only opens job links on known
-application systems, never links from email.
+**What you are granting, per engine.** `run.py plan` prints this list every time.
+
+| | Engine A | Engine B | Engine C |
+|---|---|---|---|
+| Gmail | Your own Google OAuth client, `gmail.readonly` scope. Ascend cannot send, change or delete mail. The token stays in your macOS Keychain. | Claude reads your mail through the claude.ai Gmail connector. | Same as B. |
+| Gmail write tools | Not requested. | Denied in this repo's `.claude/settings.json`: send, reply, forward, drafts, labels, spam, trash. | Same as B. |
+| Google Drive | Not used. | Share, create, update, copy and trash are denied. | Same as B. |
+| Web | Public job-board APIs, read only. | Public boards plus Claude's web searches. | Public job-board APIs, read only. |
+| Applications | Never submitted by Ascend. | Never submitted by Ascend. | Never submitted by Ascend. |
+
+The deny entries hold only while you run Claude Code in this repo with its settings. A personal
+`.claude/settings.local.json` that allows those tools overrides them. **LinkedIn search** is opt-in on
+every engine. It drives your own logged-in LinkedIn session through Claude in Chrome and reads result
+cards only. Automated browsing can break LinkedIn's terms of use and put the account at risk, so Claude
+asks before each search.
 
 **The hub** (`python3 tools/hub.py build workspace/<you>`, or served with actions at `/hub?slug=<you>`)
 shows the funnel from found to offer, this week's applications, replies and interviews, the mail
@@ -240,7 +252,7 @@ reading nothing.
 | "Ascend negotiate Acme" *(beta)* | Salary plan: market anchors, your numbers, scripts |
 | "Run Ascend maintenance" *(beta)* | Weekly: new/closed jobs, follow-ups due, retro patterns |
 | "Ascend industry" *(beta)* | Rebuild or inspect the phrasing reference for your field (runs monthly by itself) |
-| "Ascend run-v2" *(beta)* | Ascend 2.0 run: choose engine and apply mode, see the token estimate, find, score, track |
+| "Ascend run-v2" *(beta)* | Ascend 2.0 run: choose an engine, see the token estimate and permissions, find, score, track |
 | "Ascend apply" *(beta)* | Apply to approved jobs in the run's mode, through one gate |
 | "Ascend linkedin-search" *(beta)* | LinkedIn Jobs in your own browser, result cards only |
 | "Ascend hub" *(beta)* | The live dashboard: funnel, queue with approve and apply, inbox, token spend |

@@ -58,9 +58,9 @@
      "what": "How people at your target level write about their work: a monthly, shared phrasing reference"},
 
     {"op": "run-v2",        "status": "beta", "new": true,
-     "what": "Ascend 2.0 run: pick an engine and apply mode (with token estimate), find, score, track"},
+     "what": "Ascend 2.0 run: pick an engine (token estimate and permissions shown), find, score, track"},
     {"op": "apply",         "status": "beta", "new": true,
-     "what": "Apply to approved jobs: assisted, agent-submit or fully automatic, through one gate"},
+     "what": "Apply to approved jobs: a gated apply sheet in the hub, you submit"},
     {"op": "linkedin-search", "status": "beta", "new": true,
      "what": "Search LinkedIn Jobs in your own browser, result cards only, into the finder"},
     {"op": "hub",           "status": "beta", "new": true,

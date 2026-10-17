@@ -75,7 +75,6 @@
   </section>
 
   <section id="queue" hidden>
-    <div class="sub" id="pauseBar" style="margin-bottom:10px"></div>
     <div class="panel" id="sheet" hidden></div>
     <div class="panel"><table><thead><tr><th>#</th><th>Company</th><th>Role</th><th>Fit</th><th>Status</th><th></th></tr></thead><tbody id="queueRows"></tbody></table></div>
   </section>
@@ -144,8 +143,7 @@ const post = (path, body) => fetch(path, {method: "POST", headers: {"Content-Typ
                                           body: JSON.stringify(Object.assign({slug: S.slug}, body))}).then(r => r.json());
 function showSheet(s, id) {
   const ans = Object.entries(s.answers || {}).map(([k, v]) => `${k}: ${v}`).join("\n");
-  const open = s.url_allowed ? `<a href="${safeUrl(s.apply_url)}" target="_blank" rel="noopener noreferrer">Open the application</a>`
-                             : `<span class="sub">This link is not on the ATS allow-list: open it yourself after checking it.</span>`;
+  const open = `<a href="${safeUrl(s.apply_url)}" target="_blank" rel="noopener noreferrer">Open the application</a>`;
   const ask = (s.ask_user || []).length ? `<div class="banner">Only you can answer: ${esc(s.ask_user.join(", "))}. Ascend never fills these.</div>` : "";
   $("sheet").innerHTML = `<b>${esc(s.company)}: ${esc(s.title)}</b><div class="sub">Résumé: ${esc(String(s.resume_pdf).split("/").pop())}</div>${ask}
     <pre style="white-space:pre-wrap;background:var(--panel2);padding:10px;border-radius:8px">${esc(ans)}</pre>
@@ -153,11 +151,6 @@ function showSheet(s, id) {
   $("sheet").hidden = false;
   $("copyAns").onclick = () => navigator.clipboard && navigator.clipboard.writeText(ans);
   $("sheet").scrollIntoView({behavior: "smooth"});
-}
-if (S) {
-  const pc = D.apply_control || {};
-  $("pauseBar").innerHTML = `Agent and automatic applying: <b>${pc.paused ? "paused" : "on"}</b>${pc.reason ? " (" + esc(pc.reason) + ")" : ""} <button class="act" id="pauseBtn">${pc.paused ? "Resume" : "Pause"}</button>`;
-  $("pauseBtn").onclick = () => post("/api/apply-control", {paused: !pc.paused}).then(r => { pc.paused = r.paused; pc.reason = r.reason; $("pauseBtn").textContent = r.paused ? "Resume" : "Pause"; $("pauseBar").querySelector("b").textContent = r.paused ? "paused" : "on"; });
 }
 document.querySelector("#queue").addEventListener("click", ev => {
   const b = ev.target.closest("button.act[data-a]"); if (!b || !S) return;

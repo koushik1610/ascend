@@ -3,7 +3,7 @@
 
   python3 tools/usage.py record WS --stage STAGE --chars-in N --chars-out N [--engine A|B|C] [--mode M] [--items K]
   python3 tools/usage.py summary WS [--json]
-  python3 tools/usage.py estimate WS --engine A|B|C --mode assisted|agent|automatic [--jobs N] [--json]
+  python3 tools/usage.py estimate WS --engine A|B|C [--mode assisted] [--jobs N] [--json]
 
 Claude Code does not report token counts to the agent, so each stage records the characters it read and
 wrote and this tool converts at 4 characters per token. Every figure carries `estimated: true` and the hub

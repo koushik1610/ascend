@@ -99,5 +99,27 @@ class Registry(unittest.TestCase):
             self.assertIn(ph, state)
 
 
+class Permissions(unittest.TestCase):
+    """Engines B and C read Gmail through the claude.ai connector. Read-only has to hold in settings, not only in prose."""
+
+    GMAIL_WRITES = ["send_message", "reply", "forward", "create_draft", "update_draft", "delete_draft", "trash_message",
+                    "trash_thread", "untrash_message", "untrash_thread", "mark_message_spam", "mark_thread_spam",
+                    "unmark_message_spam", "unmark_thread_spam", "label_message", "label_thread", "unlabel_message",
+                    "unlabel_thread", "update_message_labels", "create_label", "update_label", "delete_label",
+                    "apply_sensitive_message_label", "apply_sensitive_thread_label"]
+    DRIVE_WRITES = ["share_file", "create_file", "update_file", "copy_file", "trash_file"]
+
+    def test_connector_write_tools_are_denied(self):
+        perms = json.loads((REPO / ".claude/settings.json").read_text())["permissions"]
+        for t in self.GMAIL_WRITES:
+            self.assertIn(f"mcp__claude_ai_Gmail__{t}", perms["deny"])
+        for t in self.DRIVE_WRITES:
+            self.assertIn(f"mcp__claude_ai_Google_Drive__{t}", perms["deny"])
+
+    def test_no_agent_submit_tool_is_allowed(self):
+        allow = json.loads((REPO / ".claude/settings.json").read_text())["permissions"]["allow"]
+        self.assertFalse([a for a in allow if "fakeform" in a])
+
+
 if __name__ == "__main__":
     unittest.main()

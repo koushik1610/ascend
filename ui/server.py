@@ -451,9 +451,12 @@ class Handler(BaseHTTPRequestHandler):
         if u.path == "/api/queue":    # Ascend 2.0: approve / reject / mark from the hub's Queue tab
             body = self._body()
             ws = WORKSPACE / slugify(body.get("slug", ""))
+            import apply
             import jobqueue
+            pid, action = str(body.get("posting_id", "")), str(body.get("action", ""))
             try:
-                entry = jobqueue.set_state(ws, str(body.get("posting_id", "")), str(body.get("action", "")))
+                # "I submitted it" goes through the apply log, so the day's count and reply rates see it.
+                entry = apply.record(ws, pid, "submitted") if action == "applied" else jobqueue.set_state(ws, pid, action)
             except ValueError as e:
                 return self._send(400, {"error": str(e)})
             except KeyError:
@@ -464,15 +467,9 @@ class Handler(BaseHTTPRequestHandler):
             ws = WORKSPACE / slugify(body.get("slug", ""))
             import apply
             try:
-                return self._send(200, apply.sheet(ws, str(body.get("posting_id", "")), str(body.get("mode", "assisted"))))
+                return self._send(200, apply.sheet(ws, str(body.get("posting_id", ""))))
             except apply.Refused as e:
                 return self._send(409, {"error": str(e)})
-        if u.path == "/api/apply-control":    # pause / resume agent and automatic applying
-            body = self._body()
-            ws = WORKSPACE / slugify(body.get("slug", ""))
-            import apply
-            (apply.pause(ws, "paused from the hub") if body.get("paused") else apply.resume(ws))
-            return self._send(200, apply.status(ws))
         if u.path == "/api/shutdown":
             threading.Thread(target=self.server.shutdown, daemon=True).start()
             return self._send(200, {"ok": True})

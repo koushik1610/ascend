@@ -50,17 +50,19 @@ python3 tools/usage.py record workspace/<name> --stage score --chars-in <N> --ch
 python3 tools/hub.py build workspace/<name>
 ```
 
-The user approves or rejects in the hub's Queue tab (served by `ui/server.py` at `/hub?slug=<name>`), or
-with `python3 tools/jobqueue.py set-state workspace/<name> <posting_id> approved`. Approved jobs go to
-Phase 5 for their apply pack and then to Phase 28 to apply in the run's mode.
+The user approves or rejects in the hub's Queue tab (served by `ui/server.py` at `/hub?slug=<name>`).
+Approval is the user's click: the command line refuses `approved` and `applied`, and Claude never
+approves a job for the user. Approved jobs go to Phase 5 for their apply pack and then to Phase 28,
+which prepares the apply sheet the user submits from.
 
 ## Engine C: reading Gmail through the connector
 
 When the run's engine is C, do this before Step 1. Search the user's Gmail through the claude.ai connector
-for mail since the last sync (`newer_than:2d` is enough for a daily run), and for each message write one
-line to `workspace/<name>/data/mail.jsonl`: `msg_id`, `from`, `subject`, `date` (ISO 8601), and
-`body_excerpt` (the snippet or at most 2,000 characters). Skip the user's own sent mail and drafts. Then
-run `python3 tools/classify.py run workspace/<name>` and `python3 tools/pipeline.py ingest workspace/<name>`.
+for mail since the last sync (`newer_than:2d` is enough for a daily run). Send the rows through the
+validator, never straight into the file: `python3 tools/gmail_sync.py add workspace/<name> --json '[...]'`
+with `msg_id`, `from`, `subject`, `date` (ISO 8601) and `body_excerpt` (the snippet) per message, as in
+`prompts/29-run-v2.md`. Then run `python3 tools/classify.py run workspace/<name>` and
+`python3 tools/pipeline.py ingest workspace/<name>`.
 Record the characters read under `--stage mail`.
 
 ## Verify & checkpoint
