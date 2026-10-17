@@ -173,7 +173,14 @@ class Compute(unittest.TestCase):
         g = hub.compute(ws, today=TODAY)["callback_gate"]
         self.assertEqual((g["sends"], g["interviews"], g["interview_rate"]), (50, 2, 0.04))
         self.assertTrue(g["beats_baseline"])
+        self.assertFalse(g["provisional"])           # the 50th send went out in September
         self.assertIn('id="callbackGate"', hub.render(ws, today=TODAY))
+
+    def test_callback_gate_is_provisional_until_the_fiftieth_send_has_had_time(self):
+        import hub
+        g = hub.compute(self.v2_ws(55, 0), today="2026-09-20")["callback_gate"]
+        self.assertTrue(g["provisional"])
+        self.assertIn("provisional", g["note"])
 
     def test_inbox_newest_first_with_job_names(self):
         import hub

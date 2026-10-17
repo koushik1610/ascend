@@ -57,7 +57,7 @@ def remove(ws):
 
 def show(ws):
     ok, text, err = _cron.read()
-    return {"ok": ok, "line": next((l for l in text.splitlines() if _tag(ws) in l), None), "error": err}
+    return {"ok": ok, "line": next((l for l in text.splitlines() if _cron._ours(l, _tag(ws))), None), "error": err}
 
 
 def main(argv):

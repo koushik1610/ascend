@@ -5,7 +5,8 @@
   python3 tools/gmail_sync.py sync WS [--days N] [--json] [--then-classify]
   python3 tools/gmail_sync.py status WS
   python3 tools/gmail_sync.py query WS                   # engines B and C: the Gmail search to run
-  python3 tools/gmail_sync.py add WS --file workspace/<name>/data/connector-rows.json   # what it returned
+  python3 tools/gmail_sync.py add WS --file workspace/<name>/data/connector-rows.json [--complete]
+                                                         # --complete only after reading every result page
 
 Setup is in docs/GMAIL-SETUP.md: you create a Desktop OAuth client in your own Google Cloud project and
 save its JSON as workspace/<name>/gmail-client.json. Nobody else's app ever touches your mail.
@@ -65,8 +66,19 @@ API_BASE = _local_override("ASCEND_GMAIL_API_BASE", "https://gmail.googleapis.co
 SKIP_LABELS = {"SENT", "DRAFT", "SPAM", "TRASH"}
 CATEGORY_LABELS = {"CATEGORY_PROMOTIONS", "CATEGORY_SOCIAL", "CATEGORY_FORUMS"}
 QUERY_EXCLUDE = "-category:promotions -category:social -category:forums"
-JOB_SUBJECTS = ("application", "applying", "applied", "interview", "recruiter", "recruiting", "position", "role",
-                "opportunity", "assessment", "offer", '"next steps"', "candidate", "hiring", '"job alert"')
+# The connector search (engines B and C). Built to find every kind of job mail in the test mailbox while
+# leaving out personal mail: compound phrases ("your application"), never bare "offer" or "application".
+FROM_WORDS = ("careers", "recruiting", "recruiter", "recruitment", "talent", "hiring", "jobs", "hr")
+LINKEDIN_JOB_SENDERS = ("jobalerts-noreply@linkedin.com", "jobs-noreply@linkedin.com", "inmail-hit-reply@linkedin.com",
+                        "hit-reply@linkedin.com")
+SUBJECT_TERMS = ('"your application"', '"application to"', '"application for"', '"application at"',
+                 '"applying to"', '"applying for"', '"thanks for applying"', '"thank you for applying"',
+                 '"application received"', '"application status"', '"application update"', "interview",
+                 '"phone screen"', "screening", "availability", "scheduling", '"schedule your"', '"take-home"',
+                 '"coding challenge"', "assessment", "questionnaire", '"next steps"', '"job offer"', '"offer letter"',
+                 "opportunity", "candidate", "candidacy", "recruiter", "hire", "hiring", '"your profile"',
+                 '"new jobs"', '"job alert"', "engineer", "architect", "developer", "designer", "scientist",
+                 "manager", "director")
 
 
 def _job_sender(sender_text):
@@ -94,19 +106,47 @@ def _iso_date(s):
         return None
 
 
-def connector_query(ws, today=None):
-    """The Gmail search engines B and C run through the connector: from the day before the last read (so a
-    gap of days is never skipped), job senders or job subjects only, never the promotions/social/forums tabs
-    except from job senders. Keeps 2FA codes, bank and personal mail out of Claude's context."""
+def query_terms(ws):
+    """What the connector search asks for: job senders (ATS and board domains, LinkedIn's job senders,
+    recruiting words in the sender) or job subjects, plus the companies already in the queue."""
     import classify
+    companies = sorted({j.get("company") for j in d.read_json(d.data_dir(ws) / "queue.json", {}).get("jobs", [])
+                        if j.get("company") and len(j["company"]) > 2})
+    return {"domains": sorted((classify.ATS_DOMAINS | classify.ALERT_DOMAINS) - {"linkedin.com"}),
+            "addresses": sorted(set(LINKEDIN_JOB_SENDERS) | {a for a in classify.ALERT_SENDERS if "linkedin" not in a}),
+            "from_words": list(FROM_WORDS),
+            "subjects": list(SUBJECT_TERMS) + [f'"{c}"' for c in companies]}
+
+
+def query_matches(msg, terms):
+    """Python's reading of the same search, for tests: does Gmail return this message?"""
+    frm = (msg.get("from") or "").lower()
+    m = re.search(r"[\w.+-]+@([\w.-]+)", frm)
+    addr, dom = (m.group(0), m.group(1)) if m else ("", "")
+    if addr in terms["addresses"] or any(dom == x or dom.endswith("." + x) for x in terms["domains"]):
+        return True
+    if any(re.search(r"(?<![a-z0-9])" + re.escape(w) + r"(?![a-z0-9])", frm) for w in terms["from_words"]):
+        return True
+    subj = (msg.get("subject") or "").lower()
+    return any(re.search(r"(?<![a-z0-9])" + re.escape(t.strip('"').lower()) + r"(?![a-z0-9])", subj)
+               for t in terms["subjects"])
+
+
+def connector_query(ws, today=None):
+    """The Gmail search engines B and C run through the connector: from the day before the last complete
+    read (so a gap of days is never skipped), job senders or job subjects only, and the promotions, social
+    and forums tabs only from job senders. Keeps verification codes and personal mail out of Claude's
+    context; a recruiter writing from a personal address with no job word in the subject is missed."""
     last = d.read_json(d.data_dir(ws) / "sync-state.json", {}).get("connector_last_read")
     if last:
         window = "after:" + (date.fromisoformat(last[:10]) - timedelta(days=1)).strftime("%Y/%m/%d")
     else:
         window = "newer_than:2d"
-    senders = " OR ".join(sorted(classify.ATS_DOMAINS | classify.ALERT_DOMAINS))
-    subjects = " OR ".join(JOB_SUBJECTS)
-    return f"{window} (from:({senders}) OR (subject:({subjects}) {QUERY_EXCLUDE}))"
+    t = query_terms(ws)
+    senders = " OR ".join(t["domains"] + t["addresses"] + t["from_words"])
+    return f"{window} (from:({senders}) OR (subject:({' OR '.join(t['subjects'])}) {QUERY_EXCLUDE}))"
+
+
 EXCERPT = 2000
 KEYCHAIN_SERVICE = "ascend-gmail"
 
@@ -366,7 +406,9 @@ def sync(ws, days=30):
         cursor = _get(token, "profile").get("historyId")   # taken before listing, so nothing slips between
         ids, page = [], None
         while True:
-            params = {"q": f"newer_than:{days}d", "maxResults": 100}
+            t = query_terms(ws)     # the category tabs only from job senders, so their mail is never downloaded
+            listing = f"newer_than:{days}d (({QUERY_EXCLUDE}) OR from:({' OR '.join(t['domains'] + t['addresses'])}))"
+            params = {"q": listing, "maxResults": 100}
             if page:
                 params["pageToken"] = page
             r = _get(token, "messages", params)
@@ -395,7 +437,7 @@ def sync(ws, days=30):
     return {"new": new, "mode": mode, "history_id": cursor}
 
 
-def add(ws, rows, today=None):
+def add(ws, rows, today=None, complete=True):
     """Mail read by Claude through the claude.ai connector (engines B and C), held to the same rules as
     engine A's sync: required headers, a 2,000-character excerpt, no sent mail or drafts, no mail from
     the user's own address, no duplicates."""
@@ -415,7 +457,9 @@ def add(ws, rows, today=None):
                                            "body_excerpt": re.sub(r"\s+", " ", r.get("body_excerpt") or "").strip()[:EXCERPT]})
         known.add(r["msg_id"])
         out["added"] += 1
-    _save_state(ws, {"connector_last_read": today or date.today().isoformat()})
+    if complete:        # only a read that went through every page moves the window on
+        _save_state(ws, {"connector_last_read": today or date.today().isoformat()})
+    out["window_moved"] = complete
     return out
 
 
@@ -436,7 +480,7 @@ def main(argv):
                 rows = json.loads(argv[argv.index("--json") + 1])
             else:
                 rows = json.load(sys.stdin)
-            print(json.dumps(add(argv[2], rows)))
+            print(json.dumps(add(argv[2], rows, complete="--complete" in argv)))
         except PathOutsideWorkspace as e:
             print(f"gmail_sync: {e}", file=sys.stderr)
             return 2

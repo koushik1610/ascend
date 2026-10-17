@@ -207,6 +207,22 @@ class Record(unittest.TestCase):
         apply.record(ws, "greenhouse:acme:1", "submitted")      # a double-click
         self.assertEqual(len(d.read_jsonl(ws / "data" / "apply-log.jsonl")), 1)
 
+    def test_two_clicks_at_once_record_one_send(self):
+        import threading
+        import _v2data as d
+        import apply
+        ws = apply_ws(self.td.name)
+        ts = [threading.Thread(target=lambda: self._try(apply, ws)) for _ in range(6)]
+        [t.start() for t in ts]
+        [t.join() for t in ts]
+        self.assertEqual(len(d.read_jsonl(ws / "data" / "apply-log.jsonl")), 1)
+
+    def _try(self, apply, ws):
+        try:
+            apply.record(ws, "greenhouse:acme:1", "submitted")
+        except apply.Refused:
+            pass
+
     def test_record_is_not_a_command(self):
         ws = apply_ws(self.td.name)
         r = subprocess.run([sys.executable, str(REPO / "tools/apply.py"), "record", str(ws), "greenhouse:acme:1",

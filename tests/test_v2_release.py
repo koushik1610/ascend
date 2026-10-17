@@ -79,6 +79,12 @@ class Cron(unittest.TestCase):
         self.assertFalse(schedule.remove("")["ok"])
         self.assertIn("run-ab", self.tab.read_text())
 
+    def test_show_matches_its_own_workspace_only(self):
+        import _cron
+        import schedule
+        _cron.install("Ascend-V2-SYNC-ab", "5 6 * * * run-ab", Path(self.td.name))
+        self.assertIsNone(schedule.show("workspace/a")["line"])
+
     def test_schedule_refuses_a_workspace_path_it_cannot_trust(self):
         import schedule
         before = self.tab.read_text()
@@ -140,6 +146,12 @@ class Daily(unittest.TestCase):
         self.assertTrue(st["gmail"]["ok"])
         self.assertFalse(st["finder"]["ok"])
         self.assertIn("sources.json", st["finder"]["detail"])
+
+    def test_help_prints_usage_and_runs_nothing(self):
+        r = subprocess.run([sys.executable, str(REPO / "tools/daily.py"), "--help"], capture_output=True, text=True,
+                           cwd=self.td.name)
+        self.assertEqual(r.returncode, 2)
+        self.assertFalse((Path(self.td.name) / "--help").exists())
 
     def test_every_board_unreachable_fails_the_finder(self):
         import _v2data as d

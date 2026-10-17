@@ -196,6 +196,9 @@ class Plan(unittest.TestCase):
         text = " ".join(run.plan(ws, "C")["problems"])
         self.assertIn("profile.json", text)
         self.assertIn("sources.json", text)
+        d.write_json_atomic(ws / "data" / "sources.json", {"boards": [{"ats": "lever", "slug": "acme"}],
+                                                          "filters": {"title_include": ["\\byour target title words\\b"]}})
+        self.assertIn("filters", " ".join(run.plan(ws, "C")["problems"]))
 
     def test_an_unready_workspace_is_refused_with_the_fix(self):
         import run

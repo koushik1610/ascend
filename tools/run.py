@@ -31,8 +31,8 @@ CONNECTOR = ("Gmail: Claude reads your mail through the claude.ai Gmail connecto
              "This repo's .claude/settings.json denies the connector's send, reply, forward, draft, label, spam and "
              "trash tools, and Drive's share, create, update, copy and trash tools.")
 CONNECTOR_RISK = ("Risk you accept: mail anyone can send you is read in the same session that can fetch web pages. "
-                  "Claude treats mail as data, but nothing in settings stops a web fetch. To close that, allow "
-                  "WebFetch only for the domains you need in your own .claude/settings.local.json.")
+                  "Claude treats mail as data, but this repo's settings allow web fetches to any domain. To close that, "
+                  'add "ask": ["WebFetch"] (or "deny" on engine C) to your own .claude/settings.local.json.')
 PERMISSIONS = {
     "A": ["Gmail: your own Google OAuth client with the gmail.readonly scope. The refresh token stays in your "
           "macOS Keychain. Ascend cannot send, change or delete mail."],
@@ -66,6 +66,9 @@ def _setup_problems(ws):
         out.append("data/sources.json still has the template's example-company boards: replace them with yours")
     if str(profile.get("email", "")).lower().endswith("@example.com") or profile.get("name") == "Jordan Rivera":
         out.append("data/profile.json still has the template's sample name or email: put in your own")
+    filters = d.read_json(ws / "data" / "sources.json", {}).get("filters") or {}
+    if any("your target title" in str(x) for x in filters.get("title_include") or []):
+        out.append("the filters in data/sources.json still have the template's placeholder titles: use yours")
     if not boards:
         out.append("no job boards in data/sources.json: prompts/29-run-v2.md Step 0 builds it with you "
                    "from templates/sources.example.json")

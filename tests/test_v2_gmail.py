@@ -275,6 +275,9 @@ class Sync(unittest.TestCase):
         self.fake.add(gmsg("e5", "Your application", "no-reply@greenhouse.io", "received", labels=["INBOX", "CATEGORY_PROMOTIONS"]))
         self.run_tool("sync", str(self.ws))
         self.assertEqual(sorted(m["msg_id"] for m in self.mail()), ["e3", "e4", "e5"])
+        q = [r[2].get("q", [""])[0] for r in self.fake.requests if r[1].endswith("/messages")][0]
+        self.assertIn("-category:promotions", q)        # listing skips the tabs, except from job senders
+        self.assertIn("greenhouse.io", q)
 
     def test_a_transient_token_error_keeps_the_sign_in(self):
         self.connected()

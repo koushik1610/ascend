@@ -97,7 +97,7 @@ class GmailAdd(unittest.TestCase):
                 {"msg_id": "c", "from": "x@co.example", "subject": "draft", "date": "2026-10-16T10:00:00Z",
                  "labels": ["DRAFT"]},
                 {"msg_id": "d", "subject": "no sender"}]
-        self.assertEqual(g.add(self.ws, rows), {"added": 1, "skipped": 4})
+        self.assertEqual(g.add(self.ws, rows), {"added": 1, "skipped": 4, "window_moved": True})
         self.assertEqual(len(d.read_jsonl(self.ws / "data" / "mail.jsonl")[0]["body_excerpt"]), 2000)
 
     def test_add_stores_iso_dates_and_refuses_unreadable_ones(self):
@@ -105,7 +105,7 @@ class GmailAdd(unittest.TestCase):
         import gmail_sync as g
         rows = [{"msg_id": "r1", "from": "r@co.example", "subject": "Hi", "date": "Thu, 16 Apr 2025 10:00:00 +0000"},
                 {"msg_id": "r2", "from": "r@co.example", "subject": "Hi", "date": "10/16/2026"}]
-        self.assertEqual(g.add(self.ws, rows), {"added": 1, "skipped": 1})
+        self.assertEqual(g.add(self.ws, rows), {"added": 1, "skipped": 1, "window_moved": True})
         self.assertEqual(d.read_jsonl(self.ws / "data" / "mail.jsonl")[0]["date"], "2025-04-16T10:00:00+00:00")
 
     def test_connector_query_reads_from_the_last_read_and_only_job_mail(self):
@@ -117,6 +117,36 @@ class GmailAdd(unittest.TestCase):
         g.add(self.ws, [{"msg_id": "z", "from": "r@co.example", "subject": "Hi", "date": "2026-10-10T10:00:00Z"}],
               today="2026-10-10")
         self.assertIn("after:2026/10/09", g.connector_query(self.ws, today="2026-10-17"))
+
+    def test_connector_query_finds_every_job_message_and_skips_personal_mail(self):
+        import json as j
+        import gmail_sync as g
+        terms = g.query_terms(self.ws)
+        fixture = [j.loads(l) for l in (REPO / "tests/fixtures/v2/mailbox.jsonl").read_text().splitlines() if l.strip()]
+        missed = [m["msg_id"] for m in fixture
+                  if (m["_expect"] if isinstance(m["_expect"], str) else m["_expect"]["category"]) != "other"
+                  and not g.query_matches(m, terms)]
+        self.assertEqual(missed, [])
+        personal = [("alerts@mybank.example", "Your loan application is approved"),
+                    ("deals@shop.example", "Special offer: 20% off this weekend"),
+                    ("no-reply@accounts.example", "Your verification code"),
+                    ("mom@family.example", "Dinner Sunday?"),
+                    ("messages-noreply@linkedin.com", "Alex reacted to your post")]
+        for frm, subject in personal:
+            self.assertFalse(g.query_matches({"from": frm, "subject": subject}, terms), subject)
+        q = g.connector_query(self.ws)
+        self.assertIn("careers", q)
+        self.assertIn("jobalerts-noreply@linkedin.com", q)
+        self.assertNotIn("from:(linkedin.com", q)
+
+    def test_the_last_read_moves_only_after_a_complete_read(self):
+        import _v2data as d
+        import gmail_sync as g
+        g.add(self.ws, [{"msg_id": "p1", "from": "r@co.example", "subject": "Hi", "date": "2026-10-10T10:00:00Z"}],
+              today="2026-10-10")
+        g.add(self.ws, [{"msg_id": "p2", "from": "r@co.example", "subject": "Hi", "date": "2026-10-16T10:00:00Z"}],
+              today="2026-10-17", complete=False)
+        self.assertEqual(d.read_json(self.ws / "data" / "sync-state.json", {})["connector_last_read"], "2026-10-10")
 
     def test_add_reads_rows_from_a_workspace_file(self):
         import json as j

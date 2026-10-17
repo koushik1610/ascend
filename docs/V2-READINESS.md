@@ -48,7 +48,10 @@ A to C, and cron instead of launchd (a sleeping Mac skips that day's sync).
 - **Engines B and C** let Claude read your Gmail through the claude.ai connector, limited to job senders
   and job subjects. Its write tools are denied in this repo's `.claude/settings.json`. Mail is untrusted and
   the same session can fetch web pages: only the content quarantine stands between an email's instructions
-  and a fetch. Allow `WebFetch` only for the domains you need in `.claude/settings.local.json` to close it.
+  and a fetch. This repo allows `WebFetch` for every domain, and a narrower local allow does not override
+  it. Close it with `"ask": ["WebFetch"]` (every fetch asks you) or, on engine C, `"deny": ["WebFetch"]` in
+  your own `.claude/settings.local.json`. The search also misses a recruiter writing from a personal
+  address with no job word in the subject.
 - **LinkedIn search** runs in your logged-in browser. "Never use Easy Apply" is an instruction to Claude,
   not a setting. Claude in Chrome's per-action permission prompts are the guard, so keep them on.
 - **Engine A in Google's Testing mode** signs you out after about seven days. The daily sync then fails

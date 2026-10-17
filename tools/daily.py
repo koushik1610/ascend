@@ -126,7 +126,7 @@ def run(ws):
 
 
 def main(argv):
-    if len(argv) < 2:
+    if len(argv) < 2 or argv[1].startswith("-"):
         print(__doc__, file=sys.stderr)
         return 2
     out = run(argv[1])

@@ -133,14 +133,17 @@ def record(ws, posting_id, result="submitted"):
     """The user pressed "I submitted it". Only an approved job can be recorded, and a second press is a no-op."""
     if result != "submitted":
         raise ValueError("this release records only submissions the user made")
-    entry = _entry(ws, posting_id)
-    if entry.get("state") == "applied":
-        return entry
-    if entry.get("state") != "approved":
-        raise Refused(f"{entry.get('company')} is {entry.get('state')}, not approved")
-    entry = jobqueue.set_state(ws, posting_id, "applied")
-    d.append_jsonl(d.data_dir(ws) / "apply-log.jsonl", {"posting_id": posting_id, "result": result,
-                                                         "at": datetime.now().isoformat(timespec="seconds")})
+    log = d.data_dir(ws) / "apply-log.jsonl"
+    with d.locked(log) as p:            # two clicks at once still record one send
+        entry = _entry(ws, posting_id)
+        if entry.get("state") == "applied":
+            return entry
+        if entry.get("state") != "approved":
+            raise Refused(f"{entry.get('company')} is {entry.get('state')}, not approved")
+        entry = jobqueue.set_state(ws, posting_id, "applied")
+        with open(p, "a", encoding="utf-8") as f:     # inside the lock already: not append_jsonl
+            f.write(json.dumps({"posting_id": posting_id, "result": result,
+                                "at": datetime.now().isoformat(timespec="seconds")}, sort_keys=True) + "\n")
     return entry
 
 

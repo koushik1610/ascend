@@ -40,6 +40,7 @@ OPEN_DECISIONS = {"matched", "needs-you", "queued"}
 MIN_FOR_RATES = 10
 GATE_SENDS = 50          # spec criterion 6
 BASELINE = 0.003         # JobHire: 3 interviews from 1,029 applications
+GATE_WAIT_DAYS = 21      # replies take weeks: the number is final once the 50th send is this old
 GHOST_DAYS = 30
 LOW_REPLY = 0.05
 
@@ -125,20 +126,26 @@ def compute(ws, today=None):
 
     # Spec criterion 6: the interview rate over the first 50 applications sent through v2 (the apply log,
     # never v1's hand-sent folders), against JobHire's 3 in 1,029. Agent modes wait on this number.
-    sends = []
+    sends, sent_at = [], {}
     for r in sorted(d.read_jsonl(data / "apply-log.jsonl"), key=lambda r: r.get("at") or ""):
         if r.get("result") == "submitted" and r.get("posting_id") not in sends:
             sends.append(r.get("posting_id"))
+            sent_at[r.get("posting_id")] = _day(str(r.get("at", ""))[:10])
     first = sends[:GATE_SENDS]
     invited = {e.get("match") for e in events if e.get("category") == "interview-invite"}
     got = [p for p in first if (slug_for(p) in interviewing) or p in invited or pid_to_nn.get(p) in invited]
     rate = round(len(got) / len(first), 3) if len(first) >= GATE_SENDS else None
+    last_sent = sent_at.get(first[-1]) if first else None
+    final_on = last_sent + timedelta(days=GATE_WAIT_DAYS) if last_sent else None
+    provisional = rate is not None and (final_on is None or today < final_on)
     callback_gate = {"sends": len(first), "interviews": len(got), "interview_rate": rate, "baseline": BASELINE,
-                     "beats_baseline": None if rate is None else rate > BASELINE,
+                     "beats_baseline": None if rate is None else rate > BASELINE, "provisional": provisional,
                      "note": (f"{len(first)} of {GATE_SENDS} v2 applications sent: the interview rate is measured "
                               "at 50." if rate is None else
                               f"{len(got)} of the first {GATE_SENDS} v2 applications reached an interview "
-                              f"({rate * 100:.1f}%). JobHire: 3 of 1,029 (0.3%).")}
+                              f"({rate * 100:.1f}%). JobHire: 3 of 1,029 (0.3%)."
+                              + (f" This is provisional: the last of the 50 needs until {final_on} to draw replies."
+                                 if provisional else ""))}
 
     week_start = today - timedelta(days=6)
     in_week = lambda day: day is not None and week_start <= day <= today  # noqa: E731
