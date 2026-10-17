@@ -81,7 +81,7 @@
   </section>
 </div>
 
-<script type="application/json" id="hub-data">__HUB_DATA__</script>
+<script type="application/json" id="hub-data">{"__hub_data__": "replaced by tools/hub.py build"}</script>
 <script>
 const D = JSON.parse(document.getElementById("hub-data").textContent);
 const esc = v => String(v == null ? "" : v).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));

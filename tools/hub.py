@@ -27,6 +27,8 @@ from _paths import PathOutsideWorkspace, resolve_out  # noqa: E402
 
 REPO = TOOLS.parent
 TEMPLATE = REPO / "templates" / "hub.template.html"
+# Valid JSON on purpose: tests/smoke.py parses every template's JSON block.
+PLACEHOLDER = '{"__hub_data__": "replaced by tools/hub.py build"}'
 REPLY_CATEGORIES = {"info-request", "assessment", "interview-invite", "rejection"}
 PIN_CATEGORIES = {"info-request", "assessment"}
 OPEN_STATUSES = {"queued", "applied", "responded"}
@@ -171,7 +173,9 @@ def build(ws, today=None):
     # JSON inside <script>: escape <, > and & so no value (an email subject, say) can close the
     # block or open a tag. JSON.parse reads < back as "<"; the browser's HTML parser never sees it.
     blob = json.dumps(data, ensure_ascii=False).replace("&", "\\u0026").replace("<", "\\u003c").replace(">", "\\u003e")
-    html = TEMPLATE.read_text(encoding="utf-8").replace("__HUB_DATA__", blob)
+    html = TEMPLATE.read_text(encoding="utf-8").replace(PLACEHOLDER, blob)
+    if PLACEHOLDER in html or blob not in html:
+        raise RuntimeError("hub template is missing its data placeholder")
     out.write_text(html, encoding="utf-8")
     return out
 

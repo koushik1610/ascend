@@ -165,7 +165,7 @@ class Build(unittest.TestCase):
         self.assertEqual(out, (self.ws / "hub.html").resolve())
         m = __import__("re").search(r'<script type="application/json" id="hub-data">(.*?)</script>', html, 16)
         self.assertEqual(json.loads(m.group(1))["funnel"][0], {"stage": "found", "count": 5})
-        self.assertNotIn("__HUB_DATA__", html)
+        self.assertNotIn("__hub_data__", html)
 
     def test_hostile_subject_cannot_close_the_script(self):
         import _v2data as d
