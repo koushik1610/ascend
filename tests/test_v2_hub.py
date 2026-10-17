@@ -143,11 +143,32 @@ class Compute(unittest.TestCase):
         funnel = dict((s["stage"], s["count"]) for s in hub.compute(ws, today=TODAY)["funnel"])
         self.assertEqual(funnel["screened"], 1)
 
+    def test_queue_puts_open_decisions_first_by_fit(self):
+        import _v2data as d
+        import hub
+        ws = seed(self.td.name)
+        q = d.read_json(ws / "data" / "queue.json", {})
+        q["jobs"] += [{"posting_id": "x9", "company": "Zeta", "title": "Staff", "fit": 90, "state": "matched"},
+                      {"posting_id": "x8", "company": "Eta", "title": "Staff", "fit": 60, "state": "needs-you"}]
+        d.write_json_atomic(ws / "data" / "queue.json", q)
+        rows = hub.compute(ws, today=TODAY)["queue"]
+        self.assertEqual([r["company"] for r in rows[:3]], ["Zeta", "Litware", "Eta"])
+
+    def test_queue_decision_shows_over_an_untouched_folder(self):
+        import _v2data as d
+        import hub
+        ws = seed(self.td.name)
+        q = d.read_json(ws / "data" / "queue.json", {})
+        q["jobs"][2]["state"] = "approved"          # job 03's folder still says queued
+        d.write_json_atomic(ws / "data" / "queue.json", q)
+        rows = {r["nn"]: r["status"] for r in hub.compute(ws, today=TODAY)["queue"]}
+        self.assertEqual((rows["03"], rows["01"]), ("approved", "applied"))
+
     def test_queue_rows(self):
         import hub
         q = hub.compute(seed(self.td.name), today=TODAY)["queue"]
         self.assertEqual([(r["nn"], r["status"], r["fit"]) for r in q],
-                         [("01", "applied", 84), ("02", "screen", 79), ("03", "queued", 71)])
+                         [("03", "queued", 71), ("01", "applied", 84), ("02", "screen", 79)])
 
     def test_tokens_by_stage(self):
         import _v2data as d
@@ -192,7 +213,9 @@ class Build(unittest.TestCase):
         import hub
         html = hub.build(self.ws, today=TODAY).read_text()
         self.assertIn("connect-src 'none'", html)
-        self.assertNotIn("fetch(", html)
+        self.assertNotIn("connect-src 'self'", html)
+        m = __import__("re").search(r'<script type="application/json" id="hub-data">(.*?)</script>', html, 16)
+        self.assertNotIn("server", json.loads(m.group(1)))     # no token, so no write channel
 
     def test_cli(self):
         r = subprocess.run([sys.executable, str(REPO / "tools/hub.py"), "build", str(self.ws), "--today", TODAY],

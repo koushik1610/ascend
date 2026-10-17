@@ -48,6 +48,8 @@
   .chips button[aria-pressed=true]{border-color:var(--accent);color:var(--accent)}
   .empty{color:var(--muted);font-style:italic}
   .due{font-family:var(--mono);color:var(--warn)}
+  .act{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:3px 10px;font:12px var(--sans);cursor:pointer}
+  .act:hover{border-color:var(--accent)} .t-approved{color:var(--good);border-color:var(--good)}
 </style>
 </head>
 <body>
@@ -63,6 +65,7 @@
   </nav>
 
   <section id="dash">
+    <div class="sub" id="runLine" style="margin-bottom:12px"></div>
     <div class="cards" id="week"></div>
     <div id="warning"></div>
     <h2>Needs a reply</h2><div class="panel" id="pinned"></div>
@@ -72,7 +75,7 @@
   </section>
 
   <section id="queue" hidden>
-    <div class="panel"><table><thead><tr><th>#</th><th>Company</th><th>Role</th><th>Fit</th><th>Status</th></tr></thead><tbody id="queueRows"></tbody></table></div>
+    <div class="panel"><table><thead><tr><th>#</th><th>Company</th><th>Role</th><th>Fit</th><th>Status</th><th></th></tr></thead><tbody id="queueRows"></tbody></table></div>
   </section>
 
   <section id="inbox" hidden>
@@ -118,9 +121,31 @@ $("tokens").innerHTML = D.tokens
   ? `<table><tbody>${Object.entries(D.tokens.by_stage).map(([k, v]) => `<tr><td>${esc(k)}</td><td style="font-family:var(--mono)">${esc(v.toLocaleString())}</td></tr>`).join("")}<tr><th>Total</th><th>${esc(D.tokens.total.toLocaleString())}</th></tr></tbody></table>`
   : `<div class="empty">No metered runs yet.</div>`;
 
-$("queueRows").innerHTML = D.queue.length ? D.queue.map(q =>
-  `<tr><td>${esc(q.nn || "")}</td><td>${esc(q.company)}</td><td>${/^https:\/\//i.test(q.url || "") ? `<a href="${safeUrl(q.url)}" target="_blank" rel="noopener noreferrer">${esc(q.title)}</a>` : esc(q.title)}</td><td>${esc(q.fit == null ? "" : q.fit)}</td><td><span class="tag t-${esc(q.status)}">${esc(q.status)}</span></td></tr>`).join("")
-  : `<tr><td colspan="5" class="empty">No queued jobs yet.</td></tr>`;
+const S = D.server || null;   // present only when ui/server.py serves the hub with a session token
+if (D.run) {
+  const e = D.run.estimate;
+  $("runLine").textContent = `Engine ${D.run.engine} · ${D.run.mode} · about ${e.daily.toLocaleString()} tokens a day at ${e.jobs} applications (${e.basis === "measured" ? "from your runs" : "default estimate"})`;
+}
+const ACTIONABLE = new Set(["matched", "needs-you", "queued"]);
+function queueRow(q) {
+  const role = /^https:\/\//i.test(q.url || "") ? `<a href="${safeUrl(q.url)}" target="_blank" rel="noopener noreferrer">${esc(q.title)}</a>` : esc(q.title);
+  const detail = [q.why, (q.gaps || []).length ? "Gaps: " + q.gaps.join("; ") : "", (q.reasons || []).join("; ")].filter(Boolean).join(" · ");
+  const acts = S && ACTIONABLE.has(q.status) && q.posting_id
+    ? `<button class="act" data-id="${esc(q.posting_id)}" data-a="approved">Approve</button> <button class="act" data-id="${esc(q.posting_id)}" data-a="rejected">Reject</button>` : "";
+  return `<tr><td>${esc(q.nn || "")}</td><td>${esc(q.company)}</td><td>${role}${detail ? `<div class="sub">${esc(detail)}</div>` : ""}</td><td>${esc(q.fit == null ? "" : q.fit)}</td><td><span class="tag t-${esc(q.status)}">${esc(q.status)}</span></td><td>${acts}</td></tr>`;
+}
+$("queueRows").innerHTML = D.queue.length ? D.queue.map(queueRow).join("") : `<tr><td colspan="6" class="empty">No queued jobs yet.</td></tr>`;
+$("queueRows").addEventListener("click", ev => {
+  const b = ev.target.closest("button.act"); if (!b || !S) return;
+  b.disabled = true;
+  fetch("/api/queue", {method: "POST", headers: {"Content-Type": "application/json", "X-Ascend-Token": S.token},
+                       body: JSON.stringify({slug: S.slug, posting_id: b.dataset.id, action: b.dataset.a})})
+    .then(r => r.json()).then(r => {
+      const row = b.closest("tr");
+      if (r.ok) { row.querySelector(".tag").textContent = r.state; row.querySelector(".tag").className = "tag t-" + r.state; row.lastElementChild.innerHTML = ""; }
+      else { b.disabled = false; row.lastElementChild.insertAdjacentHTML("beforeend", `<div class="sub">${esc(r.error || "not saved")}</div>`); }
+    });
+});
 
 let filter = "jobs";
 const isJob = i => !["other", "job-alert"].includes(i.category) || i.needs_llm;

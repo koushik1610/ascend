@@ -11,6 +11,23 @@ _Working toward v1.0. Real-run gate: **1 of 2–3 runs signed off** (2026-07-01,
 see `docs/ROADMAP.md` → sign-off log); cases (b) no-résumé/non-tech and (c) resume-after-interruption
 remain, plus a green CI run on the remote + a demo GIF._
 
+### Added: Ascend 2.0, M7 run selection, scoring and queue actions (branch `ascend-v2`)
+- **`tools/run.py plan WS --engine A|B|C --mode assisted|agent|automatic`** checks a run can go
+  (engine A needs the Gmail client and a sign-in; fully automatic needs "I understand" typed out),
+  states the token estimate for every combination, and saves the choice as the default.
+  `run.py steps` lists each engine's stages, marking the ones that spend tokens.
+- **Phase 27 (`prompts/27-score-queue.md`)** scores prefilter survivors 0 to 100 with a reason citing
+  master entry IDs and the gaps stated plainly, through `tools/jobqueue.py`. Candidates are trimmed to
+  the role section of the posting (the first 1,500 characters of most postings are company boilerplate)
+  and roles already queued under another ID or board name are skipped.
+- **`tools/usage.py`** records each Claude stage's cost (characters converted at 4 per token, labelled
+  estimated) and replaces the default estimate with measured figures after three runs.
+- **Queue actions:** `ui/server.py` serves `/hub?slug=` with the session token and `connect-src 'self'`,
+  and `POST /api/queue` approves or rejects. The static `hub.html` stays read-only.
+- Real check: ten real postings scored, two approved from the browser, written to the queue. The real
+  data drove five fixes: boilerplate-free excerpts, open decisions first, v1 folders counted as open,
+  de-duplication across ID formats and board slugs, and queue decisions shown over untouched folders.
+
 ### Added: Ascend 2.0, M6 job alerts and recruiter inbound (branch `ascend-v2`)
 - **`tools/alerts.py run WS`** turns the jobs named in Wellfound and LinkedIn alert emails into leads
   that the prefilter judges like any posting, and turns recruiter mail into queue entries: `needs-you`

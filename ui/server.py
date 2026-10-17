@@ -21,6 +21,7 @@ REPO = Path(__file__).resolve().parent.parent          # ascend/
 UIDIR = REPO / "ui"
 TEMPLATES = REPO / "templates"
 WORKSPACE = REPO / "workspace"
+sys.path.insert(0, str(REPO / "tools"))     # Ascend 2.0 tools (hub, jobqueue)
 
 # Set in main(). The server is local-only, but a localhost port is still reachable by any site you
 # visit while it runs, so we defend against CSRF and DNS-rebinding:
@@ -432,6 +433,14 @@ class Handler(BaseHTTPRequestHandler):
         if u.path == "/api/exists":     # does a finished report already exist for this name?
             slug = slugify(parse_qs(u.query).get("name", [""])[0])
             return self._send(200, {"slug": slug, "hasReport": (WORKSPACE / slug / "start-here.html").exists()})
+        if u.path == "/hub":     # Ascend 2.0 hub, built on request, with the token for queue actions
+            slug = slugify(parse_qs(u.query).get("slug", [""])[0])
+            ws = WORKSPACE / slug
+            if not ws.is_dir():
+                return self._send(404, {"error": "no such workspace"})
+            import hub
+            html = hub.render(ws, server={"token": TOKEN, "slug": slug})
+            return self._send(200, html, "text/html; charset=utf-8", FRAME_HEADERS_DENY)
         if u.path.startswith("/view/"):
             return self._serve_md_reader(u.path)
         if u.path.startswith("/workspace/"):
@@ -457,6 +466,17 @@ class Handler(BaseHTTPRequestHandler):
         if u.path == "/api/daily-brief":
             d = self._body()
             return self._send(200, install_daily_brief(slugify(d.get("slug", "")), d.get("time", ""), d.get("agent", "")))
+        if u.path == "/api/queue":    # Ascend 2.0: approve / reject / mark from the hub's Queue tab
+            body = self._body()
+            ws = WORKSPACE / slugify(body.get("slug", ""))
+            import jobqueue
+            try:
+                entry = jobqueue.set_state(ws, str(body.get("posting_id", "")), str(body.get("action", "")))
+            except ValueError as e:
+                return self._send(400, {"error": str(e)})
+            except KeyError:
+                return self._send(404, {"error": "no such job in the queue"})
+            return self._send(200, {"ok": True, "state": entry["state"]})
         if u.path == "/api/shutdown":
             threading.Thread(target=self.server.shutdown, daemon=True).start()
             return self._send(200, {"ok": True})

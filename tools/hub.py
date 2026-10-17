@@ -34,6 +34,7 @@ PIN_CATEGORIES = {"info-request", "assessment"}
 OPEN_STATUSES = {"queued", "applied", "responded"}
 REPLIED_STATUSES = {"responded", "screen", "onsite", "offer", "rejected"}
 INTERVIEW_STATUSES = {"screen", "onsite", "offer"}
+OPEN_DECISIONS = {"matched", "needs-you", "queued"}
 MIN_FOR_RATES = 10
 GHOST_DAYS = 30
 LOW_REPLY = 0.05
@@ -59,6 +60,16 @@ def _jobs(ws):
         out[job.name] = {"nn": job.name.split("-", 1)[0], "company": m.group(1) if m else job.name,
                          "title": m.group(2) if m else "", "status": pipeline.parse_state(log).get("status", "queued")}
     return out
+
+
+def _row_status(folder_status, queue_state):
+    """The folder's status once the job has moved (applied, screen...). While the folder still says
+    `queued`, the user's decision in the queue (approved, rejected...) is the more current fact."""
+    if folder_status and folder_status != "queued":
+        return folder_status
+    if queue_state and queue_state != "matched":
+        return queue_state
+    return folder_status or queue_state or "matched"
 
 
 def compute(ws, today=None):
@@ -152,9 +163,14 @@ def compute(ws, today=None):
     rows = []
     for q in queue:
         slug = by_nn.get(q.get("nn"))
-        rows.append({"nn": q.get("nn"), "company": q.get("company"), "title": q.get("title"),
-                     "fit": q.get("fit"), "status": jobs[slug]["status"] if slug else q.get("state", "matched"),
-                     "url": q.get("url") or q.get("posting_id")})
+        rows.append({"nn": q.get("nn"), "posting_id": q.get("posting_id"), "company": q.get("company"),
+                     "title": q.get("title"), "fit": q.get("fit"), "why": q.get("why"), "gaps": q.get("gaps") or [],
+                     "status": _row_status(jobs[slug]["status"] if slug else None, q.get("state")),
+                     "url": q.get("url") or q.get("posting_id"), "source": q.get("source"),
+                     "reasons": q.get("reasons") or []})
+    # Open decisions first, best fit first: a job not yet applied to (matched, needs-you, or a v1 folder
+    # still `queued`) is waiting on the user. Everything else after, also by fit.
+    rows.sort(key=lambda r: (r["status"] not in OPEN_DECISIONS, -(r["fit"] or 0)))
 
     usage = d.read_jsonl(data / "usage.jsonl")
     tokens = None
@@ -165,21 +181,37 @@ def compute(ws, today=None):
                 int(u.get("input_tokens", 0) or 0) + int(u.get("output_tokens", 0) or 0)
         tokens = {"by_stage": by_stage, "total": sum(by_stage.values())}
 
-    return {"as_of": today.isoformat(), "funnel": funnel, "week": week, "rates": rates, "warning": warning,
+    defaults = d.read_json(ws / ".ascend-state.json", {}).get("run_defaults")
+    run = None
+    if defaults:
+        import usage
+        run = dict(defaults, estimate=usage.estimate(ws, defaults["engine"], defaults["mode"]))
+    return {"as_of": today.isoformat(), "run": run, "funnel": funnel, "week": week, "rates": rates, "warning": warning,
             "inbox": inbox, "pinned": pinned, "queue": rows, "tokens": tokens}
+
+
+def render(ws, today=None, server=None):
+    """The hub page as a string. `server` ({"token", "slug"}) is set only when ui/server.py serves it:
+    that version may call back to the local server (connect-src 'self') to approve or reject jobs.
+    The file written by build() has no token and connect-src 'none', so it can only be read."""
+    data = compute(ws, today)
+    if server:
+        data["server"] = server
+    # JSON inside <script>: escape <, > and & so no value (an email subject, say) can close the
+    # block or open a tag. JSON.parse reads the < escape back as "<"; the HTML parser never sees it.
+    blob = json.dumps(data, ensure_ascii=False).replace("&", "\\u0026").replace("<", "\\u003c").replace(">", "\\u003e")
+    html = TEMPLATE.read_text(encoding="utf-8").replace(PLACEHOLDER, blob)
+    if PLACEHOLDER in html or blob not in html:
+        raise RuntimeError("hub template is missing its data placeholder")
+    if server:
+        html = html.replace("connect-src 'none'", "connect-src 'self'", 1)
+    return html
 
 
 def build(ws, today=None):
     """Write ws/hub.html with the computed data embedded. Returns the path."""
     out = resolve_out(str(Path(ws) / "hub.html"))
-    data = compute(ws, today)
-    # JSON inside <script>: escape <, > and & so no value (an email subject, say) can close the
-    # block or open a tag. JSON.parse reads < back as "<"; the browser's HTML parser never sees it.
-    blob = json.dumps(data, ensure_ascii=False).replace("&", "\\u0026").replace("<", "\\u003c").replace(">", "\\u003e")
-    html = TEMPLATE.read_text(encoding="utf-8").replace(PLACEHOLDER, blob)
-    if PLACEHOLDER in html or blob not in html:
-        raise RuntimeError("hub template is missing its data placeholder")
-    out.write_text(html, encoding="utf-8")
+    out.write_text(render(ws, today), encoding="utf-8")
     return out
 
 
