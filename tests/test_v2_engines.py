@@ -60,6 +60,15 @@ class FinderAdd(unittest.TestCase):
         rows = [{"company": "MongoDB", "title": "Principal Security Engineer", "url": "https://www.linkedin.com/jobs/view/1"}]
         self.assertEqual(finder.add(self.ws, rows, "linkedin"), {"added": 1, "skipped": 0})
 
+    def test_add_reads_rows_from_a_workspace_file(self):
+        import json as j
+        f = self.ws / "data" / "web-rows.json"
+        f.write_text(j.dumps([{"company": "Acme", "title": "Staff Engineer", "url": "https://jobs.lever.co/acme/1234abcd-1"}]))
+        r = subprocess.run([sys.executable, str(REPO / "tools/finder.py"), "add", str(self.ws), "--source", "web",
+                            "--file", str(f)], capture_output=True, text=True, stdin=subprocess.DEVNULL)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(j.loads(r.stdout)["added"], 1)
+
     def test_cli(self):
         rows = json.dumps([{"company": "Bravo", "title": "Principal Security Engineer", "url": "https://jobs.example/2"}])
         r = subprocess.run([sys.executable, str(REPO / "tools/finder.py"), "add", str(self.ws), "--source", "web",
@@ -90,6 +99,33 @@ class GmailAdd(unittest.TestCase):
                 {"msg_id": "d", "subject": "no sender"}]
         self.assertEqual(g.add(self.ws, rows), {"added": 1, "skipped": 4})
         self.assertEqual(len(d.read_jsonl(self.ws / "data" / "mail.jsonl")[0]["body_excerpt"]), 2000)
+
+    def test_add_stores_iso_dates_and_refuses_unreadable_ones(self):
+        import _v2data as d
+        import gmail_sync as g
+        rows = [{"msg_id": "r1", "from": "r@co.example", "subject": "Hi", "date": "Thu, 16 Apr 2025 10:00:00 +0000"},
+                {"msg_id": "r2", "from": "r@co.example", "subject": "Hi", "date": "10/16/2026"}]
+        self.assertEqual(g.add(self.ws, rows), {"added": 1, "skipped": 1})
+        self.assertEqual(d.read_jsonl(self.ws / "data" / "mail.jsonl")[0]["date"], "2025-04-16T10:00:00+00:00")
+
+    def test_connector_query_reads_from_the_last_read_and_only_job_mail(self):
+        import gmail_sync as g
+        q = g.connector_query(self.ws, today="2026-10-17")
+        self.assertIn("newer_than:2d", q)
+        self.assertIn("greenhouse.io", q)
+        self.assertIn("-category:promotions", q)
+        g.add(self.ws, [{"msg_id": "z", "from": "r@co.example", "subject": "Hi", "date": "2026-10-10T10:00:00Z"}],
+              today="2026-10-10")
+        self.assertIn("after:2026/10/09", g.connector_query(self.ws, today="2026-10-17"))
+
+    def test_add_reads_rows_from_a_workspace_file(self):
+        import json as j
+        rows = self.ws / "data" / "connector-rows.json"
+        rows.write_text(j.dumps([{"msg_id": "f1", "from": "r@co.example", "subject": "Hi", "date": "2026-10-16T10:00:00Z"}]))
+        r = subprocess.run([sys.executable, str(REPO / "tools/gmail_sync.py"), "add", str(self.ws), "--file", str(rows)],
+                           capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(j.loads(r.stdout)["added"], 1)
 
     def test_added_mail_classifies(self):
         import _v2data as d

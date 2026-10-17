@@ -2,7 +2,7 @@
 """finder.py: pull open roles from public ATS job boards at zero tokens (Ascend 2.0, M5).
 
   python3 tools/finder.py run WS [--json]
-  python3 tools/finder.py add WS --source web|linkedin --json '[{...}]'   # rows Claude found
+  python3 tools/finder.py add WS --source web|linkedin --file workspace/<name>/data/<rows>.json   # rows Claude found
 
 Reads the board list from workspace/<name>/data/sources.json and calls each board's public JSON API:
 Greenhouse, Ashby, Lever, Workable and SmartRecruiters. No login, no scraping, no model.
@@ -30,7 +30,7 @@ from urllib.request import Request, urlopen
 TOOLS = Path(__file__).resolve().parent
 sys.path.insert(0, str(TOOLS))
 import _v2data as d  # noqa: E402
-from _paths import PathOutsideWorkspace  # noqa: E402
+from _paths import PathOutsideWorkspace, resolve_out  # noqa: E402
 
 ENDPOINTS = {
     "greenhouse": ("https://boards-api.greenhouse.io", "/v1/boards/{slug}/jobs?content=true"),
@@ -224,8 +224,13 @@ def _add_rows(dd, rows, source, state, known, polled, today, out):
 def main(argv):
     if len(argv) >= 3 and argv[1] == "add" and not argv[2].startswith("--"):
         src = argv[argv.index("--source") + 1] if "--source" in argv else "web"
-        rows = json.loads(argv[argv.index("--json") + 1]) if "--json" in argv else json.load(sys.stdin)
         try:
+            if "--file" in argv:        # rows Claude wrote under the workspace: no posting text on the command line
+                rows = json.loads(resolve_out(argv[argv.index("--file") + 1]).read_text(encoding="utf-8"))
+            elif "--json" in argv:
+                rows = json.loads(argv[argv.index("--json") + 1])
+            else:
+                rows = json.load(sys.stdin)
             print(json.dumps(add(argv[2], rows, src)))
         except (ValueError, PathOutsideWorkspace) as e:
             print(f"finder: {e}", file=sys.stderr)

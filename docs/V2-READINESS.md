@@ -45,8 +45,12 @@ A to C, and cron instead of launchd (a sleeping Mac skips that day's sync).
 
 - **LinkedIn search** drives your own logged-in LinkedIn session. Automated browsing can break LinkedIn's
   terms of use and put the account at risk. Claude asks before every search.
-- **Engines B and C** let Claude read your Gmail through the claude.ai connector. Its write tools are
-  denied in this repo's `.claude/settings.json`. A personal `settings.local.json` can override that.
+- **Engines B and C** let Claude read your Gmail through the claude.ai connector, limited to job senders
+  and job subjects. Its write tools are denied in this repo's `.claude/settings.json`. Mail is untrusted and
+  the same session can fetch web pages: only the content quarantine stands between an email's instructions
+  and a fetch. Allow `WebFetch` only for the domains you need in `.claude/settings.local.json` to close it.
+- **LinkedIn search** runs in your logged-in browser. "Never use Easy Apply" is an instruction to Claude,
+  not a setting. Claude in Chrome's per-action permission prompts are the guard, so keep them on.
 - **Engine A in Google's Testing mode** signs you out after about seven days. The daily sync then fails
   its Gmail stage and the hub shows a reconnect banner.
 

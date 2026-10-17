@@ -4,14 +4,15 @@
   python3 tools/gmail_sync.py connect WS                 # once: sign in with Google in your browser
   python3 tools/gmail_sync.py sync WS [--days N] [--json] [--then-classify]
   python3 tools/gmail_sync.py status WS
-  python3 tools/gmail_sync.py add WS --json '[{...}]'   # engines B and C: mail read through the connector
+  python3 tools/gmail_sync.py query WS                   # engines B and C: the Gmail search to run
+  python3 tools/gmail_sync.py add WS --file workspace/<name>/data/connector-rows.json   # what it returned
 
 Setup is in docs/GMAIL-SETUP.md: you create a Desktop OAuth client in your own Google Cloud project and
 save its JSON as workspace/<name>/gmail-client.json. Nobody else's app ever touches your mail.
 
 What it keeps: sender, subject, date, labels and the first 2,000 characters of the body, in
 workspace/<name>/data/mail.jsonl. Never attachments. Your own sent mail, drafts, spam and trash are
-skipped. The refresh token lives in the macOS Keychain (service "ascend-gmail"), not on disk.
+skipped, and so are the promotions, social and forums tabs unless the sender is an ATS or a job board. The refresh token lives in the macOS Keychain (service "ascend-gmail"), not on disk.
 
 Sync is incremental: the Gmail history API returns only what arrived since the last run. When that
 cursor has expired (Gmail keeps about a week), it falls back to a date query and de-duplicates by
@@ -32,7 +33,7 @@ import secrets
 import subprocess
 import sys
 import webbrowser
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
@@ -43,7 +44,7 @@ from urllib.request import Request, urlopen
 TOOLS = Path(__file__).resolve().parent
 sys.path.insert(0, str(TOOLS))
 import _v2data as d  # noqa: E402
-from _paths import PathOutsideWorkspace  # noqa: E402
+from _paths import PathOutsideWorkspace, resolve_out  # noqa: E402
 
 SCOPE = "https://www.googleapis.com/auth/gmail.readonly"
 AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
@@ -58,10 +59,54 @@ def _local_override(var, default):
 
 OAUTH_BASE = _local_override("ASCEND_GOOGLE_OAUTH_BASE", "https://oauth2.googleapis.com")
 API_BASE = _local_override("ASCEND_GMAIL_API_BASE", "https://gmail.googleapis.com")
-# Ascend reads job mail. Sent mail, drafts, spam, trash and Gmail's promotions, social and forums tabs
-# are never fetched into the workspace (spec §8: collect only what tracking needs).
-SKIP_LABELS = {"SENT", "DRAFT", "SPAM", "TRASH", "CATEGORY_PROMOTIONS", "CATEGORY_SOCIAL", "CATEGORY_FORUMS"}
+# Ascend reads job mail (spec §8: collect only what tracking needs). Sent mail, drafts, spam and trash are
+# never stored. Gmail's promotions, social and forums tabs are stored only from job senders (ATS systems
+# and job boards), because Gmail often files LinkedIn and board alerts there.
+SKIP_LABELS = {"SENT", "DRAFT", "SPAM", "TRASH"}
+CATEGORY_LABELS = {"CATEGORY_PROMOTIONS", "CATEGORY_SOCIAL", "CATEGORY_FORUMS"}
 QUERY_EXCLUDE = "-category:promotions -category:social -category:forums"
+JOB_SUBJECTS = ("application", "applying", "applied", "interview", "recruiter", "recruiting", "position", "role",
+                "opportunity", "assessment", "offer", '"next steps"', "candidate", "hiring", '"job alert"')
+
+
+def _job_sender(sender_text):
+    import classify
+    m = re.search(r"[\w.+-]+@([\w.-]+)", sender_text or "")
+    addr, dom = (m.group(0).lower(), m.group(1).lower()) if m else ("", "")
+    return addr in classify.ALERT_SENDERS or any(dom == x or dom.endswith("." + x)
+                                                  for x in classify.ATS_DOMAINS | classify.ALERT_DOMAINS)
+
+
+def _skip(labels, sender_text):
+    labels = set(labels or [])
+    return bool(SKIP_LABELS & labels) or (bool(CATEGORY_LABELS & labels) and not _job_sender(sender_text))
+
+
+def _iso_date(s):
+    """An ISO 8601 date for anything Gmail or the connector writes, or None when it cannot be read."""
+    try:
+        return datetime.fromisoformat((s or "").replace("Z", "+00:00")).isoformat()
+    except ValueError:
+        pass
+    try:
+        return parsedate_to_datetime(s).isoformat()
+    except (TypeError, ValueError, IndexError):
+        return None
+
+
+def connector_query(ws, today=None):
+    """The Gmail search engines B and C run through the connector: from the day before the last read (so a
+    gap of days is never skipped), job senders or job subjects only, never the promotions/social/forums tabs
+    except from job senders. Keeps 2FA codes, bank and personal mail out of Claude's context."""
+    import classify
+    last = d.read_json(d.data_dir(ws) / "sync-state.json", {}).get("connector_last_read")
+    if last:
+        window = "after:" + (date.fromisoformat(last[:10]) - timedelta(days=1)).strftime("%Y/%m/%d")
+    else:
+        window = "newer_than:2d"
+    senders = " OR ".join(sorted(classify.ATS_DOMAINS | classify.ALERT_DOMAINS))
+    subjects = " OR ".join(JOB_SUBJECTS)
+    return f"{window} (from:({senders}) OR (subject:({subjects}) {QUERY_EXCLUDE}))"
 EXCERPT = 2000
 KEYCHAIN_SERVICE = "ascend-gmail"
 
@@ -259,10 +304,10 @@ def _strip_html(s):
 def message_to_mail(msg):
     """One Gmail message → one mail.jsonl row, or None for mail Ascend never reads."""
     labels = msg.get("labelIds", []) or []
-    if SKIP_LABELS & set(labels):
-        return None
     payload = msg.get("payload", {}) or {}
     headers = {h["name"].lower(): h["value"] for h in payload.get("headers", [])}
+    if _skip(labels, headers.get("from", "")):
+        return None
     text = _find_part(payload, "text/plain")
     if text is None:
         h = _find_part(payload, "text/html")
@@ -321,7 +366,7 @@ def sync(ws, days=30):
         cursor = _get(token, "profile").get("historyId")   # taken before listing, so nothing slips between
         ids, page = [], None
         while True:
-            params = {"q": f"newer_than:{days}d {QUERY_EXCLUDE}", "maxResults": 100}
+            params = {"q": f"newer_than:{days}d", "maxResults": 100}
             if page:
                 params["pageToken"] = page
             r = _get(token, "messages", params)
@@ -350,7 +395,7 @@ def sync(ws, days=30):
     return {"new": new, "mode": mode, "history_id": cursor}
 
 
-def add(ws, rows):
+def add(ws, rows, today=None):
     """Mail read by Claude through the claude.ai connector (engines B and C), held to the same rules as
     engine A's sync: required headers, a 2,000-character excerpt, no sent mail or drafts, no mail from
     the user's own address, no duplicates."""
@@ -360,15 +405,17 @@ def add(ws, rows):
     out = {"added": 0, "skipped": 0}
     for r in rows:
         sender = (r.get("from") or "").lower()
-        if (not all(r.get(k) for k in ("msg_id", "from", "subject", "date")) or r["msg_id"] in known
-                or SKIP_LABELS & set(r.get("labels") or []) or (own and own in sender)):
+        when = _iso_date(r.get("date"))
+        if (not all(r.get(k) for k in ("msg_id", "from", "subject")) or not when or r["msg_id"] in known
+                or _skip(r.get("labels"), r.get("from")) or (own and own in sender)):
             out["skipped"] += 1
             continue
         d.append_jsonl(dd / "mail.jsonl", {"msg_id": r["msg_id"], "thread_id": r.get("thread_id"), "from": r["from"],
-                                           "subject": r["subject"], "date": r["date"], "labels": r.get("labels") or [],
+                                           "subject": r["subject"], "date": when, "labels": r.get("labels") or [],
                                            "body_excerpt": re.sub(r"\s+", " ", r.get("body_excerpt") or "").strip()[:EXCERPT]})
         known.add(r["msg_id"])
         out["added"] += 1
+    _save_state(ws, {"connector_last_read": today or date.today().isoformat()})
     return out
 
 
@@ -378,9 +425,17 @@ def _then_classify(ws):
 
 
 def main(argv):
+    if len(argv) >= 3 and argv[1] == "query" and not argv[2].startswith("--"):
+        print(connector_query(argv[2]))
+        return 0
     if len(argv) >= 3 and argv[1] == "add" and not argv[2].startswith("--"):
-        rows = json.loads(argv[argv.index("--json") + 1]) if "--json" in argv else json.load(sys.stdin)
         try:
+            if "--file" in argv:        # rows Claude wrote under the workspace: no email text on the command line
+                rows = json.loads(resolve_out(argv[argv.index("--file") + 1]).read_text(encoding="utf-8"))
+            elif "--json" in argv:
+                rows = json.loads(argv[argv.index("--json") + 1])
+            else:
+                rows = json.load(sys.stdin)
             print(json.dumps(add(argv[2], rows)))
         except PathOutsideWorkspace as e:
             print(f"gmail_sync: {e}", file=sys.stderr)

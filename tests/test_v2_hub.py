@@ -81,6 +81,17 @@ class Compute(unittest.TestCase):
         self.assertIsNone(hub.compute(ws, today=TODAY)["gmail"]["warning"])
         self.assertIn('id="gmailStatus"', hub.render(ws, today=TODAY))
 
+    def test_connector_engines_warn_when_mail_has_not_been_read(self):
+        import _v2data as d
+        import hub
+        ws = make_ws(self.td.name, [])
+        d.write_json_atomic(ws / ".ascend-state.json", {"run_defaults": {"engine": "C", "mode": "assisted"}})
+        self.assertIn("run-v2", hub.compute(ws, today=TODAY)["gmail"]["warning"])
+        d.write_json_atomic(ws / "data" / "sync-state.json", {"connector_last_read": "2026-10-11"})
+        self.assertIn("2026-10-11", hub.compute(ws, today=TODAY)["gmail"]["warning"])
+        d.write_json_atomic(ws / "data" / "sync-state.json", {"connector_last_read": "2026-10-15"})
+        self.assertIsNone(hub.compute(ws, today=TODAY)["gmail"]["warning"])
+
     def test_funnel(self):
         import hub
         out = hub.compute(seed(self.td.name), today=TODAY)

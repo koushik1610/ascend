@@ -199,8 +199,12 @@ left for you to answer. Agent-submit and fully automatic modes are being develop
 | Web | Public job-board APIs, read only. | Public boards plus Claude's web searches. | Public job-board APIs, read only. |
 | Applications | Never submitted by Ascend. | Never submitted by Ascend. | Never submitted by Ascend. |
 
-The deny entries hold only while you run Claude Code in this repo with its settings. A personal
-`.claude/settings.local.json` that allows those tools overrides them. **LinkedIn search** is opt-in on
+Engines B and C search Gmail with a query limited to job senders and job subjects, starting from the day
+before the last read. The mail Claude reads is untrusted, and the same session can fetch web pages. Claude
+treats mail as data, but no setting stops a web fetch, so engine C users who want that closed should allow
+`WebFetch` only for the domains they need in their own `.claude/settings.local.json`. A deny in this
+repo's `.claude/settings.json` cannot be reopened from a local file: to let Claude draft mail here, remove
+the entry from `.claude/settings.json` itself. **LinkedIn search** is opt-in on
 every engine. It drives your own logged-in LinkedIn session through Claude in Chrome and reads result
 cards only. Automated browsing can break LinkedIn's terms of use and put the account at risk, so Claude
 asks before each search.

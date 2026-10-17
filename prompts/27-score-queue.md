@@ -58,10 +58,9 @@ which prepares the apply sheet the user submits from.
 ## Engine C: reading Gmail through the connector
 
 When the run's engine is C, do this before Step 1. Search the user's Gmail through the claude.ai connector
-for mail since the last sync (`newer_than:2d` is enough for a daily run). Send the rows through the
-validator, never straight into the file: `python3 tools/gmail_sync.py add workspace/<name> --json '[...]'`
-with `msg_id`, `from`, `subject`, `date` (ISO 8601) and `body_excerpt` (the snippet) per message, as in
-`prompts/29-run-v2.md`. Then run `python3 tools/classify.py run workspace/<name>` and
+with exactly the query `python3 tools/gmail_sync.py query workspace/<name>` prints, and add the results
+through the validator from a file, as `prompts/29-run-v2.md` describes. Never put email text on the
+command line. Then run `python3 tools/classify.py run workspace/<name>` and
 `python3 tools/pipeline.py ingest workspace/<name>`.
 Record the characters read under `--stage mail`.
 

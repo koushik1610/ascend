@@ -265,15 +265,16 @@ class Sync(unittest.TestCase):
         self.fake.add(gmsg("d3", "Next", "a@co.example", "next"))
         self.assertEqual(json.loads(self.run_tool("sync", str(self.ws), "--json").stdout)["new"], 1)
 
-    def test_promotions_social_and_forums_are_not_stored(self):
+    def test_promotions_social_and_forums_are_not_stored_except_job_senders(self):
         self.connected()
         self.fake.add(gmsg("e1", "Sale", "shop@store.example", "50% off", labels=["INBOX", "CATEGORY_PROMOTIONS"]))
         self.fake.add(gmsg("e2", "Friend", "x@social.example", "tagged you", labels=["INBOX", "CATEGORY_SOCIAL"]))
         self.fake.add(gmsg("e3", "Thanks for applying", "no-reply@ashbyhq.com", "received", labels=["INBOX", "CATEGORY_UPDATES"]))
+        self.fake.add(gmsg("e4", "New jobs for you", "jobalerts-noreply@linkedin.com", "Staff Engineer at Acme",
+                           labels=["INBOX", "CATEGORY_SOCIAL"]))
+        self.fake.add(gmsg("e5", "Your application", "no-reply@greenhouse.io", "received", labels=["INBOX", "CATEGORY_PROMOTIONS"]))
         self.run_tool("sync", str(self.ws))
-        self.assertEqual([m["msg_id"] for m in self.mail()], ["e3"])
-        q = [r[2].get("q", [""])[0] for r in self.fake.requests if r[1].endswith("/messages")]
-        self.assertIn("-category:promotions", q[0])
+        self.assertEqual(sorted(m["msg_id"] for m in self.mail()), ["e3", "e4", "e5"])
 
     def test_a_transient_token_error_keeps_the_sign_in(self):
         self.connected()

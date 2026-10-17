@@ -205,6 +205,14 @@ def _gmail_status(ws, data, defaults, today):
     sync = d.read_json(data / "sync-state.json", {})
     engine = (defaults or {}).get("engine")
     out = {"engine": engine, "connected": sync.get("connected"), "last_sync": sync.get("last_sync"), "warning": None}
+    if engine in ("B", "C"):
+        last = (sync.get("connector_last_read") or "")[:10]
+        if not last:
+            out["warning"] = "No Gmail has been read through the connector yet. Run /ascend run-v2 to read it."
+        elif last < (today - timedelta(days=1)).isoformat():
+            out["warning"] = (f"Gmail was last read through the connector on {last}. Run /ascend run-v2: the next "
+                              "read starts from that date, so nothing in between is missed.")
+        return out
     if engine != "A":
         return out
     fix = f"Reconnect: python3 tools/gmail_sync.py connect workspace/{Path(ws).name}"
