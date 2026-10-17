@@ -75,6 +75,8 @@
   </section>
 
   <section id="queue" hidden>
+    <div class="sub" id="pauseBar" style="margin-bottom:10px"></div>
+    <div class="panel" id="sheet" hidden></div>
     <div class="panel"><table><thead><tr><th>#</th><th>Company</th><th>Role</th><th>Fit</th><th>Status</th><th></th></tr></thead><tbody id="queueRows"></tbody></table></div>
   </section>
 
@@ -130,17 +132,42 @@ const ACTIONABLE = new Set(["matched", "needs-you", "queued"]);
 function queueRow(q) {
   const role = /^https:\/\//i.test(q.url || "") ? `<a href="${safeUrl(q.url)}" target="_blank" rel="noopener noreferrer">${esc(q.title)}</a>` : esc(q.title);
   const detail = [q.why, (q.gaps || []).length ? "Gaps: " + q.gaps.join("; ") : "", (q.reasons || []).join("; ")].filter(Boolean).join(" · ");
-  const acts = S && ACTIONABLE.has(q.status) && q.posting_id
-    ? `<button class="act" data-id="${esc(q.posting_id)}" data-a="approved">Approve</button> <button class="act" data-id="${esc(q.posting_id)}" data-a="rejected">Reject</button>` : "";
+  let acts = "";
+  if (S && q.posting_id && ACTIONABLE.has(q.status))
+    acts = `<button class="act" data-id="${esc(q.posting_id)}" data-a="approved">Approve</button> <button class="act" data-id="${esc(q.posting_id)}" data-a="rejected">Reject</button>`;
+  else if (S && q.posting_id && q.status === "approved")
+    acts = `<button class="act" data-id="${esc(q.posting_id)}" data-a="sheet">Apply</button>`;
   return `<tr><td>${esc(q.nn || "")}</td><td>${esc(q.company)}</td><td>${role}${detail ? `<div class="sub">${esc(detail)}</div>` : ""}</td><td>${esc(q.fit == null ? "" : q.fit)}</td><td><span class="tag t-${esc(q.status)}">${esc(q.status)}</span></td><td>${acts}</td></tr>`;
 }
 $("queueRows").innerHTML = D.queue.length ? D.queue.map(queueRow).join("") : `<tr><td colspan="6" class="empty">No queued jobs yet.</td></tr>`;
-$("queueRows").addEventListener("click", ev => {
-  const b = ev.target.closest("button.act"); if (!b || !S) return;
+const post = (path, body) => fetch(path, {method: "POST", headers: {"Content-Type": "application/json", "X-Ascend-Token": S.token},
+                                          body: JSON.stringify(Object.assign({slug: S.slug}, body))}).then(r => r.json());
+function showSheet(s, id) {
+  const ans = Object.entries(s.answers || {}).map(([k, v]) => `${k}: ${v}`).join("\n");
+  const open = s.url_allowed ? `<a href="${safeUrl(s.apply_url)}" target="_blank" rel="noopener noreferrer">Open the application</a>`
+                             : `<span class="sub">This link is not on the ATS allow-list: open it yourself after checking it.</span>`;
+  const ask = (s.ask_user || []).length ? `<div class="banner">Only you can answer: ${esc(s.ask_user.join(", "))}. Ascend never fills these.</div>` : "";
+  $("sheet").innerHTML = `<b>${esc(s.company)}: ${esc(s.title)}</b><div class="sub">Résumé: ${esc(String(s.resume_pdf).split("/").pop())}</div>${ask}
+    <pre style="white-space:pre-wrap;background:var(--panel2);padding:10px;border-radius:8px">${esc(ans)}</pre>
+    ${open} <button class="act" id="copyAns">Copy answers</button> <button class="act" data-id="${esc(id)}" data-a="applied">I submitted it</button>`;
+  $("sheet").hidden = false;
+  $("copyAns").onclick = () => navigator.clipboard && navigator.clipboard.writeText(ans);
+  $("sheet").scrollIntoView({behavior: "smooth"});
+}
+if (S) {
+  const pc = D.apply_control || {};
+  $("pauseBar").innerHTML = `Agent and automatic applying: <b>${pc.paused ? "paused" : "on"}</b>${pc.reason ? " (" + esc(pc.reason) + ")" : ""} <button class="act" id="pauseBtn">${pc.paused ? "Resume" : "Pause"}</button>`;
+  $("pauseBtn").onclick = () => post("/api/apply-control", {paused: !pc.paused}).then(r => { pc.paused = r.paused; pc.reason = r.reason; $("pauseBtn").textContent = r.paused ? "Resume" : "Pause"; $("pauseBar").querySelector("b").textContent = r.paused ? "paused" : "on"; });
+}
+document.querySelector("#queue").addEventListener("click", ev => {
+  const b = ev.target.closest("button.act[data-a]"); if (!b || !S) return;
+  if (b.dataset.a === "sheet") {
+    post("/api/apply", {posting_id: b.dataset.id}).then(r => r.error ? showSheet({company: "Not ready", title: r.error, answers: {}, ask_user: []}, "") : showSheet(r, b.dataset.id));
+    return;
+  }
   b.disabled = true;
-  fetch("/api/queue", {method: "POST", headers: {"Content-Type": "application/json", "X-Ascend-Token": S.token},
-                       body: JSON.stringify({slug: S.slug, posting_id: b.dataset.id, action: b.dataset.a})})
-    .then(r => r.json()).then(r => {
+  post("/api/queue", {posting_id: b.dataset.id, action: b.dataset.a}).then(r => {
+      if (b.dataset.a === "applied") { $("sheet").innerHTML = r.ok ? "Recorded as applied." : esc(r.error || "not saved"); return; }
       const row = b.closest("tr");
       if (r.ok) { row.querySelector(".tag").textContent = r.state; row.querySelector(".tag").className = "tag t-" + r.state; row.lastElementChild.innerHTML = ""; }
       else { b.disabled = false; row.lastElementChild.insertAdjacentHTML("beforeend", `<div class="sub">${esc(r.error || "not saved")}</div>`); }

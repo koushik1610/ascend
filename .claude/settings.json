@@ -22,6 +22,8 @@
       "Bash(python3 tools/prefilter.py*)",
       "Bash(python3 tools/alerts.py*)",
       "Bash(python3 tools/run.py*)",
+      "Bash(python3 tools/fakeform.py*)",
+      "Bash(python3 tools/apply.py*)",
       "Bash(python3 tools/jobqueue.py*)",
       "Bash(python3 tools/usage.py*)",
       "Bash(python3 tools/finder.py*)",

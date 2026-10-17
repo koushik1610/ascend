@@ -431,12 +431,18 @@ def cmd_guard(ws, args):
             opts[a.lstrip("-")] = next(it, "")
     if not opts.get("company") or not opts.get("title"):
         return die("usage: guard WS --company C --title T [--posting-id P] [--today YYYY-MM-DD]")
-    today = _today(opts.get("today"))
-    company, title, pid = _company_key(opts["company"]), normalize_title(opts["title"]), opts.get("posting-id")
+    dup = check_duplicate(ws, opts["company"], opts["title"], opts.get("posting-id"), opts.get("today"))
+    print(dup or "OK")
+    return 3 if dup else 0
+
+
+def check_duplicate(ws, company_name, title_text, pid=None, today=None):
+    """'DUPLICATE <why>' when this job was already applied to, else None. Shared by guard and apply."""
+    today = _today(today)
+    company, title = _company_key(company_name), normalize_title(title_text)
     for rpid, rco, rtitle, applied_on in _applied_records(ws):
         if pid and rpid and pid == rpid:
-            print(f"DUPLICATE already applied to posting {pid}" + (f" on {applied_on}" if applied_on else ""))
-            return 3
+            return f"DUPLICATE already applied to posting {pid}" + (f" on {applied_on}" if applied_on else "")
         if rco == company and rtitle == title:
             try:
                 age = (today - _today(applied_on)).days if applied_on else 0
@@ -444,10 +450,8 @@ def cmd_guard(ws, args):
                 age = 0
             if age <= GUARD_DAYS:
                 when = f"{age} day(s) ago" if applied_on else "already in progress, application date unknown"
-                print(f"DUPLICATE {opts['company']} / {opts['title']}: {when} (window {GUARD_DAYS} days)")
-                return 3
-    print("OK")
-    return 0
+                return f"DUPLICATE {company_name} / {title_text}: {when} (window {GUARD_DAYS} days)"
+    return None
 
 
 def main(argv):

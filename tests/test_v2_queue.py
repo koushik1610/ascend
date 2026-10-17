@@ -206,6 +206,18 @@ class Server(unittest.TestCase):
         self.assertIn("connect-src 'self'", body)
         self.assertNotIn("connect-src 'none'", body)
 
+    def test_apply_sheet_endpoint_refuses_unapproved_with_reason(self):
+        status, body, _ = self.req("POST", "/api/apply", {"slug": self.SLUG, "posting_id": "greenhouse:d:4"},
+                                   token=self.token)
+        self.assertEqual(status, 409, body)
+        self.assertIn("not approved", json.loads(body)["error"])
+
+    def test_apply_control_pauses_and_resumes(self):
+        status, body, _ = self.req("POST", "/api/apply-control", {"slug": self.SLUG, "paused": True}, token=self.token)
+        self.assertEqual((status, json.loads(body)["paused"]), (200, True))
+        status, body, _ = self.req("POST", "/api/apply-control", {"slug": self.SLUG, "paused": False}, token=self.token)
+        self.assertEqual(json.loads(body)["paused"], False)
+
     def test_queue_action_needs_token(self):
         status, _, _ = self.req("POST", "/api/queue", {"slug": self.SLUG, "posting_id": "greenhouse:d:4", "action": "approved"})
         self.assertEqual(status, 403)

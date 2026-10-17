@@ -11,6 +11,28 @@ _Working toward v1.0. Real-run gate: **1 of 2–3 runs signed off** (2026-07-01,
 see `docs/ROADMAP.md` → sign-off log); cases (b) no-résumé/non-tech and (c) resume-after-interruption
 remain, plus a green CI run on the remote + a demo GIF._
 
+### Added: Ascend 2.0, M8 applying in all three modes (branch `ascend-v2`)
+- **`tools/apply.py`**: `sheet` builds a gated apply sheet (the job is approved, or matched at fit 75+
+  in automatic mode; not a duplicate; its résumé passes lint; answers only from `data/profile.json`,
+  with work authorization, sponsorship, salary and start date listed for the user and never filled),
+  `allowed` (https on an allow-listed ATS host only), `next` (respects the pause switch, the daily cap
+  of 25 and, in automatic mode, auto-pauses when the reply rate over 50 sends falls below 5%), `record`
+  (submitted, unclear or stopped, with the folder moved through the same write path as `log`).
+- **Phase 28 (`prompts/28-apply.md`)**: assisted mode in the hub (Apply shows the sheet, the link, the
+  answers to copy and the questions only the user can answer); agent-submit and automatic through
+  Claude in Chrome with explicit stop rules (CAPTCHA, sign-in, unanswerable or sensitive questions).
+- The scoped exception to "never transmit workspace data" is written into `CLAUDE.md` and
+  `reference/untrusted-content-policy.md`.
+- `tools/fakeform.py`: a local application form with plain, CAPTCHA, work-authorization, unknown-question
+  and sign-in variants, for exercising agent apply without touching an employer.
+- `lint_artifacts.py` accepts a user's own master entry prefixes (`"id_prefixes"` in lint-config) and
+  the `- **ID**` declaration form, so a master from an older run passes the provenance check on its
+  merits. Parenthesised sources in such a Delta Log are not read as selections. The default grammar is
+  unchanged.
+- Real check: the apply sheet for an approved real job passed every gate; the unapproved one was
+  refused. In Chrome, the plain fake form was filled from the sheet and submitted; the
+  work-authorization and CAPTCHA variants stopped unsubmitted. Nothing was sent to a real employer.
+
 ### Added: Ascend 2.0, M7 run selection, scoring and queue actions (branch `ascend-v2`)
 - **`tools/run.py plan WS --engine A|B|C --mode assisted|agent|automatic`** checks a run can go
   (engine A needs the Gmail client and a sign-in; fully automatic needs "I understand" typed out),

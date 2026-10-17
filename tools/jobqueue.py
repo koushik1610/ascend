@@ -113,6 +113,12 @@ def set_state(ws, posting_id, state):
     if state == "applied" and not entry.get("applied_on"):
         entry["applied_on"] = date.today().isoformat()
     d.write_json_atomic(dd / "queue.json", q)
+    if state == "applied" and entry.get("nn"):
+        # A v1 job folder records the same fact; keep the two in step through the one write path.
+        import pipeline
+        job = pipeline.find_job(Path(ws), entry["nn"])
+        if job and pipeline.parse_state(job / "application-log.md").get("status", "queued") == "queued":
+            pipeline.transition(Path(ws), job, "applied", entry["applied_on"], "apply")
     return entry
 
 

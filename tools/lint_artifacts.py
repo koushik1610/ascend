@@ -102,20 +102,35 @@ MASTER_DECL_HEAD = re.compile(r"^#{2,4}\s+([EPMSD]\d{1,3}[a-z]?)\b")
 MASTER_DECL_ROW = re.compile(r"^\|\s*([EPMSD]\d{1,3}[a-z]?)\s*\|")
 
 
+def id_grammar(prefixes=None):
+    """(cite, heading, row, bullet) patterns. Default: the narrow E/P/M/S/D grammar above. A user whose
+    master uses its own prefixes (an older run with PR1, Y4, C1) names them in lint-config.json as
+    "id_prefixes"; the pattern stays exactly that narrow, just with their letters. The bullet form
+    `- **ID**` is also a declaration, since older masters declare entries that way."""
+    if prefixes:
+        alt = "|".join(sorted({re.escape(x) for x in prefixes if re.fullmatch(r"[A-Z]{1,3}", x)}, key=len, reverse=True))
+        core = rf"(?:{alt})\d{{1,3}}[a-z]?"
+    else:
+        core = r"[EPMSD]\d{1,3}[a-z]?"
+    return (re.compile(rf"\b({core})\b"), re.compile(rf"^#{{2,4}}\s+({core})\b"),
+            re.compile(rf"^\|\s*({core})\s*\|"), re.compile(rf"^\s*[-*]\s+\*\*({core})\*\*"))
+
+
 # A Delta Log entry: a bullet, a numbered item, or an indented continuation of one.
 DELTA_ENTRY = re.compile(r"^(\s{2,}\S|\s*[-*•]\s|\s*\d+[.)]\s|\s*[A-Za-z][\w /&-]{0,40}:\s)")
 
 
-def parse_master_ids(path):
+def parse_master_ids(path, prefixes=None):
     """Collect the entry IDs a master résumé actually declares."""
     ids = set()
     try:
         text = Path(path).read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError):
         return None
+    _, head, row, bullet = id_grammar(prefixes)
     for line in text.splitlines():
-        for rx in (MASTER_DECL_HEAD, MASTER_DECL_ROW):
-            m = rx.match(line.strip() if rx is MASTER_DECL_ROW else line)
+        for rx in (head, row, bullet):
+            m = rx.match(line.strip() if rx is row else line)
             if m:
                 ids.add(m.group(1))
     return ids
@@ -290,7 +305,7 @@ def lint_text(text, fname, vocab_regexes, forbidden, retracted, allowed_vocab=fr
     return findings
 
 
-def lint_provenance(text, fname, master_ids=None):
+def lint_provenance(text, fname, master_ids=None, prefixes=None):
     """A per-job resume.md must be selection, not invention: DELTA LOG + REAL master IDs.
 
     When the master résumé is found, every ID the Delta Log cites is checked against the IDs the
@@ -301,7 +316,14 @@ def lint_provenance(text, fname, master_ids=None):
     if not re.search(r"\bDELTA LOG\b", text, re.I):
         findings.append((fname, 1, "provenance", "no DELTA LOG (selection record) found"))
         return findings
-    cited = set(MASTER_ID.findall(delta_block(text)))
+    block = delta_block(text)
+    if prefixes:
+        # Older masters write "Y4 (C2, ITEM-3)": the selected entry, then its SOURCES in parentheses.
+        # The sources are extraction sections, not master entries, so they are not checked as picks.
+        prev = None
+        while prev != block:
+            prev, block = block, re.sub(r"\([^()]*\)", " ", block)
+    cited = set(id_grammar(prefixes)[0].findall(block))
     if not cited:
         findings.append((fname, 1, "provenance", "DELTA LOG cites no master entry IDs"))
         return findings
@@ -549,13 +571,14 @@ def main(argv):
         print(__doc__)
         return 2
 
-    forbidden, retracted, config_allow = [], [], []
+    forbidden, retracted, config_allow, id_prefixes = [], [], [], []
     if config_path:
         try:
             cfg = json.loads(Path(config_path).read_text(encoding="utf-8"))
             forbidden = [re.compile(p) for p in cfg.get("forbidden_patterns", [])]
             retracted = [re.compile(p, re.I) for p in cfg.get("retracted_patterns", [])]
             config_allow = list(cfg.get("allow_vocab", []))
+            id_prefixes = list(cfg.get("id_prefixes", []))
         except (OSError, ValueError, re.error) as e:
             print(f"lint_artifacts: bad config {config_path}: {e}", file=sys.stderr)
             return 2
@@ -593,7 +616,7 @@ def main(argv):
         if f.name == "resume.md" and f.parent.parent.name == "jobs":
             mp = Path(master_path) if master_path else find_master(f)
             all_findings += lint_provenance(text, str(f),
-                                            parse_master_ids(mp) if mp else None)
+                                            parse_master_ids(mp, id_prefixes) if mp else None, id_prefixes)
 
     for fname, line, cat, msg in all_findings:
         print(f"{fname}:{line}: [{cat}] {msg}")

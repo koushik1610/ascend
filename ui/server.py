@@ -477,6 +477,20 @@ class Handler(BaseHTTPRequestHandler):
             except KeyError:
                 return self._send(404, {"error": "no such job in the queue"})
             return self._send(200, {"ok": True, "state": entry["state"]})
+        if u.path == "/api/apply":    # Ascend 2.0: the gated apply sheet for one job (assisted mode)
+            body = self._body()
+            ws = WORKSPACE / slugify(body.get("slug", ""))
+            import apply
+            try:
+                return self._send(200, apply.sheet(ws, str(body.get("posting_id", "")), str(body.get("mode", "assisted"))))
+            except apply.Refused as e:
+                return self._send(409, {"error": str(e)})
+        if u.path == "/api/apply-control":    # pause / resume agent and automatic applying
+            body = self._body()
+            ws = WORKSPACE / slugify(body.get("slug", ""))
+            import apply
+            (apply.pause(ws, "paused from the hub") if body.get("paused") else apply.resume(ws))
+            return self._send(200, apply.status(ws))
         if u.path == "/api/shutdown":
             threading.Thread(target=self.server.shutdown, daemon=True).start()
             return self._send(200, {"ok": True})

@@ -186,7 +186,8 @@ def compute(ws, today=None):
     if defaults:
         import usage
         run = dict(defaults, estimate=usage.estimate(ws, defaults["engine"], defaults["mode"]))
-    return {"as_of": today.isoformat(), "run": run, "funnel": funnel, "week": week, "rates": rates, "warning": warning,
+    control = d.read_json(data / "apply-control.json", {"paused": False})
+    return {"as_of": today.isoformat(), "run": run, "apply_control": control, "funnel": funnel, "week": week, "rates": rates, "warning": warning,
             "inbox": inbox, "pinned": pinned, "queue": rows, "tokens": tokens}
 
 
