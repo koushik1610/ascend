@@ -99,6 +99,9 @@ def run(ws):
         if not d.read_json(ws / "data" / "sources.json", {}).get("boards"):
             raise RuntimeError("no boards to poll in data/sources.json: see templates/sources.example.json")
         out = finder.run(ws)
+        if out["failed"] and len(out["failed"]) == out["boards"]:
+            raise RuntimeError(f"every board was unreachable ({', '.join(out['failed'])}): check the slugs in "
+                               "data/sources.json")
         return f"{out['new']} new, {out['closed']} closed" + (f", unreachable: {', '.join(out['failed'])}" if out["failed"] else "")
 
     def pre():

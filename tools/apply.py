@@ -22,6 +22,7 @@ import subprocess
 import sys
 from datetime import date, datetime
 from pathlib import Path
+from urllib.parse import urlparse
 
 TOOLS = Path(__file__).resolve().parent
 sys.path.insert(0, str(TOOLS))
@@ -43,6 +44,26 @@ def _first(items, default=None):
 
 class Refused(Exception):
     """The gate said no. The message says why, in words the user can act on."""
+
+
+KNOWN_HOSTS = ("greenhouse.io", "lever.co", "ashbyhq.com", "workable.com", "smartrecruiters.com",
+               "myworkdayjobs.com", "workday.com")
+
+
+def _known_link(url):
+    """Display only: is this an https link on a known application system, with nothing that makes a browser
+    read the host differently from Python (backslashes, spaces, user:password@)? Nothing is ever opened by
+    Ascend; this decides whether the sheet warns the user to check the address."""
+    url = url or ""
+    if any(c in url for c in "\\ \t\r\n") or "%2f" in url.lower() or "%5c" in url.lower():
+        return False
+    try:
+        u = urlparse(url)
+    except ValueError:
+        return False
+    host = (u.hostname or "").lower()
+    return (u.scheme == "https" and not u.username and not u.password and u.netloc.lower() in (host, host + ":443")
+            and any(host == h or host.endswith("." + h) for h in KNOWN_HOSTS))
 
 
 def _entry(ws, posting_id):
@@ -92,6 +113,8 @@ def sheet(ws, posting_id):
     ask = ALWAYS_ASK + [k for k in ("name", "email", "phone") if not profile.get(k)]
     out = {"posting_id": posting_id, "company": entry.get("company"), "title": entry.get("title"),
            "apply_url": entry.get("apply_url") or entry.get("url") or entry.get("posting_id"),
+           "link_note": None if _known_link(entry.get("apply_url") or entry.get("url") or "") else
+           "This link is not on a known application system. Check the address before you enter anything.",
            "resume_pdf": str(pdfs[0]), "answers": answers, "ask_user": ask, "cover_note": _hook(job),
            "built_at": datetime.now().isoformat(timespec="seconds")}
     safe = re.sub(r"[^A-Za-z0-9._-]+", "_", posting_id)[:120]

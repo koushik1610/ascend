@@ -49,7 +49,10 @@ def install(ws, hhmm):
 
 
 def remove(ws):
-    return _cron.remove(_tag(ws))
+    if not re.fullmatch(r"[A-Za-z0-9._-]+", Path(str(ws)).name):
+        return {"ok": False, "error": "name the workspace whose daily sync to remove"}
+    data = Path(ws) / "data"
+    return _cron.remove(_tag(ws), data if data.is_dir() else None)
 
 
 def show(ws):

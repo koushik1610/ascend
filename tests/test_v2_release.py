@@ -68,6 +68,17 @@ class Cron(unittest.TestCase):
             self.assertFalse(_cron.install("Ascend-V2-SYNC-x", bad, Path(self.td.name))["ok"], bad)
         self.assertEqual(self.tab.read_text(), before)
 
+    def test_tags_match_exactly_and_remove_needs_a_name(self):
+        import _cron
+        import schedule
+        _cron.install("Ascend-V2-SYNC-ab", "5 6 * * * run-ab", Path(self.td.name))
+        _cron.install("Ascend-V2-SYNC-a", "5 7 * * * run-a", Path(self.td.name))
+        self.assertIn("run-ab", self.tab.read_text())
+        _cron.remove("Ascend-V2-SYNC-a")
+        self.assertIn("run-ab", self.tab.read_text())
+        self.assertFalse(schedule.remove("")["ok"])
+        self.assertIn("run-ab", self.tab.read_text())
+
     def test_schedule_refuses_a_workspace_path_it_cannot_trust(self):
         import schedule
         before = self.tab.read_text()
@@ -99,9 +110,9 @@ class Daily(unittest.TestCase):
         stages = {s["stage"]: s for s in out["stages"]}
         self.assertFalse(stages["gmail"]["ok"])            # no run settings yet: say so, never pass silently
         self.assertIn("run-v2", stages["gmail"]["detail"])
-        self.assertTrue(stages["finder"]["ok"])            # an unreachable board is data, not a crash
+        self.assertFalse(stages["finder"]["ok"])           # its only board is unreachable: say so
         self.assertIn("unreachable", stages["finder"]["detail"])
-        self.assertTrue(stages["hub"]["ok"])
+        self.assertTrue(stages["hub"]["ok"])               # and every later stage still runs
         self.assertTrue((self.ws / "hub.html").is_file())
         self.assertEqual(len(d.read_jsonl(self.ws / "data" / "run-log.jsonl")), 1)
 
@@ -129,6 +140,18 @@ class Daily(unittest.TestCase):
         self.assertTrue(st["gmail"]["ok"])
         self.assertFalse(st["finder"]["ok"])
         self.assertIn("sources.json", st["finder"]["detail"])
+
+    def test_every_board_unreachable_fails_the_finder(self):
+        import _v2data as d
+        d.write_json_atomic(self.ws / ".ascend-state.json", {"run_defaults": {"engine": "C", "mode": "assisted"}})
+        d.write_json_atomic(self.ws / "data" / "sources.json", {"boards": [{"ats": "greenhouse", "slug": "nope"}]})
+        os.environ["ASCEND_ATS_BASE"] = "http://127.0.0.1:9"
+        try:
+            f = self.stages()["finder"]
+        finally:
+            os.environ.pop("ASCEND_ATS_BASE", None)
+        self.assertFalse(f["ok"])
+        self.assertIn("unreachable", f["detail"])
 
     def test_retention_drops_old_mail_and_keeps_only_headers_of_non_job_mail(self):
         import _v2data as d

@@ -60,7 +60,13 @@ def _setup_problems(ws):
     ws, out = Path(ws), []
     if not (ws / "master-resume.md").is_file():
         out.append("no master-resume.md yet: run Ascend once (`/ascend`) to build it")
-    if not d.read_json(ws / "data" / "sources.json", {}).get("boards"):
+    boards = d.read_json(ws / "data" / "sources.json", {}).get("boards") or []
+    profile = d.read_json(ws / "data" / "profile.json", {})
+    if any(str(b.get("slug", "")).startswith("example-company") for b in boards):
+        out.append("data/sources.json still has the template's example-company boards: replace them with yours")
+    if str(profile.get("email", "")).lower().endswith("@example.com") or profile.get("name") == "Jordan Rivera":
+        out.append("data/profile.json still has the template's sample name or email: put in your own")
+    if not boards:
         out.append("no job boards in data/sources.json: prompts/29-run-v2.md Step 0 builds it with you "
                    "from templates/sources.example.json")
     if not d.read_json(ws / "data" / "profile.json", {}).get("email"):

@@ -87,6 +87,18 @@ class Sheet(unittest.TestCase):
         self.assertNotIn("work_authorization", s["answers"])
         self.assertTrue((ws / "data" / "apply-sheets").is_dir())
 
+    def test_a_link_off_the_known_application_systems_is_flagged(self):
+        import _v2data as d
+        import apply
+        ws = apply_ws(self.td.name)
+        self.assertIsNone(apply.sheet(ws, "greenhouse:acme:1")["link_note"])
+        for bad in ("https://greenhouse.io.evil.example/x", "https://evil.com\\@boards.greenhouse.io/x",
+                    "https://u:p@boards.greenhouse.io/x"):
+            q = d.read_json(ws / "data" / "queue.json", {})
+            q["jobs"][0]["apply_url"] = bad
+            d.write_json_atomic(ws / "data" / "queue.json", q)
+            self.assertIn("Check the address", apply.sheet(ws, "greenhouse:acme:1")["link_note"], bad)
+
     def test_refuses_unapproved(self):
         import apply
         with self.assertRaises(apply.Refused):

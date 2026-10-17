@@ -147,7 +147,8 @@ const post = (path, body) => fetch(path, {method: "POST", headers: {"Content-Typ
                                           body: JSON.stringify(Object.assign({slug: S.slug}, body))}).then(r => r.json());
 function showSheet(s, id) {
   const ans = Object.entries(s.answers || {}).map(([k, v]) => `${k}: ${v}`).join("\n");
-  const open = `<a href="${safeUrl(s.apply_url)}" target="_blank" rel="noopener noreferrer">Open the application</a>`;
+  const open = `<a href="${safeUrl(s.apply_url)}" target="_blank" rel="noopener noreferrer">Open the application</a>`
+             + (s.link_note ? `<div class="banner">${esc(s.link_note)}</div>` : "");
   const ask = (s.ask_user || []).length ? `<div class="banner">Only you can answer: ${esc(s.ask_user.join(", "))}. Ascend never fills these.</div>` : "";
   $("sheet").innerHTML = `<b>${esc(s.company)}: ${esc(s.title)}</b><div class="sub">Résumé: ${esc(String(s.resume_pdf).split("/").pop())}</div>${ask}
     <pre style="white-space:pre-wrap;background:var(--panel2);padding:10px;border-radius:8px">${esc(ans)}</pre>

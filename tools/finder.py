@@ -160,6 +160,9 @@ def _merge(dd, results, state, out, today):
                 d.append_jsonl(dd / "postings.jsonl", dict(p, first_seen=today))
                 state[p["id"]] = {"first_seen": today, "last_seen": today, "closed": False}
                 out["new"] += 1
+        if raw and not current:         # every job failed to read: the ATS changed its format, not the board
+            out["failed"].append(board["slug"])
+            continue
         prefix = f"{board['ats']}:{board['slug']}:"
         for pid, st in state.items():
             if pid.startswith(prefix) and pid not in current and not st.get("closed"):

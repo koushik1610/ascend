@@ -41,11 +41,19 @@ def check(name, ok, detail=""):
 # ── 1. Hardened server ───────────────────────────────────────────────────────
 def test_server():
     print("server (security)")
-    port = 8911
+    import socket
+    with socket.socket() as sk:          # a free port, so parallel runs never collide
+        sk.bind(("127.0.0.1", 0))
+        port = sk.getsockname()[1]
     proc = subprocess.Popen([sys.executable, str(REPO / "ui/server.py"), "--port", str(port), "--no-browser"],
                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     try:
-        time.sleep(1.4)
+        for _ in range(100):             # until it answers, at most ten seconds
+            try:
+                socket.create_connection(("127.0.0.1", port), timeout=0.5).close()
+                break
+            except OSError:
+                time.sleep(0.1)
         def req(method, path, headers=None, host=None):
             c = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
             h = dict(headers or {});  h["Host"] = host or f"127.0.0.1:{port}"

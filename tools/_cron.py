@@ -61,7 +61,7 @@ def install(tag, line, backup_dir):
     if existing:
         Path(backup_dir).mkdir(parents=True, exist_ok=True)
         (Path(backup_dir) / "crontab.bak").write_text(text, encoding="utf-8")
-    kept = [l for l in existing if tag not in l]
+    kept = [l for l in existing if not _ours(l, tag)]
     try:
         _write("\n".join(kept + [tagged]) + "\n")
     except (OSError, subprocess.CalledProcessError) as e:
@@ -70,10 +70,18 @@ def install(tag, line, backup_dir):
     return {"ok": True, "preserved": len(kept), "line": tagged}
 
 
-def remove(tag):
+def _ours(line, tag):
+    """Exactly our tagged line: workspace "a" never matches workspace "ab"."""
+    return line.rstrip().endswith(f"# {tag}")
+
+
+def remove(tag, backup_dir=None):
     ok, text, err = read()
     if not ok:
         return {"ok": False, "error": err}
-    kept = [l for l in text.splitlines() if tag not in l]
+    if backup_dir and text:
+        Path(backup_dir).mkdir(parents=True, exist_ok=True)
+        (Path(backup_dir) / "crontab.bak").write_text(text, encoding="utf-8")
+    kept = [l for l in text.splitlines() if not _ours(l, tag)]
     _write("\n".join(kept) + ("\n" if kept else ""))
     return {"ok": True, "removed": len(text.splitlines()) - len(kept)}

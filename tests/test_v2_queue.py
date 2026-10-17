@@ -5,6 +5,7 @@ Run: python3 -m unittest tests/test_v2_queue.py -v
 
 import http.client
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -177,7 +178,7 @@ def ready_ws(ws):
     import _v2data as d
     (ws / "master-resume.md").write_text("# Master\n", encoding="utf-8")
     d.write_json_atomic(ws / "data" / "sources.json", {"boards": [{"ats": "lever", "slug": "acme"}], "filters": {}})
-    d.write_json_atomic(ws / "data" / "profile.json", {"name": "Jordan Rivera", "email": "jordan@example.com"})
+    d.write_json_atomic(ws / "data" / "profile.json", {"name": "Sam Okafor", "email": "sam@mailbox.test"})
     return ws
 
 
@@ -185,6 +186,16 @@ class Plan(unittest.TestCase):
     def setUp(self):
         self.td = tempfile.TemporaryDirectory()
         self.ws = ready_ws(make_ws(self.td.name, []))
+
+    def test_template_placeholders_are_not_a_setup(self):
+        import _v2data as d
+        import run
+        ws = ready_ws(make_ws(self.td.name + "/tpl", []))
+        d.write_json_atomic(ws / "data" / "profile.json", {"name": "Jordan Rivera", "email": "jordan.rivera@example.com"})
+        d.write_json_atomic(ws / "data" / "sources.json", {"boards": [{"ats": "lever", "slug": "example-company-two"}]})
+        text = " ".join(run.plan(ws, "C")["problems"])
+        self.assertIn("profile.json", text)
+        self.assertIn("sources.json", text)
 
     def test_an_unready_workspace_is_refused_with_the_fix(self):
         import run
@@ -239,8 +250,26 @@ class Plan(unittest.TestCase):
         self.assertTrue(all("gmail_sync.py sync" not in s for s in run.steps("C")))   # C never uses the OAuth sync
 
 
+def free_port():
+    import socket
+    with socket.socket() as s:
+        s.bind(("127.0.0.1", 0))
+        return s.getsockname()[1]
+
+
+def wait_for(port, seconds=10):
+    import socket
+    end = time.time() + seconds
+    while time.time() < end:
+        try:
+            socket.create_connection(("127.0.0.1", port), timeout=0.5).close()
+            return
+        except OSError:
+            time.sleep(0.1)
+
+
 class Server(unittest.TestCase):
-    SLUG = "v2-queue-test"
+    SLUG = f"v2-queue-test-{os.getpid()}"     # a run of its own, so parallel suites never share it
 
     @classmethod
     def setUpClass(cls):
@@ -248,10 +277,10 @@ class Server(unittest.TestCase):
         shutil.rmtree(cls.ws, ignore_errors=True)
         (cls.ws / "data").mkdir(parents=True)
         seed_candidates(cls.ws)
-        cls.port = 8957
+        cls.port = free_port()
         cls.proc = subprocess.Popen([sys.executable, str(REPO / "ui/server.py"), "--port", str(cls.port), "--no-browser"],
                                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        time.sleep(1.4)
+        wait_for(cls.port)
         _, body = cls.req("GET", "/")
         cls.token = re.search(r'const TOKEN = "([^"]+)"', body).group(1)
 
