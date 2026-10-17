@@ -11,6 +11,17 @@ _Working toward v1.0. Real-run gate: **1 of 2–3 runs signed off** (2026-07-01,
 see `docs/ROADMAP.md` → sign-off log); cases (b) no-résumé/non-tech and (c) resume-after-interruption
 remain, plus a green CI run on the remote + a demo GIF._
 
+### Added: Ascend 2.0, M4 engine A Gmail sync (branch `ascend-v2`)
+- **`tools/gmail_sync.py`**: `connect` (Google sign-in through your own Desktop OAuth client, PKCE,
+  loopback redirect on 127.0.0.1, read-only scope), `sync` (incremental through the Gmail history API,
+  falling back to a date query when the cursor has expired, de-duplicated by message ID), `status`.
+  Keeps sender, subject, date, labels and a 2,000-character excerpt. Skips sent mail, drafts, spam and
+  trash. Refresh token in the macOS Keychain. `--then-classify` runs classify, ingest and the hub
+  build, so a scheduled sync costs zero tokens end to end.
+- Exit 4 means not connected or access revoked; a revoked token is deleted and the hub shows Gmail as
+  disconnected.
+- Tested against a fake Google server (11 tests). Setup guide: `docs/GMAIL-SETUP.md`.
+
 ### Added: Ascend 2.0, M3 hub dashboard (branch `ascend-v2`)
 - **`tools/hub.py build WS`** writes `workspace/<name>/hub.html`: Dashboard (this week's
   applications, replies and interviews counted by job, a funnel from found to offer, mail waiting on
