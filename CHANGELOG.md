@@ -11,8 +11,33 @@ _Working toward v1.0. Real-run gate: **1 of 2–3 runs signed off** (2026-07-01,
 see `docs/ROADMAP.md` → sign-off log); cases (b) no-résumé/non-tech and (c) resume-after-interruption
 remain, plus a green CI run on the remote + a demo GIF._
 
+### Changed: Ascend 2.0 after the council review (branch `ascend-v2`, PR #15)
+A ten-persona council reviewed the branch twice. Its first round returned nine conditional verdicts and
+one rejection, and the user chose to split the PR:
+- **Assisted apply only.** Agent-submit, fully automatic, the local fake form and the submit exception
+  to "never transmit workspace data" moved to the `ascend-v2-agent-modes` branch. `CLAUDE.md` and
+  `reference/untrusted-content-policy.md` are unchanged from main. Nothing in this release sends an
+  application.
+- **Only the user's click** approves a job or marks it applied (the hub). The command line refuses both,
+  and a sent job never moves back.
+- **Gmail through the claude.ai connector is read-only in settings**: `.claude/settings.json` denies its
+  send, reply, forward, draft, label, spam and trash tools and Drive's write tools. `run.py plan`, the
+  README and prompt 29 state each engine's permissions and the mail-plus-web-fetch risk.
+- **Tracking that does not go quiet:** Gmail history is paginated with a safe cursor; deleted messages
+  are skipped; the connector reads from the day before its last read with a job-only query; a signed-out
+  Gmail or an empty board list fails the daily sync with the fix, and the hub shows a banner.
+- **Less data kept:** 180-day mail retention; non-job mail keeps headers only; promotions, social and
+  forums mail is stored only from job senders.
+- **Correctness:** cron line injection closed; locked read-modify-write for shared files; slug-aware
+  duplicate guard; ranked mail matching that never closes a job on a body-only mention, rule or model.
+- **Measured honestly:** hub rates separate interviews, positive responses and any reply; spec criterion 6
+  (interview rate over the first 50 v2 sends against JobHire's 0.3%) is on the hub; token estimates
+  calibrate stage by stage.
+- **First run:** `run.py plan` refuses a workspace without a master, boards or a profile; prompt 29
+  Step 0 builds them; neutral `templates/sources.example.json` and `templates/profile.example.json`.
+
 ### Added: Ascend 2.0 (beta), M10 scheduling and release (branch `ascend-v2`)
-**Ascend 2.0 finds jobs every day, applies in the mode you choose, and tracks replies from your inbox.**
+**Ascend 2.0 finds jobs every day, prepares the applications you approve, and tracks replies from your inbox.**
 It is beta: see `docs/V2-READINESS.md` for what has run on real data and what has not.
 - **`tools/daily.py`** runs the zero-token sync (Gmail when engine A is connected, classify, ingest,
   finder, prefilter, alerts, hub), each stage isolated, one row per run in `data/run-log.jsonl`.
@@ -41,32 +66,25 @@ It is beta: see `docs/V2-READINESS.md` for what has run on real data and what ha
   bugs, both fixed test-first: stale search results, and leads without a URL silently blocking every
   later add.
 
-### Added: Ascend 2.0, M8 applying in all three modes (branch `ascend-v2`)
-- **`tools/apply.py`**: `sheet` builds a gated apply sheet (the job is approved, or matched at fit 75+
-  in automatic mode; not a duplicate; its résumé passes lint; answers only from `data/profile.json`,
-  with work authorization, sponsorship, salary and start date listed for the user and never filled),
-  `allowed` (https on an allow-listed ATS host only), `next` (respects the pause switch, the daily cap
-  of 25 and, in automatic mode, auto-pauses when the reply rate over 50 sends falls below 5%), `record`
-  (submitted, unclear or stopped, with the folder moved through the same write path as `log`).
-- **Phase 28 (`prompts/28-apply.md`)**: assisted mode in the hub (Apply shows the sheet, the link, the
-  answers to copy and the questions only the user can answer); agent-submit and automatic through
-  Claude in Chrome with explicit stop rules (CAPTCHA, sign-in, unanswerable or sensitive questions).
-- The scoped exception to "never transmit workspace data" is written into `CLAUDE.md` and
-  `reference/untrusted-content-policy.md`.
-- `tools/fakeform.py`: a local application form with plain, CAPTCHA, work-authorization, unknown-question
-  and sign-in variants, for exercising agent apply without touching an employer.
+### Added: Ascend 2.0, M8 applying (branch `ascend-v2`)
+- **`tools/apply.py`**: `sheet` builds a gated apply sheet (the job is approved, not a duplicate, its
+  résumé passes lint, answers only from `data/profile.json`; work authorization, sponsorship, salary and
+  start date are always left to the user). The hub's "I submitted it" records the send.
+- **Phase 28 (`prompts/28-apply.md`)**: assisted mode in the hub. Apply shows the sheet, the link, the
+  answers to copy and the questions only the user can answer. The user submits.
+- Agent-submit and fully automatic were built in this module and moved to `ascend-v2-agent-modes` after
+  the council review (see above).
 - `lint_artifacts.py` accepts a user's own master entry prefixes (`"id_prefixes"` in lint-config) and
   the `- **ID**` declaration form, so a master from an older run passes the provenance check on its
   merits. Parenthesised sources in such a Delta Log are not read as selections. The default grammar is
   unchanged.
-- Real check: the apply sheet for an approved real job passed every gate; the unapproved one was
-  refused. In Chrome, the plain fake form was filled from the sheet and submitted; the
-  work-authorization and CAPTCHA variants stopped unsubmitted. Nothing was sent to a real employer.
+- Real check: the apply sheets for both approved real jobs passed every gate; an unapproved one was
+  refused. Nothing was sent to an employer.
 
 ### Added: Ascend 2.0, M7 run selection, scoring and queue actions (branch `ascend-v2`)
-- **`tools/run.py plan WS --engine A|B|C --mode assisted|agent|automatic`** checks a run can go
-  (engine A needs the Gmail client and a sign-in; fully automatic needs "I understand" typed out),
-  states the token estimate for every combination, and saves the choice as the default.
+- **`tools/run.py plan WS --engine A|B|C`** checks a run can go (engine A needs the Gmail client and a
+  sign-in), states the token estimate and the permissions the engine uses, and saves the choice as the
+  default.
   `run.py steps` lists each engine's stages, marking the ones that spend tokens.
 - **Phase 27 (`prompts/27-score-queue.md`)** scores prefilter survivors 0 to 100 with a reason citing
   master entry IDs and the gaps stated plainly, through `tools/jobqueue.py`. Candidates are trimmed to
@@ -75,7 +93,7 @@ It is beta: see `docs/V2-READINESS.md` for what has run on real data and what ha
 - **`tools/usage.py`** records each Claude stage's cost (characters converted at 4 per token, labelled
   estimated) and replaces the default estimate with measured figures after three runs.
 - **Queue actions:** `ui/server.py` serves `/hub?slug=` with the session token and `connect-src 'self'`,
-  and `POST /api/queue` approves or rejects. The static `hub.html` stays read-only.
+  and `POST /api/queue` approves, rejects or records "I submitted it". The static `hub.html` stays read-only.
 - Real check: ten real postings scored, two approved from the browser, written to the queue. The real
   data drove five fixes: boilerplate-free excerpts, open decisions first, v1 folders counted as open,
   de-duplication across ID formats and board slugs, and queue decisions shown over untouched folders.

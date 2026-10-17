@@ -263,7 +263,7 @@ reading nothing.
 | "Run Ascend maintenance" *(beta)* | Weekly: new/closed jobs, follow-ups due, retro patterns |
 | "Ascend industry" *(beta)* | Rebuild or inspect the phrasing reference for your field (runs monthly by itself) |
 | "Ascend run-v2" *(beta)* | Ascend 2.0 run: choose an engine, see the token estimate and permissions, find, score, track |
-| "Ascend apply" *(beta)* | Apply to approved jobs in the run's mode, through one gate |
+| "Ascend apply" *(beta)* | Apply to approved jobs: a gated apply sheet in the hub, you submit |
 | "Ascend linkedin-search" *(beta)* | LinkedIn Jobs in your own browser, result cards only |
 | "Ascend hub" *(beta)* | The live dashboard: funnel, queue with approve and apply, inbox, token spend |
 | "Ascend schedule" *(beta)* | Run the zero-token daily sync on a schedule |
