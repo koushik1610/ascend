@@ -30,9 +30,11 @@ TEMPLATE = REPO / "templates" / "hub.template.html"
 # Valid JSON on purpose: tests/smoke.py parses every template's JSON block.
 PLACEHOLDER = '{"__hub_data__": "replaced by tools/hub.py build"}'
 REPLY_CATEGORIES = {"info-request", "assessment", "interview-invite", "rejection"}
+POSITIVE_CATEGORIES = {"info-request", "assessment", "interview-invite"}     # progress; a rejection is not
 PIN_CATEGORIES = {"info-request", "assessment"}
 OPEN_STATUSES = {"queued", "applied", "responded"}
 REPLIED_STATUSES = {"responded", "screen", "onsite", "offer", "rejected"}
+POSITIVE_STATUSES = {"responded", "screen", "onsite", "offer"}
 INTERVIEW_STATUSES = {"screen", "onsite", "offer"}
 OPEN_DECISIONS = {"matched", "needs-you", "queued"}
 MIN_FOR_RATES = 10
@@ -103,6 +105,8 @@ def compute(ws, today=None):
         reached.setdefault(slug, set()).add(j["status"])
     reply_slugs = {slug_for(e.get("match")) for e in events if e.get("category") in REPLY_CATEGORIES} - {None}
     replied = {s for s in applied_on if s in reply_slugs or reached.get(s, set()) & REPLIED_STATUSES}
+    positive_slugs = {slug_for(e.get("match")) for e in events if e.get("category") in POSITIVE_CATEGORIES} - {None}
+    positive = {s for s in applied_on if s in positive_slugs or reached.get(s, set()) & POSITIVE_STATUSES}
     interview_slugs = {slug_for(e.get("match")) for e in events if e.get("category") == "interview-invite"} - {None}
     interviewing = {s for s in jobs if reached.get(s, set()) & INTERVIEW_STATUSES or s in interview_slugs}
     offers = {s for s in jobs if "offer" in reached.get(s, set())}
@@ -130,15 +134,19 @@ def compute(ws, today=None):
             "replies": distinct(REPLY_CATEGORIES), "interviews": distinct({"interview-invite"})}
 
     n = len(applied_on)
-    rates, warning = {"reply": None, "ghost": None}, None
+    rates, warning = {"reply": None, "positive": None, "interview": None, "ghost": None}, None
     if n >= MIN_FOR_RATES:
         ghosted = [s for s, day in applied_on.items()
                    if s not in replied and day is not None and (today - day).days >= GHOST_DAYS]
-        rates = {"reply": round(len(replied) / n, 3), "ghost": round(len(ghosted) / n, 3)}
-        if rates["reply"] < LOW_REPLY:
-            warning = (f"Your reply rate is {rates['reply'] * 100:.0f}% across {n} applications. That is one "
-                       "observation, not a verdict. The usual lever is fit: fewer, closer-matched roles, and "
-                       "a referral before applying where one exists.")
+        interviewed = {s for s in applied_on if s in interviewing}
+        rates = {"reply": round(len(replied) / n, 3), "positive": round(len(positive) / n, 3),
+                 "interview": round(len(interviewed) / n, 3), "ghost": round(len(ghosted) / n, 3)}
+        # Judged on progress, not on any reply: a stack of rejections is not a working search.
+        if rates["positive"] < LOW_REPLY:
+            warning = (f"{rates['positive'] * 100:.0f}% of your {n} applications got a positive response "
+                       "(an interview, an assessment or a request for information). Rejections are counted as "
+                       "replies, not as progress. That is one observation, not a verdict. The usual lever is "
+                       "fit: fewer, closer-matched roles, and a referral before applying where one exists.")
 
     def label(slug):
         if not slug:

@@ -27,12 +27,28 @@ written down anywhere.
   OAuth client (`docs/GMAIL-SETUP.md`), which only the user can create.
 - **Agent-submit and fully automatic are not in this release.** The council review of PR #15 split them out
   to the `ascend-v2-agent-modes` branch. They come back as their own PR after assisted mode passes its
-  one-week gate, with the security findings listed in that branch's readiness doc fixed first.
+  one-week gate and the callback number in spec criterion 6 exists, with the agent-path findings in
+  spec §11 fixed first.
 - **Token figures are estimates** (characters divided by four). They replace the design's defaults after
   three runs of a stage, and the hub labels them as estimates.
 - **LinkedIn card leads carry no description**, so they rank last on keyword overlap until enriched.
 - The design's release gate stands: assisted mode with engine A becomes stable after one week of real use, and
   everything else stays beta until it has run for real.
+
+## Not built from the spec
+
+Spec §11 has the reasons. In short: no Sources & settings tab (edit `data/sources.json`), no 48-hour
+"applied?" follow-up, no per-run token cap, no board backoff and retry, no automatic fallback from engine
+A to C, and cron instead of launchd (a sleeping Mac skips that day's sync).
+
+## Risks you accept by turning things on
+
+- **LinkedIn search** drives your own logged-in LinkedIn session. Automated browsing can break LinkedIn's
+  terms of use and put the account at risk. Claude asks before every search.
+- **Engines B and C** let Claude read your Gmail through the claude.ai connector. Its write tools are
+  denied in this repo's `.claude/settings.json`. A personal `settings.local.json` can override that.
+- **Engine A in Google's Testing mode** signs you out after about seven days. The daily sync then fails
+  its Gmail stage and the hub shows a reconnect banner.
 
 ## How to check a fresh setup
 

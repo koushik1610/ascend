@@ -96,7 +96,7 @@ class Compute(unittest.TestCase):
     def test_rates_withheld_below_ten_applications(self):
         import hub
         out = hub.compute(seed(self.td.name), today=TODAY)
-        self.assertEqual(out["rates"], {"reply": None, "ghost": None})
+        self.assertEqual(out["rates"], {"reply": None, "positive": None, "interview": None, "ghost": None})
         self.assertIsNone(out["warning"])
 
     def test_rates_ghosting_and_warning_at_ten_or_more(self):
@@ -104,8 +104,35 @@ class Compute(unittest.TestCase):
         ws = make_ws(self.td.name, [(f"{i:02d}-co{i}", f"Co{i}", "Engineer", "applied") for i in range(12)])
         ledger(ws, [(f"{i:02d}-co{i}", "2026-08-01", "queued", "applied", "log", "-") for i in range(12)])
         out = hub.compute(ws, today=TODAY)
-        self.assertEqual(out["rates"], {"reply": 0.0, "ghost": 1.0})
-        self.assertIn("reply rate", out["warning"])
+        self.assertEqual(out["rates"], {"reply": 0.0, "positive": 0.0, "interview": 0.0, "ghost": 1.0})
+        self.assertIn("positive", out["warning"])
+
+    def test_rejections_are_replies_but_not_progress(self):
+        import _v2data as d
+        import hub
+        ws = make_ws(self.td.name, [(f"{i:02d}-co{i}", f"Co{i}", "Engineer", "applied") for i in range(12)])
+        ledger(ws, [(f"{i:02d}-co{i}", "2026-08-01", "queued", "applied", "log", "-") for i in range(12)])
+        for i in range(12):
+            d.append_jsonl(ws / "data" / "events.jsonl", {"msg_id": f"r{i}", "category": "rejection", "match": f"{i:02d}",
+                                                          "date": "2026-08-20T00:00:00Z"})
+        d.append_jsonl(ws / "data" / "events.jsonl", {"msg_id": "i0", "category": "interview-invite", "match": "00",
+                                                      "date": "2026-08-10T00:00:00Z"})
+        out = hub.compute(ws, today=TODAY)
+        self.assertEqual((out["rates"]["reply"], out["rates"]["positive"], out["rates"]["interview"]),
+                         (1.0, round(1 / 12, 3), round(1 / 12, 3)))
+        self.assertIsNone(out["warning"])          # 8% positive is above the 5% floor
+
+    def test_all_rejections_still_warns(self):
+        import _v2data as d
+        import hub
+        ws = make_ws(self.td.name, [(f"{i:02d}-co{i}", f"Co{i}", "Engineer", "applied") for i in range(12)])
+        ledger(ws, [(f"{i:02d}-co{i}", "2026-08-01", "queued", "applied", "log", "-") for i in range(12)])
+        for i in range(12):
+            d.append_jsonl(ws / "data" / "events.jsonl", {"msg_id": f"r{i}", "category": "rejection", "match": f"{i:02d}",
+                                                          "date": "2026-08-20T00:00:00Z"})
+        out = hub.compute(ws, today=TODAY)
+        self.assertEqual((out["rates"]["reply"], out["rates"]["positive"]), (1.0, 0.0))
+        self.assertIn("positive", out["warning"])
 
     def test_inbox_newest_first_with_job_names(self):
         import hub

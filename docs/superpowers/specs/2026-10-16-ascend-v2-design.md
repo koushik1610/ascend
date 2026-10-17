@@ -1,6 +1,7 @@
 # Ascend 2.0: find, apply and track, from one local hub
 
-**Status:** design approved in conversation 2026-10-16, pending written-spec review
+**Status:** design approved 2026-10-16. Amended 2026-10-17 after the council review of PR #15: see §11,
+which overrides earlier sections where they differ.
 **Branch:** `ascend-v2`
 **Builds on:** v1 pipeline (phases 1 to 26), `tools/pipeline.py` ledger, `ui/server.py` console, `templates/start-here.template.html` hub, Phase 13 daily brief, Phase 14 ATS aggregation
 
@@ -17,10 +18,11 @@ Ascend v1 produces excellent apply packs and then stops. Across four real runs i
 
 ### Success criteria
 1. The hub shows a current funnel (found → screened → matched → queued → applied → replied → interviewing → offer) updated from Gmail with no manual logging.
-2. A day's run at 15 to 25 queued matches costs under 150K tokens on engine A in assisted mode, measured, not estimated.
+2. A day's run at 15 to 25 queued matches is estimated before it starts, and its cost by stage is recorded and shown in the hub. *(Amended, §11: Claude Code exposes no token counts, so "measured" cannot be met. The figures are character-based estimates and are labelled that way.)*
 3. No application is ever sent twice, and no application is sent with a claim the master résumé cannot source.
 4. Info requests and assessments surface within one sync of arriving (the leak that left 108 unanswered on JobHire).
 5. Every v1 workflow keeps working unchanged for a user who never opts into v2 features.
+6. *(Added, §11.)* Callbacks, not volume: over the first 50 applications sent through v2, the share that reaches an interview is reported in the hub against JobHire's baseline of 3 in 1,029 (0.3%). Agent-submit and fully automatic modes are not proposed again until this number exists and beats that baseline.
 
 ### Non-goals
 - A hosted, multi-user service. v2 is local and single-user, like v1.
@@ -165,3 +167,34 @@ Every stage is idempotent and resumable. One stage failing does not block others
 ## 10. Delivery
 
 Built one module at a time on `ascend-v2`, each module merged only when v1 smoke stays green, per the implementation plan in `docs/superpowers/plans/2026-10-16-ascend-v2.md`. Every module is useful on its own: the tracker works before the applier exists, and the finder works before the tracker.
+
+---
+
+## 11. Amendments after the council review (2026-10-17)
+
+The first council round on PR #15 (ten personas) returned nine CONDITIONAL and one REJECT. The user
+chose to split the PR. These amendments override the sections above.
+
+- **One apply mode in this release: assisted.** Agent-submit, fully automatic, the local fake form and
+  the CLAUDE.md / untrusted-content-policy submit exception (§3, §8) moved to the
+  `ascend-v2-agent-modes` branch. Nothing in this release transmits an application, so v1's rule "never
+  transmit workspace data outward" holds without exception. The follow-up PR must first fix the
+  council's agent-path findings recorded on that branch: the allow-list URL-parsing bypass, a
+  model-forgeable automatic confirmation, no "applying" claim before a submit, an unvalidated
+  `apply_url` from Claude-added rows, and model-written fit alone authorizing a send.
+- **Approval is the user's click.** `jobqueue.py set-state` refuses `approved` and `applied` from the
+  command line. A sent job never moves back to approved.
+- **Gmail through the claude.ai connector is read-only in settings,** not only by policy:
+  `.claude/settings.json` denies the connector's send, reply, forward, draft, label, spam and trash
+  tools and Drive's write tools. `run.py plan`, the README and prompt 29 state each engine's
+  permissions.
+- **Retention is enforced** by the daily sync: mail older than `retention_days` (default 180) is
+  deleted, mail placed as not job-related keeps headers only, and promotions, social and forums mail is
+  never fetched.
+- **Criterion 2 amended and criterion 6 added** (§1).
+- **Not built in this release.** The hub has three tabs, not four. There is no Sources & settings tab:
+  boards and filters are edited in `data/sources.json`. Also not built: the 48-hour "applied?" follow-up
+  (moot without agent modes), a per-run token cap, board backoff and retry, an automatic fallback from
+  engine A to C, and launchd. The scheduler uses cron, which skips a run while the Mac sleeps.
+  `docs/V2-READINESS.md` keeps this list current.
+

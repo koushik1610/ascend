@@ -118,7 +118,7 @@ $("funnel").innerHTML = D.funnel.map(s =>
 
 $("rates").innerHTML = D.rates.reply == null
   ? `<div class="empty">Rates appear after 10 applications. Below that a percentage is noise, so only counts are shown.</div>`
-  : `<div class="cards"><div class="stat"><div class="v">${(D.rates.reply * 100).toFixed(0)}%</div><div class="l">reply rate</div></div><div class="stat"><div class="v">${(D.rates.ghost * 100).toFixed(0)}%</div><div class="l">no reply after 30 days</div></div></div>`;
+  : `<div class="cards"><div class="stat"><div class="v">${(D.rates.interview * 100).toFixed(0)}%</div><div class="l">reached an interview</div></div><div class="stat"><div class="v">${(D.rates.positive * 100).toFixed(0)}%</div><div class="l">positive response</div></div><div class="stat"><div class="v">${(D.rates.reply * 100).toFixed(0)}%</div><div class="l">any reply, rejections included</div></div><div class="stat"><div class="v">${(D.rates.ghost * 100).toFixed(0)}%</div><div class="l">no reply after 30 days</div></div></div>`;
 
 $("tokens").innerHTML = D.tokens
   ? `<table><tbody>${Object.entries(D.tokens.by_stage).map(([k, v]) => `<tr><td>${esc(k)}</td><td style="font-family:var(--mono)">${esc(v.toLocaleString())}</td></tr>`).join("")}<tr><th>Total</th><th>${esc(D.tokens.total.toLocaleString())}</th></tr></tbody></table>`
