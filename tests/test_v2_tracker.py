@@ -98,6 +98,21 @@ class Classifier(unittest.TestCase):
              "body_excerpt": "Unfortunately, we won't be able to offer you a position.", "date": "2026-10-01T00:00:00Z"}
         self.assertEqual(classify.classify_message(m)["category"], "rejection")
 
+    def test_careers_subdomain_mail_goes_to_llm(self):
+        import classify
+        m = {"from": "recruiter@jobs.streamco.example", "subject": "Next steps w/ StreamCo",
+             "body_excerpt": "Thanks again for taking the time to chat. After connecting with the team, we",
+             "date": "2026-10-16T10:00:00Z"}
+        self.assertEqual((classify.classify_message(m)["category"], classify.classify_message(m)["needs_llm"]),
+                         ("other", True))
+
+    def test_bulk_sender_mentioning_hiring_does_not_go_to_llm(self):
+        import classify
+        m = {"from": "coach@courses.learnhub.example", "subject": "AI roles are in demand",
+             "body_excerpt": "Hiring for AI-enabled roles is at a peak. Join our interview prep cohort.",
+             "date": "2026-10-16T17:00:00Z"}
+        self.assertFalse(classify.classify_message(m)["needs_llm"])
+
     def test_unrelated_mail_never_goes_to_llm(self):
         import classify
         m = {"from": "receipts@coffee.example", "subject": "Your receipt", "body_excerpt": "Total $4.50",
@@ -217,7 +232,7 @@ class RunCommand(unittest.TestCase):
             self.assertEqual(ev["m13"]["match"], "01")
             self.assertEqual(ev["m10"]["due"], "2026-10-12")
             self.assertIsNone(ev["m30"]["match"])
-            self.assertEqual({p["msg_id"] for p in d.read_jsonl(dd / "classify-pending.jsonl")}, {"m33"})
+            self.assertEqual({p["msg_id"] for p in d.read_jsonl(dd / "classify-pending.jsonl")}, {"m33", "m37"})
 
     def test_run_without_queue_still_classifies(self):
         import _v2data as d
@@ -230,6 +245,13 @@ class RunCommand(unittest.TestCase):
             events = d.read_jsonl(dd / "events.jsonl")
             self.assertEqual(len(events), len(d.read_jsonl(dd / "mail.jsonl")))
             self.assertTrue(all(e["match"] is None for e in events))
+
+    def test_newsletter_naming_a_queued_company_is_not_matched(self):
+        import classify
+        jobs = [{"posting_id": "gh:litware:5", "company": "Litware", "title": "Staff Detection Engineer", "nn": "05"}]
+        m = {"msg_id": "n1", "from": "dan@news.techdigest.example", "subject": "Litware ships a new model",
+             "body_excerpt": "Litware announced its frontier model today.", "date": "2026-10-14T12:00:00Z"}
+        self.assertIsNone(classify.event_for(m, jobs, "2026-10-16T00:00:00")["match"])
 
     def test_one_command(self):
         r = subprocess.run(self.TOOL + ["one", "--from", "no-reply@greenhouse.io", "--subject", "Coding challenge",

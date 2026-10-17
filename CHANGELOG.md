@@ -11,6 +11,18 @@ _Working toward v1.0. Real-run gate: **1 of 2–3 runs signed off** (2026-07-01,
 see `docs/ROADMAP.md` → sign-off log); cases (b) no-résumé/non-tech and (c) resume-after-interruption
 remain, plus a green CI run on the remote + a demo GIF._
 
+### Added: Ascend 2.0, M2 ledger ingest and duplicate guard (branch `ascend-v2`)
+- **`pipeline.py ingest WS`** turns classified mail into status changes: acknowledgement → applied,
+  info request or assessment → responded (with the due date), interview invite → screen, rejection →
+  rejected. A job never moves backwards except into rejected; offer, rejected and move-on are final.
+  Safe to re-run. Rows land in the same append-only ledger as `log`, with `source=gmail`.
+- **`pipeline.py guard WS --company C --title T [--posting-id P]`** exits 3 on a duplicate: the same
+  posting ever, or the same company and normalized title within 60 days.
+- `transition()` is now the single write path for every status change, shared by `log` and `ingest`.
+- **Classifier calibrated on a real inbox** (49 messages, kept local): 77.6% → 100% correct, one
+  message sent to a model. Adds job-board alert domains, staffing-agency and expert-network patterns,
+  bulk-sender detection, careers-subdomain senders, and matches only mail about an application.
+
 ### Added: Ascend 2.0, M1 mail classifier (branch `ascend-v2`)
 First module of Ascend 2.0 (spec `docs/superpowers/specs/2026-10-16-ascend-v2-design.md`, plan
 `docs/superpowers/plans/2026-10-16-ascend-v2.md`).

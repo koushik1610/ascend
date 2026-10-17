@@ -179,6 +179,17 @@ class Guard(unittest.TestCase):
         self.assertEqual(r.returncode, 2)
         self.assertIn("usage: guard", r.stderr)
 
+    def test_unknown_application_date_says_so(self):
+        import _v2data as d
+        ws = make_ws(self.td.name + "/b", [("05-grove-staff", "Grove Health", "Staff Engineer", None)])
+        log = ws / "jobs/05-grove-staff/application-log.md"
+        log.write_text(log.read_text() + "\n```ascend-state\nstatus: screen\n```\n")
+        r = subprocess.run(TOOL + ["guard", str(ws), "--company", "Grove Health", "--title", "Staff Engineer"],
+                           capture_output=True, text=True)
+        self.assertEqual(r.returncode, 3)
+        self.assertIn("date unknown", r.stdout)
+        self.assertNotIn("0 day(s) ago", r.stdout)
+
     def test_normalize_title(self):
         import pipeline
         self.assertEqual(pipeline.normalize_title("Sr. Staff Security Eng (Remote)"),

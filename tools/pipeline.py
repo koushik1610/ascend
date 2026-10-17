@@ -443,8 +443,8 @@ def cmd_guard(ws, args):
             except ValueError:
                 age = 0
             if age <= GUARD_DAYS:
-                print(f"DUPLICATE applied to {opts['company']} / {opts['title']} {age} day(s) ago "
-                      f"(window {GUARD_DAYS} days)")
+                when = f"{age} day(s) ago" if applied_on else "already in progress, application date unknown"
+                print(f"DUPLICATE {opts['company']} / {opts['title']}: {when} (window {GUARD_DAYS} days)")
                 return 3
     print("OK")
     return 0

@@ -27,6 +27,20 @@ ATS_DOMAINS = {"greenhouse.io", "greenhouse-mail.io", "lever.co", "ashbyhq.com",
 ALERT_SENDERS = {"jobalerts-noreply@linkedin.com", "jobs-noreply@linkedin.com", "alert@indeed.com",
                  "alerts@indeed.com", "noreply@glassdoor.com", "alerts@glassdoor.com",
                  "alert@ziprecruiter.com"}
+# Job boards whose alert mail is recognised by subject, from any of their sending addresses.
+ALERT_DOMAINS = {"monster.com", "wellfound.com", "dice.com", "ziprecruiter.com", "glassdoor.com", "indeed.com",
+                 "simplyhired.com", "builtin.com", "otta.com", "welcometothejungle.com", "linkedin.com"}
+ALERT_SUBJECT = re.compile(r"job alert|new jobs?\b|jobs? (that )?(might|may) interest|is hiring|jobs for you",
+                           re.I)
+# A company's own hiring subdomain (jobs.example.com, careers., talent., recruiting.) writes only about
+# hiring, so mail from it that no rule places is worth a model pass.
+HIRING_SUBDOMAIN = re.compile(r"(^|\.)(jobs|careers|talent|recruiting|hire|hiring)\.", re.I)
+# Bulk senders: newsletters, course platforms, marketing. Their mail can say "hiring" or "interview"
+# without being about the user's applications, so it never goes to the model.
+BULK_SENDER = re.compile(r"(^|\.)(mail|news|email|e|em|courses|notifications|newsletter|beehiiv|substack)\.|"
+                         r"kajabimail|mailchimp|sendgrid|mailgun|hubspot", re.I)
+# Paid studies and expert networks write like recruiters ("came across your profile") but are not jobs.
+NOT_A_JOB = re.compile(r"compensated|consultation|expert network|research study|paid study|\bsurvey\b", re.I)
 
 
 def _rx(*parts):
@@ -47,7 +61,8 @@ RULES = [
                              r"calendly", r"/meeting/", r"book a time", r"invite you to interview",
                              r"interview invitation", r"phone screen",
                              r"set up (a|an) (technical |video |phone )?(interview|call)", r"video interview",
-                             r"move you forward")),
+                             r"move you forward", r"availability request", r"upcoming interview",
+                             r"interview (details|reminder|confirmation|confirmed)")),
     ("info-request", _rx(r"additional information", r"complete your application", r"action required",
                          r"verify your (email|identity)", r"questionnaire", r"remaining questions",
                          r"please (provide|complete|answer|confirm|respond)", r"could you (please )?provide")),
@@ -57,7 +72,9 @@ RULES = [
                           r"still reviewing", r"moved to the .{0,40}(stage|review)", r"update on your .{0,30}application")),
     ("recruiter-inbound", _rx(r"came across your (profile|work|background)", r"reaching out", r"your background",
                               r"role we're opening", r"open to (a )?(quick )?(chat|conversation|call|new roles)",
-                              r"opportunity with", r"(great|strong) fit")),
+                              r"opportunity with", r"(great|strong) fit", r"job title\s*:", r"contract length",
+                              r"rate\s*:\s*\$", r"\bc2c\b", r"urgent need", r"staffing specialist",
+                              r"exciting (job )?opportunity")),
 ]
 # "Unfortunately" on its own is a weak signal: "Unfortunately that slot no longer works, could you
 # share your availability?" is a live interview. It counts as a rejection only when the message asks
@@ -79,9 +96,12 @@ def sender_domain(msg):
     return s.split("@", 1)[1] if "@" in s else ""
 
 
+def _domain_in(d, domains):
+    return any(d == a or d.endswith("." + a) for a in domains)
+
+
 def is_ats(msg):
-    d = sender_domain(msg)
-    return any(d == a or d.endswith("." + a) for a in ATS_DOMAINS)
+    return _domain_in(sender_domain(msg), ATS_DOMAINS)
 
 
 def _text(msg):
@@ -100,11 +120,12 @@ def classify_message(msg):
     """Rule verdict for one message: {category, confidence, rule, needs_llm}."""
     text = _text(msg)
     ats = is_ats(msg)
-    if sender(msg) in ALERT_SENDERS:
+    if sender(msg) in ALERT_SENDERS or (_domain_in(sender_domain(msg), ALERT_DOMAINS)
+                                        and ALERT_SUBJECT.search(msg.get("subject", "") or "")):
         return {"category": "job-alert", "confidence": 0.95, "rule": "sender:alert", "needs_llm": False}
     rules = dict(RULES)
     for category, rx in RULES:
-        if category == "recruiter-inbound" and ats:
+        if category == "recruiter-inbound" and (ats or NOT_A_JOB.search(text)):
             continue
         hit = _interview_hit(text, rx) if category == "interview-invite" else rx.search(text)
         if category == "rejection" and not hit:
@@ -114,8 +135,12 @@ def classify_message(msg):
         if hit:
             return {"category": category, "confidence": 0.95 if ats else 0.85,
                     "rule": f"{category}:{hit.group(0).lower()[:40]}", "needs_llm": False}
+    domain = sender_domain(msg)
+    hiring_sender = ats or bool(HIRING_SUBDOMAIN.search(domain))
+    bulk = bool(BULK_SENDER.search(domain)) and not hiring_sender
+    looks_jobby = bool(JOBBY.search(text)) and not NOT_A_JOB.search(text)
     return {"category": "other", "confidence": 0.5, "rule": "none",
-            "needs_llm": bool(ats or JOBBY.search(text))}
+            "needs_llm": hiring_sender or (looks_jobby and not bulk)}
 
 
 # ── Matching mail to a queued job ────────────────────────────────────────────
@@ -209,8 +234,12 @@ USAGE = """usage:
 
 def event_for(msg, jobs, now):
     verdict = classify_message(msg)
+    # A company named in a newsletter is news, not a reply. Only mail that is about an application
+    # (a placed category, or unplaced mail headed for a model pass) is linked to a queued job.
+    about_a_job = verdict["category"] not in ("other", "job-alert") or verdict["needs_llm"]
     return {"msg_id": msg.get("msg_id"), "category": verdict["category"], "confidence": verdict["confidence"],
-            "rule": verdict["rule"], "needs_llm": verdict["needs_llm"], "match": match_job(msg, jobs),
+            "rule": verdict["rule"], "needs_llm": verdict["needs_llm"],
+            "match": match_job(msg, jobs) if about_a_job else None,
             "due": due_date(msg, verdict["category"]), "date": msg.get("date"), "classified_at": now}
 
 
