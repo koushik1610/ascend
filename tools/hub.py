@@ -187,8 +187,26 @@ def compute(ws, today=None):
     if defaults:
         import usage
         run = dict(defaults, estimate=usage.estimate(ws, defaults["engine"], defaults["mode"]))
-    return {"as_of": today.isoformat(), "run": run, "funnel": funnel, "week": week, "rates": rates, "warning": warning,
+    return {"as_of": today.isoformat(), "run": run, "gmail": _gmail_status(ws, data, defaults, today), "funnel": funnel, "week": week, "rates": rates, "warning": warning,
             "inbox": inbox, "pinned": pinned, "queue": rows, "tokens": tokens}
+
+
+def _gmail_status(ws, data, defaults, today):
+    """Engine A tracks replies only while its Gmail sign-in works. Testing-mode tokens expire after about a
+    week, so say so on the page instead of letting the funnel freeze quietly."""
+    sync = d.read_json(data / "sync-state.json", {})
+    engine = (defaults or {}).get("engine")
+    out = {"engine": engine, "connected": sync.get("connected"), "last_sync": sync.get("last_sync"), "warning": None}
+    if engine != "A":
+        return out
+    fix = f"Reconnect: python3 tools/gmail_sync.py connect workspace/{Path(ws).name}"
+    last = (sync.get("last_sync") or "")[:10]
+    if not sync.get("connected") or not last:
+        out["warning"] = f"Gmail is signed out, so replies are not being tracked. {fix}"
+    elif last < (today - timedelta(days=1)).isoformat():
+        out["warning"] = (f"Gmail last synced on {last}. Replies since then are not on this page. "
+                          f"Check workspace/{Path(ws).name}/daily.log, or {fix[0].lower() + fix[1:]}")
+    return out
 
 
 def render(ws, today=None, server=None):

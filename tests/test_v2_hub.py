@@ -68,6 +68,19 @@ class Compute(unittest.TestCase):
         self.assertTrue(all(s["count"] == 0 for s in out["funnel"]))
         self.assertEqual((out["inbox"], out["pinned"], out["tokens"]), ([], [], None))
 
+    def test_gmail_status_tells_the_user_when_tracking_stopped(self):
+        import _v2data as d
+        import hub
+        ws = make_ws(self.td.name, [])
+        d.write_json_atomic(ws / ".ascend-state.json", {"run_defaults": {"engine": "A", "mode": "assisted"}})
+        d.write_json_atomic(ws / "data" / "sync-state.json", {"connected": False})
+        self.assertIn("gmail_sync.py connect", hub.compute(ws, today=TODAY)["gmail"]["warning"])
+        d.write_json_atomic(ws / "data" / "sync-state.json", {"connected": True, "last_sync": "2026-10-13T06:30:00+00:00"})
+        self.assertIn("2026-10-13", hub.compute(ws, today=TODAY)["gmail"]["warning"])
+        d.write_json_atomic(ws / "data" / "sync-state.json", {"connected": True, "last_sync": "2026-10-16T06:30:00+00:00"})
+        self.assertIsNone(hub.compute(ws, today=TODAY)["gmail"]["warning"])
+        self.assertIn('id="gmailStatus"', hub.render(ws, today=TODAY))
+
     def test_funnel(self):
         import hub
         out = hub.compute(seed(self.td.name), today=TODAY)

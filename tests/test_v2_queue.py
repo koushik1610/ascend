@@ -149,10 +149,27 @@ class Queue(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr)
 
 
+def ready_ws(ws):
+    """The three files a v2 run needs before it can do anything useful."""
+    import _v2data as d
+    (ws / "master-resume.md").write_text("# Master\n", encoding="utf-8")
+    d.write_json_atomic(ws / "data" / "sources.json", {"boards": [{"ats": "lever", "slug": "acme"}], "filters": {}})
+    d.write_json_atomic(ws / "data" / "profile.json", {"name": "Jordan Rivera", "email": "jordan@example.com"})
+    return ws
+
+
 class Plan(unittest.TestCase):
     def setUp(self):
         self.td = tempfile.TemporaryDirectory()
-        self.ws = make_ws(self.td.name, [])
+        self.ws = ready_ws(make_ws(self.td.name, []))
+
+    def test_an_unready_workspace_is_refused_with_the_fix(self):
+        import run
+        out = run.plan(make_ws(self.td.name + "/fresh", []), "C")
+        self.assertFalse(out["ok"])
+        text = " ".join(out["problems"])
+        for need in ("master-resume.md", "sources.json", "profile.json", "templates/"):
+            self.assertIn(need, text)
 
     def tearDown(self):
         self.td.cleanup()

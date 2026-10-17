@@ -291,10 +291,19 @@ Each reacts to a real event and updates the dashboard.
   [`tools/industry_research.py`](tools/industry_research.py).
 
 
+### J20b: Set up Ascend 2.0 (once)
+- **Trigger:** the first `/ascend run-v2` on a workspace that finished a v1 run.
+- **Path:** `prompts/29-run-v2.md` Step 0 builds `data/profile.json` and `data/sources.json` with the user
+  from the intake and master §4, then one `finder.py run` checks every board slug. `tools/run.py plan`
+  refuses to start until master, boards and profile exist, and says which is missing.
+- **Ends with:** a plan that passes, then `tools/schedule.py install` for the daily sync.
+
 ### J21: The daily sync (Ascend 2.0)
 - **Trigger:** cron, from `python3 tools/schedule.py install workspace/<name> --at HH:MM`.
-- **Path:** `tools/daily.py`: Gmail sync and classify (engine A), ingest, finder, prefilter, alerts, hub
-  build. Zero tokens. A failing stage is logged and the rest still run.
+- **Path:** `tools/daily.py`: Gmail sync and classify (engine A), ingest, finder, prefilter, alerts, mail
+  retention, hub build. Zero tokens. A failing stage is logged and the rest still run. Gmail signed out
+  or an empty board list is a failed stage with the fix in its message, and the hub shows a banner.
+  Cron does not run while the Mac sleeps, so a closed laptop at the scheduled time skips that day.
 - **Ends with:** a current `hub.html` and a row in `data/run-log.jsonl`.
 
 ### J22: Score and approve

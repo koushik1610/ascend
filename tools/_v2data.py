@@ -27,10 +27,25 @@ def data_dir(ws):
 
 
 def append_jsonl(path, rec):
-    p = resolve_out(str(path))
-    p.parent.mkdir(parents=True, exist_ok=True)
-    with open(p, "a", encoding="utf-8") as f:
-        f.write(json.dumps(rec, ensure_ascii=False, sort_keys=True) + "\n")
+    with locked(path) as p:                 # so a retention rewrite never drops a concurrent append
+        with open(p, "a", encoding="utf-8") as f:
+            f.write(json.dumps(rec, ensure_ascii=False, sort_keys=True) + "\n")
+
+
+def rewrite_jsonl(path, fn):
+    """Replace a JSON Lines file with fn(rows), under its lock. The only sanctioned non-append write."""
+    with locked(path) as p:
+        rows = fn(read_jsonl(p))
+        fd, tmp = tempfile.mkstemp(dir=p.parent, prefix=p.name + ".", suffix=".tmp")
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                f.writelines(json.dumps(r, ensure_ascii=False, sort_keys=True) + "\n" for r in rows)
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(tmp, p)
+        except BaseException:
+            Path(tmp).unlink(missing_ok=True)
+            raise
 
 
 def read_jsonl(path):

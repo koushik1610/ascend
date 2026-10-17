@@ -97,12 +97,56 @@ class Daily(unittest.TestCase):
         finally:
             os.environ.pop("ASCEND_ATS_BASE", None)
         stages = {s["stage"]: s for s in out["stages"]}
-        self.assertEqual(stages["gmail"]["detail"], "skipped: engine A is not connected")
+        self.assertFalse(stages["gmail"]["ok"])            # no run settings yet: say so, never pass silently
+        self.assertIn("run-v2", stages["gmail"]["detail"])
         self.assertTrue(stages["finder"]["ok"])            # an unreachable board is data, not a crash
         self.assertIn("unreachable", stages["finder"]["detail"])
         self.assertTrue(stages["hub"]["ok"])
         self.assertTrue((self.ws / "hub.html").is_file())
         self.assertEqual(len(d.read_jsonl(self.ws / "data" / "run-log.jsonl")), 1)
+
+
+    def stages(self):
+        import daily
+        return {s["stage"]: s for s in daily.run(self.ws)["stages"]}
+
+    def test_engine_a_signed_out_is_a_failed_stage_with_the_fix(self):
+        import _v2data as d
+        d.write_json_atomic(self.ws / ".ascend-state.json", {"run_defaults": {"engine": "A", "mode": "assisted"}})
+        (self.ws / "gmail-client.json").write_text('{"client_id": "cid"}')
+        os.environ["ASCEND_TOKEN_STORE"] = f"file:{self.td.name}/tokens.json"     # never the real Keychain
+        try:
+            g = self.stages()["gmail"]
+        finally:
+            os.environ.pop("ASCEND_TOKEN_STORE", None)
+        self.assertFalse(g["ok"])
+        self.assertIn("gmail_sync.py connect", g["detail"])
+
+    def test_engine_c_skips_gmail_and_no_boards_fails_the_finder(self):
+        import _v2data as d
+        d.write_json_atomic(self.ws / ".ascend-state.json", {"run_defaults": {"engine": "C", "mode": "assisted"}})
+        st = self.stages()
+        self.assertTrue(st["gmail"]["ok"])
+        self.assertFalse(st["finder"]["ok"])
+        self.assertIn("sources.json", st["finder"]["detail"])
+
+    def test_retention_drops_old_mail_and_keeps_only_headers_of_non_job_mail(self):
+        import _v2data as d
+        import daily
+        dd = self.ws / "data"
+        d.write_json_atomic(dd / "sources.json", {"boards": [], "retention_days": 180})
+        for mid, when in (("old", "2026-01-01T00:00:00+00:00"), ("job", "2026-10-10T00:00:00+00:00"),
+                          ("news", "2026-10-11T00:00:00+00:00"), ("unsure", "2026-10-12T00:00:00+00:00")):
+            d.append_jsonl(dd / "mail.jsonl", {"msg_id": mid, "from": "a@b.example", "subject": mid, "date": when,
+                                               "body_excerpt": f"body of {mid}"})
+        for mid, cat, llm in (("job", "acknowledgement", False), ("news", "other", False), ("unsure", "other", True)):
+            d.append_jsonl(dd / "events.jsonl", {"msg_id": mid, "category": cat, "needs_llm": llm})
+        out = daily.prune(self.ws, today="2026-10-17")
+        mail = {m["msg_id"]: m for m in d.read_jsonl(dd / "mail.jsonl")}
+        self.assertEqual(sorted(mail), ["job", "news", "unsure"])
+        self.assertEqual((mail["job"]["body_excerpt"], mail["news"]["body_excerpt"], mail["unsure"]["body_excerpt"]),
+                         ("body of job", "", "body of unsure"))
+        self.assertEqual(out, {"dropped": 1, "trimmed": 1})
 
 
 class Registry(unittest.TestCase):

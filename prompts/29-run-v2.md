@@ -6,6 +6,25 @@
 **Goal:** one v2 run in the engine the user picks, spending tokens only where judgment is needed, and
 leaving the hub current. This release applies in assisted mode only: the user submits every application.
 
+## Step 0. Set up (first run only)
+
+`run.py plan` (Step 1) refuses to start until the workspace has three things. Build whatever is missing,
+with the user, before anything else:
+
+1. **`master-resume.md`**: if missing, this user has not run Ascend yet. Run the v1 pipeline first
+   (`prompts/00-orchestrator.md`).
+2. **`data/profile.json`**: copy `templates/profile.example.json` and fill it only from what the user
+   gave in `intake.md` or tells you now: name, email, phone, location, LinkedIn, website. Leave the rest
+   empty. Never fill work authorization, sponsorship, salary or start date for the user.
+3. **`data/sources.json`**: copy `templates/sources.example.json`. Ask for the companies they want
+   watched (start from the target companies in `intake.md` and the jobs already in `jobs/`). For each,
+   find the board slug the way the file's comment describes, by opening the company's own careers page.
+   Write the filters from the user's target titles and seniority in `intake.md` and the keywords in
+   master §4. Show the user the result and let them edit it.
+
+Then run `python3 tools/finder.py run workspace/<name>` once. Any board listed as unreachable has the
+wrong slug or ATS. Fix it with the user before the daily sync is scheduled.
+
 ## Step 1. Choose and check
 
 Ask for the engine (A, B or C) unless `.ascend-state.json` already has `run_defaults` and the user said to

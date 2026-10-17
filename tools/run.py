@@ -51,8 +51,22 @@ def _has_token(ws):
         return False
 
 
+def _setup_problems(ws):
+    """What a first v2 run needs. Without these, the daily sync runs, finds nothing and says ok."""
+    ws, out = Path(ws), []
+    if not (ws / "master-resume.md").is_file():
+        out.append("no master-resume.md yet: run Ascend once (`/ascend`) to build it")
+    if not d.read_json(ws / "data" / "sources.json", {}).get("boards"):
+        out.append("no job boards in data/sources.json: prompts/29-run-v2.md Step 0 builds it with you "
+                   "from templates/sources.example.json")
+    if not d.read_json(ws / "data" / "profile.json", {}).get("email"):
+        out.append("no data/profile.json with your contact details: prompts/29-run-v2.md Step 0 builds it "
+                   "from templates/profile.example.json")
+    return out
+
+
 def plan(ws, engine, mode="assisted", jobs=20):
-    problems = []
+    problems = _setup_problems(ws)
     if engine not in ENGINES:
         problems.append(f"unknown engine {engine!r}")
     if mode in LATER_MODES:

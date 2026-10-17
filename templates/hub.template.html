@@ -67,6 +67,7 @@
   <section id="dash">
     <div class="sub" id="runLine" style="margin-bottom:12px"></div>
     <div class="cards" id="week"></div>
+    <div id="gmailStatus"></div>
     <div id="warning"></div>
     <h2>Needs a reply</h2><div class="panel" id="pinned"></div>
     <h2>Pipeline</h2><div class="panel funnel" id="funnel"></div>
@@ -104,6 +105,7 @@ document.querySelectorAll("nav button").forEach(b => b.addEventListener("click",
 const w = D.week;
 $("week").innerHTML = [["Applied", w.applied], ["Replies", w.replies], ["Interviews", w.interviews]]
   .map(([l, v]) => `<div class="stat"><div class="v">${esc(v)}</div><div class="l">${l} this week</div></div>`).join("");
+if (D.gmail && D.gmail.warning) $("gmailStatus").innerHTML = `<div class="banner">${esc(D.gmail.warning)}</div>`;
 if (D.warning) $("warning").innerHTML = `<div class="banner">${esc(D.warning)}</div>`;
 
 $("pinned").innerHTML = D.pinned.length

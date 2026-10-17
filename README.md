@@ -205,11 +205,17 @@ every engine. It drives your own logged-in LinkedIn session through Claude in Ch
 cards only. Automated browsing can break LinkedIn's terms of use and put the account at risk, so Claude
 asks before each search.
 
+**First run.** After a v1 run, `/ascend run-v2` sets up two files with you: `data/profile.json` (the only
+answers an apply sheet pre-fills) and `data/sources.json` (the company boards to watch and your filters).
+`run.py plan` will not start until both exist. Restart `python3 ui/server.py` after updating Ascend: the
+server keeps the tool code it started with.
+
 **The hub** (`python3 tools/hub.py build workspace/<you>`, or served with actions at `/hub?slug=<you>`)
 shows the funnel from found to offer, this week's applications, replies and interviews, the mail
 waiting on you with its due date, a queue you approve from, a classified inbox, and token spend by
 stage. **`python3 tools/schedule.py install workspace/<you> --at 06:30`** runs the zero-token part every
-morning.
+morning (cron skips the run if the Mac is asleep at that time). It also deletes mail older than 180 days
+from the workspace and keeps only the headers of mail that is not about a job.
 
 What has run on real data and what is still beta: [docs/V2-READINESS.md](docs/V2-READINESS.md).
 
