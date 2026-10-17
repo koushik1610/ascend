@@ -43,12 +43,9 @@ SLUG_SUFFIXES = ("usa", "us", "hq", "inc", "jobs", "careers", "global", "labs", 
 
 
 def same_company(a, b):
+    import pipeline
     from prefilter import company_key
-    ka, kb = company_key(a), company_key(b)
-    if ka == kb:
-        return True
-    short, long_ = sorted((ka, kb), key=len)
-    return bool(short) and long_.startswith(short) and long_[len(short):] in SLUG_SUFFIXES
+    return pipeline._same_company_key(company_key(a), company_key(b))
 
 
 def role_key(company, title):

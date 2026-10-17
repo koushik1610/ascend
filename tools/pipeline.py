@@ -370,6 +370,10 @@ def cmd_ingest(ws, args):
             out["unmatched"] += 1
             continue
         cur = parse_state(job / "application-log.md").get("status", "queued")
+        # A company named only in the body is too weak to close a job: the hub still shows the mail.
+        if target in TERMINAL and e.get("match_by") == "body":
+            out["skipped"] += 1
+            continue
         if cur in TERMINAL or (target != "rejected" and order[target] <= order.get(cur, 0)):
             out["skipped"] += 1
             continue
@@ -413,6 +417,15 @@ def _company_key(name):
     return "".join(company_tokens(name))
 
 
+def _same_company_key(a, b):
+    """Equal keys, or a board slug that is the name plus a region or corporate suffix (doordashusa)."""
+    if a == b:
+        return True
+    from jobqueue import SLUG_SUFFIXES
+    short, long_ = sorted((a or "", b or ""), key=len)
+    return bool(short) and long_.startswith(short) and long_[len(short):] in SLUG_SUFFIXES
+
+
 def _applied_records(ws):
     """(posting_id, company_key, title_key, applied_on) for everything already sent."""
     sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -452,7 +465,7 @@ def check_duplicate(ws, company_name, title_text, pid=None, today=None):
     for rpid, rco, rtitle, applied_on in _applied_records(ws):
         if pid and rpid and pid == rpid:
             return f"DUPLICATE already applied to posting {pid}" + (f" on {applied_on}" if applied_on else "")
-        if rco == company and rtitle == title:
+        if rtitle == title and _same_company_key(rco, company):
             try:
                 age = (today - _today(applied_on)).days if applied_on else 0
             except ValueError:

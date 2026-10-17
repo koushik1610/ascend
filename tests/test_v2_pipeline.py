@@ -79,6 +79,12 @@ class Ingest(unittest.TestCase):
         ingest(self.ws)
         self.assertEqual(state(self.ws, "03-litware-staff")["status"], "rejected")
 
+    def test_a_body_only_match_never_closes_a_job(self):
+        add_events(self.ws, [dict(ev("a6", "rejection", "02"), match_by="body")])
+        out = ingest(self.ws)
+        self.assertEqual(state(self.ws, "02-northwind-principal")["status"], "applied")
+        self.assertEqual(out["applied"], 0)
+
     def test_never_moves_backwards(self):
         add_events(self.ws, [ev("a4", "acknowledgement", "03")])
         out = ingest(self.ws)
@@ -167,6 +173,12 @@ class Guard(unittest.TestCase):
     def test_applied_job_folder_blocks_same_title(self):
         r = self.guard("--company", "Acme Robotics", "--title", "Staff Security Engineer", "--today", "2026-10-10")
         self.assertEqual(r.returncode, 3)
+
+    def test_board_slug_matches_the_company_name(self):
+        r = self.guard("--company", "acmeroboticshq", "--title", "Staff Security Engineer", "--today", "2026-10-10")
+        self.assertEqual(r.returncode, 3, r.stdout)
+        self.assertEqual(self.guard("--company", "Acme", "--title", "Staff Security Engineer",
+                                    "--today", "2026-10-10").returncode, 0)
 
     def test_queued_folder_and_matched_queue_entry_never_block(self):
         self.assertEqual(self.guard("--company", "Litware", "--title", "Staff Detection Engineer",

@@ -156,31 +156,45 @@ def _alnum(s):
     return re.sub(r"[^a-z0-9]", "", (s or "").lower())
 
 
-def match_job(msg, jobs):
-    """The queued job this message is about: its `nn` when it has a folder, else its `posting_id`.
+MATCH_RANK = {"sender": 3, "subject": 2, "body": 1}
 
-    Three signals, any one is enough: the company in an ATS sender's local part
-    (nvidia@myworkday.com), the company as the sender's own domain (x@acme-robotics.example), or the
-    company name as whole words in the subject or body. Whole words, so 'HP' never matches 'Champion'.
+
+def match_detail(msg, jobs):
+    """(match, how) for the queued job this message is about, or (None, None).
+
+    match is the job's `nn` when it has a folder, else its `posting_id`. Signals, strongest first: the
+    company in an ATS sender's local part (nvidia@myworkday.com) or as the sender's own domain
+    (x@acme-robotics.example), then the company name as whole words in the subject, then in the body.
+    Whole words, so 'HP' never matches 'Champion'. When two different companies tie at the strongest
+    signal found ("thanks for applying to Acme, we use Scale AI tooling"), the message matches nothing.
     """
     local, _, domain = sender(msg).partition("@")
     first_label = _alnum(domain.split(".")[0]) if domain and not is_ats(msg) else ""
-    text = _text(msg)
     hits = []
     for job in jobs:
         tokens = company_tokens(job.get("company"))
         if not tokens:
             continue
         key = "".join(tokens)
-        by_sender = is_ats(msg) and _alnum(local) == key
-        by_domain = bool(first_label) and first_label == key
-        by_text = re.search(r"\b" + r"[\W_]*".join(map(re.escape, tokens)) + r"\b", text, re.I)
-        if by_sender or by_domain or by_text:
-            hits.append(job)
+        rx = re.compile(r"\b" + r"[\W_]*".join(map(re.escape, tokens)) + r"\b", re.I)
+        if (is_ats(msg) and _alnum(local) == key) or (bool(first_label) and first_label == key):
+            hits.append(("sender", key, job))
+        elif rx.search(msg.get("subject", "") or ""):
+            hits.append(("subject", key, job))
+        elif rx.search(msg.get("body_excerpt", "") or ""):
+            hits.append(("body", key, job))
     if not hits:
-        return None
-    best = next((j for j in hits if j.get("nn")), hits[0])
-    return best.get("nn") or best.get("posting_id")
+        return None, None
+    top = max(MATCH_RANK[h[0]] for h in hits)
+    best = [h for h in hits if MATCH_RANK[h[0]] == top]
+    if len({h[1] for h in best}) > 1:
+        return None, None
+    how, _, job = next((h for h in best if h[2].get("nn")), best[0])
+    return job.get("nn") or job.get("posting_id"), how
+
+
+def match_job(msg, jobs):
+    return match_detail(msg, jobs)[0]
 
 
 # ── Due dates for info requests and assessments ──────────────────────────────
@@ -241,9 +255,9 @@ def event_for(msg, jobs, now):
     # A company named in a newsletter is news, not a reply. Only mail that is about an application
     # (a placed category, or unplaced mail headed for a model pass) is linked to a queued job.
     about_a_job = verdict["category"] not in ("other", "job-alert") or verdict["needs_llm"]
+    match, how = match_detail(msg, jobs) if about_a_job else (None, None)
     return {"msg_id": msg.get("msg_id"), "category": verdict["category"], "confidence": verdict["confidence"],
-            "rule": verdict["rule"], "needs_llm": verdict["needs_llm"],
-            "match": match_job(msg, jobs) if about_a_job else None,
+            "rule": verdict["rule"], "needs_llm": verdict["needs_llm"], "match": match, "match_by": how,
             "due": due_date(msg, verdict["category"]), "date": msg.get("date"), "classified_at": now}
 
 

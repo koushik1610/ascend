@@ -208,6 +208,28 @@ class Matching(unittest.TestCase):
         import classify
         self.assertIsNone(classify.match_job(self.msg("x@y.example", "Hello"), self.JOBS))
 
+    def test_two_companies_in_the_body_is_no_match(self):
+        import classify
+        jobs = [{"posting_id": "gh:scale:1", "company": "Scale AI", "title": "Security Engineer", "nn": "03"},
+                {"posting_id": "gh:acme:7", "company": "Acme", "title": "Security Engineer", "nn": "07"}]
+        m = self.msg("no-reply@greenhouse.io", "An update on your application",
+                     "Thank you for applying to Acme. We use Notion and Scale AI tooling.")
+        self.assertIsNone(classify.match_job(m, jobs))
+
+    def test_subject_outranks_body(self):
+        import classify
+        m = self.msg("no-reply@ashbyhq.com", "Your application to Acme Robotics",
+                     "Teams here work with NVIDIA hardware.")
+        self.assertEqual(classify.match_job(m, self.JOBS), "03")
+        self.assertEqual(classify.match_detail(m, self.JOBS), ("03", "subject"))
+
+    def test_event_records_how_it_matched(self):
+        import classify
+        m = dict(self.msg("no-reply@ashbyhq.com", "Unfortunately we will not move forward",
+                          "Thanks for your interest in Acme Robotics."), msg_id="m1")
+        e = classify.event_for(m, self.JOBS, "2026-10-01T00:00:00")
+        self.assertEqual((e["match"], e["match_by"]), ("03", "body"))
+
     def test_short_company_name_needs_word_boundary(self):
         import classify
         jobs = [{"posting_id": "gh:hp:1", "company": "HP", "title": "Security Engineer"}]

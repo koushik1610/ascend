@@ -109,6 +109,18 @@ class Sheet(unittest.TestCase):
             apply.sheet(ws, "greenhouse:acme:1")
         self.assertIn("DUPLICATE", str(c.exception))
 
+    def test_sheet_checks_the_posting_id_even_with_a_folder(self):
+        import _v2data as d
+        import apply
+        ws = apply_ws(self.td.name)
+        q = d.read_json(ws / "data" / "queue.json", {})
+        q["jobs"].append({"posting_id": "greenhouse:acme:1", "company": "Other Name", "title": "Other Title",
+                          "state": "applied", "applied_on": "2026-10-01"})
+        d.write_json_atomic(ws / "data" / "queue.json", q)
+        with self.assertRaises(apply.Refused) as c:
+            apply.sheet(ws, "greenhouse:acme:1")
+        self.assertIn("posting", str(c.exception))
+
     def test_refuses_a_resume_that_fails_lint(self):
         import apply
         ws = apply_ws(self.td.name)

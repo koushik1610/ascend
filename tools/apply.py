@@ -70,8 +70,7 @@ def sheet(ws, posting_id):
     entry = _entry(ws, posting_id)
     if entry.get("state") != "approved":
         raise Refused(f"{entry.get('company')} is {entry.get('state')}, not approved")
-    dup = pipeline.check_duplicate(ws, entry.get("company"), entry.get("title"),
-                                   None if entry.get("nn") else posting_id)
+    dup = pipeline.check_duplicate(ws, entry.get("company"), entry.get("title"), posting_id)
     if dup:
         raise Refused(dup)
     job = pipeline.find_job(ws, entry["nn"]) if entry.get("nn") else None
