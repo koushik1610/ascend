@@ -1,0 +1,156 @@
+#!/usr/bin/env python3
+"""hub.py: the Ascend 2.0 dashboard, computed from the data files at zero tokens (M3).
+
+  python3 tools/hub.py build WS [--json] [--today YYYY-MM-DD]
+
+Every number on the page comes from files a tool wrote: postings and prefilter results (M5), the
+queue, classified mail (M1), the status ledger (M2) and token usage (M7). Any of them may be
+missing; the page shows what exists. The output is one self-contained HTML file with the data
+embedded, so it opens offline and keeps the hub's `connect-src 'none'` policy: nothing on the page
+can call out, and nothing needs to.
+
+Honesty rule, same as `pipeline.py funnel`: below 10 applications a percentage is noise, so rates
+are withheld and only counts are shown.
+"""
+
+import json
+import re
+import sys
+from datetime import date, datetime, timedelta
+from pathlib import Path
+
+TOOLS = Path(__file__).resolve().parent
+sys.path.insert(0, str(TOOLS))
+import _v2data as d  # noqa: E402
+import pipeline  # noqa: E402
+from _paths import PathOutsideWorkspace, resolve_out  # noqa: E402
+
+REPO = TOOLS.parent
+TEMPLATE = REPO / "templates" / "hub.template.html"
+REPLY_CATEGORIES = {"info-request", "assessment", "interview-invite", "rejection"}
+PIN_CATEGORIES = {"info-request", "assessment"}
+OPEN_STATUSES = {"queued", "applied", "responded"}
+REPLIED_STATUSES = {"responded", "screen", "onsite", "offer", "rejected"}
+INTERVIEW_STATUSES = {"screen", "onsite", "offer"}
+MIN_FOR_RATES = 10
+GHOST_DAYS = 30
+LOW_REPLY = 0.05
+
+
+def _day(s):
+    try:
+        return datetime.fromisoformat(str(s).replace("Z", "+00:00")).date()
+    except ValueError:
+        try:
+            return date.fromisoformat(str(s)[:10])
+        except ValueError:
+            return None
+
+
+def _jobs(ws):
+    """slug → {nn, company, title, status} from the job folders."""
+    out = {}
+    for job in pipeline.job_dirs(ws):
+        log = job / "application-log.md"
+        text = log.read_text(encoding="utf-8") if log.is_file() else ""
+        m = pipeline.LOG_HEADING.search(text)
+        out[job.name] = {"nn": job.name.split("-", 1)[0], "company": m.group(1) if m else job.name,
+                         "title": m.group(2) if m else "", "status": pipeline.parse_state(log).get("status", "queued")}
+    return out
+
+
+def compute(ws, today=None):
+    ws = Path(ws)
+    today = _day(today) if today else date.today()
+    data = ws / "data"
+    jobs = _jobs(ws)
+    queue = d.read_json(data / "queue.json", {}).get("jobs", [])
+    by_nn = {j["nn"]: slug for slug, j in jobs.items()}
+    pid_to_nn = {q.get("posting_id"): q.get("nn") for q in queue if q.get("nn")}
+    events = d.read_jsonl(data / "events.jsonl")
+    ledger = pipeline.read_ledger(ws)
+
+    def slug_for(match):
+        nn = match if match in by_nn else pid_to_nn.get(match)
+        return by_nn.get(nn) if nn else None
+
+    # Applied: any job that left `queued`, by the ledger or by its own state block.
+    applied_on = {}
+    for r in sorted(ledger, key=lambda r: r["date"]):
+        if r["to"] not in ("queued", "move-on") and r["slug"] not in applied_on:
+            applied_on[r["slug"]] = _day(r["date"])
+    for slug, j in jobs.items():
+        if j["status"] not in ("queued", "move-on") and slug not in applied_on:
+            applied_on[slug] = None
+    reached = {}
+    for r in ledger:
+        reached.setdefault(r["slug"], set()).add(r["to"])
+    for slug, j in jobs.items():
+        reached.setdefault(slug, set()).add(j["status"])
+    reply_slugs = {slug_for(e.get("match")) for e in events if e.get("category") in REPLY_CATEGORIES} - {None}
+    replied = {s for s in applied_on if s in reply_slugs or reached.get(s, set()) & REPLIED_STATUSES}
+    interview_slugs = {slug_for(e.get("match")) for e in events if e.get("category") == "interview-invite"} - {None}
+    interviewing = {s for s in jobs if reached.get(s, set()) & INTERVIEW_STATUSES or s in interview_slugs}
+    offers = {s for s in jobs if "offer" in reached.get(s, set())}
+
+    postings = {p.get("id") for p in d.read_jsonl(data / "postings.jsonl")}
+    screened = {c.get("posting_id") for c in d.read_jsonl(data / "candidates.jsonl") if c.get("passed")}
+    funnel = [{"stage": s, "count": n} for s, n in [
+        ("found", len(postings - {None})), ("screened", len(screened - {None})), ("matched", len(queue)),
+        ("applied", len(applied_on)), ("replied", len(replied)), ("interviewing", len(interviewing)),
+        ("offer", len(offers))]]
+
+    week_start = today - timedelta(days=6)
+    in_week = lambda day: day is not None and week_start <= day <= today  # noqa: E731
+    week = {"applied": sum(1 for r in ledger if r["to"] == "applied" and in_week(_day(r["date"]))),
+            "replies": sum(1 for e in events if e.get("category") in REPLY_CATEGORIES and in_week(_day(e.get("date")))),
+            "interviews": sum(1 for e in events if e.get("category") == "interview-invite" and in_week(_day(e.get("date"))))}
+
+    n = len(applied_on)
+    rates, warning = {"reply": None, "ghost": None}, None
+    if n >= MIN_FOR_RATES:
+        ghosted = [s for s, day in applied_on.items()
+                   if s not in replied and day is not None and (today - day).days >= GHOST_DAYS]
+        rates = {"reply": round(len(replied) / n, 3), "ghost": round(len(ghosted) / n, 3)}
+        if rates["reply"] < LOW_REPLY:
+            warning = (f"Your reply rate is {rates['reply'] * 100:.0f}% across {n} applications. That is one "
+                       "observation, not a verdict. The usual lever is fit: fewer, closer-matched roles, and "
+                       "a referral before applying where one exists.")
+
+    def label(slug):
+        if not slug:
+            return None
+        j = jobs[slug]
+        return f"{j['nn']} {j['company']}"
+
+    inbox, pinned = [], []
+    for e in sorted(events, key=lambda e: e.get("date") or "", reverse=True):
+        slug = slug_for(e.get("match"))
+        row = {"msg_id": e.get("msg_id"), "category": e.get("category"), "subject": e.get("subject", ""),
+               "from": e.get("from", ""), "date": (e.get("date") or "")[:10], "job": label(slug),
+               "due": e.get("due"), "needs_llm": bool(e.get("needs_llm")),
+               "gmail_url": f"https://mail.google.com/mail/u/0/#all/{e.get('msg_id')}"}
+        inbox.append(row)
+        # Pinned until the job moves past `responded`: that is the leak this pin exists to close.
+        if row["category"] in PIN_CATEGORIES and row["due"] and (not slug or jobs[slug]["status"] in OPEN_STATUSES):
+            pinned.append(row)
+    pinned.sort(key=lambda i: i["due"])
+
+    rows = []
+    for q in queue:
+        slug = by_nn.get(q.get("nn"))
+        rows.append({"nn": q.get("nn"), "company": q.get("company"), "title": q.get("title"),
+                     "fit": q.get("fit"), "status": jobs[slug]["status"] if slug else q.get("state", "matched"),
+                     "url": q.get("url") or q.get("posting_id")})
+
+    usage = d.read_jsonl(data / "usage.jsonl")
+    tokens = None
+    if usage:
+        by_stage = {}
+        for u in usage:
+            by_stage[u.get("stage", "?")] = by_stage.get(u.get("stage", "?"), 0) + \
+                int(u.get("input_tokens", 0) or 0) + int(u.get("output_tokens", 0) or 0)
+        tokens = {"by_stage": by_stage, "total": sum(by_stage.values())}
+
+    return {"as_of": today.isoformat(), "funnel": funnel, "week": week, "rates": rates, "warning": warning,
+            "inbox": inbox, "pinned": pinned, "queue": rows, "tokens": tokens}
