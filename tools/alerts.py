@@ -109,9 +109,8 @@ def run(ws):
     filters = d.read_json(dd / "sources.json", {}).get("filters", {})
     done = {r.get("msg_id") for r in d.read_jsonl(dd / "alerts-done.jsonl")}
     mail = {m.get("msg_id"): m for m in d.read_jsonl(dd / "mail.jsonl")}
-    queue = d.read_json(dd / "queue.json", {"jobs": []})
-    known = {j.get("posting_id") for j in queue.get("jobs", [])}
-    state = d.read_json(dd / "postings-state.json", {})
+    known = {j.get("posting_id") for j in d.read_json(dd / "queue.json", {"jobs": []}).get("jobs", [])}
+    state, inbound = {}, []
     today = date.today().isoformat()
     out = {"alert_leads": 0, "inbound": 0, "inbound_matching": 0}
     for e in d.read_jsonl(dd / "events.jsonl"):
@@ -130,13 +129,17 @@ def run(ws):
         else:
             entry = inbound_entry(mail[mid], filters)
             if entry["posting_id"] not in known:
-                queue.setdefault("jobs", []).append(entry)
+                inbound.append(entry)
                 known.add(entry["posting_id"])
                 out["inbound"] += 1
                 out["inbound_matching"] += entry["state"] == "needs-you"
         d.append_jsonl(dd / "alerts-done.jsonl", {"msg_id": mid})
-    d.write_json_atomic(dd / "queue.json", queue)
-    d.write_json_atomic(dd / "postings-state.json", state)
+    # Merge under each file's lock: the hub server or a Claude session may have changed them meanwhile.
+    def add_inbound(q):
+        have = {j.get("posting_id") for j in q.setdefault("jobs", [])}
+        q["jobs"].extend(e for e in inbound if e["posting_id"] not in have)
+    d.update_json(dd / "queue.json", {"jobs": []}, add_inbound)
+    d.update_json(dd / "postings-state.json", {}, lambda s: s.update(state))
     return out
 
 

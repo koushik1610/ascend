@@ -11,6 +11,7 @@ appends to workspace/<name>/daily.log. Uses the same safe crontab handling as th
 """
 
 import json
+import re
 import shlex
 import sys
 from pathlib import Path
@@ -18,6 +19,7 @@ from pathlib import Path
 TOOLS = Path(__file__).resolve().parent
 sys.path.insert(0, str(TOOLS))
 import _cron  # noqa: E402
+from _paths import PathOutsideWorkspace, resolve_out  # noqa: E402
 
 REPO = TOOLS.parent
 
@@ -33,7 +35,14 @@ def install(ws, hhmm):
             raise ValueError
     except ValueError:
         return {"ok": False, "error": f"bad time {hhmm!r}, use HH:MM"}
-    ws = Path(ws).resolve()
+    try:
+        ws = resolve_out(str(ws))
+    except PathOutsideWorkspace:
+        return {"ok": False, "error": f"{ws} is not a workspace Ascend may schedule"}
+    if not re.fullmatch(r"[A-Za-z0-9._-]+", ws.name) or any(c in str(ws) for c in _cron.UNSAFE):
+        return {"ok": False, "error": "the workspace path has characters a cron line cannot carry safely"}
+    if not (ws / "data").is_dir():
+        return {"ok": False, "error": f"{ws} has no data/ folder: run Ascend 2.0 once first"}
     line = (f"{m} {h} * * * {shlex.quote(sys.executable)} {shlex.quote(str(REPO / 'tools' / 'daily.py'))} "
             f"{shlex.quote(str(ws))} >> {shlex.quote(str(ws / 'daily.log'))} 2>&1")
     return _cron.install(_tag(ws), line, ws)

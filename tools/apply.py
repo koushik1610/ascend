@@ -108,12 +108,7 @@ def record(ws, posting_id, result, reason=""):
     elif result == "unclear":
         entry = jobqueue.set_state(ws, posting_id, "applied?")
     else:
-        entry = jobqueue.set_state(ws, posting_id, "needs-you")
-        q = jobqueue._queue(ws)
-        for j in q["jobs"]:
-            if j.get("posting_id") == posting_id:
-                j["stop_reason"] = reason
-        d.write_json_atomic(d.data_dir(ws) / "queue.json", q)
+        entry = jobqueue.set_state(ws, posting_id, "needs-you", stop_reason=reason)
     d.append_jsonl(d.data_dir(ws) / "apply-log.jsonl", {"posting_id": posting_id, "result": result, "reason": reason,
                                                          "at": datetime.now().isoformat(timespec="seconds")})
     return entry

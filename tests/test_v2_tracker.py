@@ -51,6 +51,54 @@ class DataIO(unittest.TestCase):
             d.append_jsonl(Path("/etc/ascend-should-not-write.jsonl"), {"x": 1})
 
 
+class ConcurrentWrites(unittest.TestCase):
+    """The cron sync, the hub server and a Claude session all rewrite queue.json. None may lose another's update."""
+
+    def test_update_json_loses_no_updates_across_threads(self):
+        import threading
+        import _v2data as d
+        with tempfile.TemporaryDirectory(dir=str(REPO / "tests")) as td:
+            path = Path(td) / "data" / "queue.json"
+            errors = []
+
+            def bump():
+                for _ in range(25):
+                    try:
+                        d.update_json(path, {"n": 0}, lambda o: o.__setitem__("n", o["n"] + 1))
+                    except Exception as e:  # noqa: BLE001
+                        errors.append(e)
+            threads = [threading.Thread(target=bump) for _ in range(8)]
+            [t.start() for t in threads]
+            [t.join() for t in threads]
+            self.assertEqual(errors, [])
+            self.assertEqual(d.read_json(path, {})["n"], 200)
+
+    def test_shared_files_are_only_written_under_the_lock(self):
+        import re
+        for f in (REPO / "tools").glob("*.py"):
+            for n, line in enumerate(f.read_text().splitlines(), 1):
+                if re.search(r"write_json_atomic\(.*(queue|postings-state)\.json", line):
+                    self.fail(f"{f.name}:{n} rewrites a shared file without d.update_json")
+
+    def test_parallel_atomic_writes_never_collide_on_the_temp_file(self):
+        import threading
+        import _v2data as d
+        with tempfile.TemporaryDirectory(dir=str(REPO / "tests")) as td:
+            path = Path(td) / "x.json"
+            errors = []
+
+            def write(i):
+                for _ in range(30):
+                    try:
+                        d.write_json_atomic(path, {"i": i})
+                    except Exception as e:  # noqa: BLE001
+                        errors.append(e)
+            threads = [threading.Thread(target=write, args=(i,)) for i in range(6)]
+            [t.start() for t in threads]
+            [t.join() for t in threads]
+            self.assertEqual(errors, [])
+
+
 class Classifier(unittest.TestCase):
     def mailbox(self):
         import _v2data as d

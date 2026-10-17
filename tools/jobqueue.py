@@ -91,32 +91,36 @@ def score(ws, posting_id, fit, why, gaps):
     if not 0 <= fit <= 100:
         raise ValueError("fit must be 0 to 100")
     dd = d.data_dir(ws)
-    q = _queue(ws)
     post = next((p for p in d.read_jsonl(dd / "postings.jsonl") if p.get("id") == posting_id), {})
-    entry = next((j for j in q.setdefault("jobs", []) if j.get("posting_id") == posting_id), None)
-    if entry is None:
-        entry = {"posting_id": posting_id, "company": post.get("company"), "title": post.get("title"),
-                 "url": post.get("url"), "apply_url": post.get("apply_url"), "state": "matched"}
-        q["jobs"].append(entry)
-    entry.update(fit=fit, why=why, gaps=list(gaps), scored_at=datetime.now().isoformat(timespec="seconds"))
-    d.write_json_atomic(dd / "queue.json", q)
-    return entry
+
+    def change(q):
+        entry = next((j for j in q.setdefault("jobs", []) if j.get("posting_id") == posting_id), None)
+        if entry is None:
+            entry = {"posting_id": posting_id, "company": post.get("company"), "title": post.get("title"),
+                     "url": post.get("url"), "apply_url": post.get("apply_url"), "state": "matched"}
+            q["jobs"].append(entry)
+        entry.update(fit=fit, why=why, gaps=list(gaps), scored_at=datetime.now().isoformat(timespec="seconds"))
+        return entry
+    return d.update_json(dd / "queue.json", {"jobs": []}, change)
 
 
-def set_state(ws, posting_id, state):
+def set_state(ws, posting_id, state, **fields):
+    """The one way a queue entry changes state. Extra fields (stop_reason) are written in the same locked update."""
     if state not in STATES:
         raise ValueError(f"unknown state {state!r}; one of {', '.join(STATES)}")
     dd = d.data_dir(ws)
-    q = _queue(ws)
-    entry = next((j for j in q.get("jobs", []) if j.get("posting_id") == posting_id), None)
-    if entry is None:
-        raise KeyError(posting_id)
-    if entry.get("state") in SENT and state != "applied":
-        raise ValueError(f"{entry.get('company')} is {entry.get('state')}: a sent application cannot move back to {state}")
-    entry["state"] = state
-    if state == "applied" and not entry.get("applied_on"):
-        entry["applied_on"] = date.today().isoformat()
-    d.write_json_atomic(dd / "queue.json", q)
+
+    def change(q):
+        entry = next((j for j in q.get("jobs", []) if j.get("posting_id") == posting_id), None)
+        if entry is None:
+            raise KeyError(posting_id)
+        if entry.get("state") in SENT and state != "applied":
+            raise ValueError(f"{entry.get('company')} is {entry.get('state')}: a sent application cannot move back to {state}")
+        entry.update(fields, state=state)
+        if state == "applied" and not entry.get("applied_on"):
+            entry["applied_on"] = date.today().isoformat()
+        return dict(entry)
+    entry = d.update_json(dd / "queue.json", {"jobs": []}, change)
     if state == "applied" and entry.get("nn"):
         # A v1 job folder records the same fact; keep the two in step through the one write path.
         import pipeline

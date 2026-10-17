@@ -127,10 +127,15 @@ def run(ws, today=None):
     today = today or date.today().isoformat()
     dd = d.data_dir(ws)
     boards = d.read_json(dd / "sources.json", {}).get("boards", [])
-    state = d.read_json(dd / "postings-state.json", {})
     with ThreadPoolExecutor(16) as ex:
         results = list(ex.map(lambda b: (b, fetch_board(b["ats"], b["slug"])), boards))
     out = {"boards": len(boards), "failed": [], "new": 0, "seen": 0, "closed": 0}
+    d.update_json(dd / "postings-state.json", {}, lambda state: _merge(dd, results, state, out, today))
+    return out
+
+
+def _merge(dd, results, state, out, today):
+    """Fold the fetched boards into postings-state, under its lock (finder.add may run at the same time)."""
     for board, raw in results:
         if raw is None:
             out["failed"].append(board["slug"])
@@ -154,8 +159,6 @@ def run(ws, today=None):
             if pid.startswith(prefix) and pid not in current and not st.get("closed"):
                 st.update(closed=True, closed_on=today)
                 out["closed"] += 1
-    d.write_json_atomic(dd / "postings-state.json", state)
-    return out
 
 
 ATS_URL = [("greenhouse", re.compile(r"https://(?:job-)?boards\.greenhouse\.io/([\w-]+)/jobs/(\d+)")),
@@ -180,10 +183,14 @@ def add(ws, rows, source):
     dd = d.data_dir(ws)
     stored = d.read_jsonl(dd / "postings.jsonl")
     known = {p.get("url") for p in stored} | {p.get("id") for p in stored}
-    state = d.read_json(dd / "postings-state.json", {})
     polled = {f"{b['ats']}:{b['slug']}:" for b in d.read_json(dd / "sources.json", {}).get("boards", [])}
     today = date.today().isoformat()
     out = {"added": 0, "skipped": 0}
+    d.update_json(dd / "postings-state.json", {}, lambda state: _add_rows(dd, rows, source, state, known, polled, today, out))
+    return out
+
+
+def _add_rows(dd, rows, source, state, known, polled, today, out):
     for r in rows:
         url = (r.get("url") or "").strip()
         board_id = ats_id(url)
@@ -206,8 +213,6 @@ def add(ws, rows, source):
         state[p["id"]] = {"first_seen": today, "last_seen": today, "closed": closed}
         known |= {url, p["id"]}
         out["added"] += 1
-    d.write_json_atomic(dd / "postings-state.json", state)
-    return out
 
 
 def main(argv):

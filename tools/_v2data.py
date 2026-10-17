@@ -9,8 +9,11 @@ written through a temp file and os.replace, so a reader never sees half a file. 
 through `_paths.resolve_out`, so these helpers inherit the same output confinement as every tool.
 """
 
+import fcntl
 import json
 import os
+import tempfile
+from contextlib import contextmanager
 from pathlib import Path
 
 from _paths import resolve_out
@@ -52,9 +55,40 @@ def read_jsonl(path):
 def write_json_atomic(path, obj):
     p = resolve_out(str(path))
     p.parent.mkdir(parents=True, exist_ok=True)
-    tmp = p.with_name(p.name + ".tmp")
-    tmp.write_text(json.dumps(obj, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    os.replace(tmp, p)
+    fd, tmp = tempfile.mkstemp(dir=p.parent, prefix=p.name + ".", suffix=".tmp")   # one temp file per writer
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(json.dumps(obj, indent=2, ensure_ascii=False) + "\n")
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, p)
+    except BaseException:
+        Path(tmp).unlink(missing_ok=True)
+        raise
+
+
+@contextmanager
+def locked(path):
+    """An exclusive lock on <path>.lock for one read-modify-write. Not re-entrant: never nest two."""
+    p = resolve_out(str(path))
+    p.parent.mkdir(parents=True, exist_ok=True)
+    with open(p.with_name(p.name + ".lock"), "a") as lk:
+        fcntl.flock(lk, fcntl.LOCK_EX)
+        try:
+            yield p
+        finally:
+            fcntl.flock(lk, fcntl.LOCK_UN)
+
+
+def update_json(path, default, fn):
+    """Read, change and write a JSON file under its lock, so concurrent writers (the cron sync, the hub
+    server, a Claude session) never lose each other's update. fn changes the object in place; its return
+    value is returned."""
+    with locked(path) as p:
+        obj = read_json(p, default)
+        out = fn(obj)
+        write_json_atomic(p, obj)
+        return out
 
 
 def read_json(path, default):

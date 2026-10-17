@@ -45,7 +45,12 @@ def _write(text):
         subprocess.run(["crontab", "-"], input=text, text=True, check=True)
 
 
+UNSAFE = ("\n", "\r", "%")   # a line break starts a second cron entry; cron turns % into a line break
+
+
 def install(tag, line, backup_dir):
+    if any(c in line or c in tag for c in UNSAFE):
+        return {"ok": False, "error": "refusing a cron line with a line break or % in it"}
     tagged = line if line.rstrip().endswith(f"# {tag}") else f"{line} # {tag}"
     ok, text, err = read()
     if not ok:

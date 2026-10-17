@@ -61,6 +61,22 @@ class Cron(unittest.TestCase):
         self.assertIn("Ascend-V2-SYNC-tester", line)
         self.assertFalse(schedule.install(ws, "25:99")["ok"])
 
+    def test_a_line_break_or_percent_never_reaches_the_crontab(self):
+        import _cron
+        before = self.tab.read_text()
+        for bad in ("5 6 * * * run\n* * * * * touch /tmp/pwned", "5 6 * * * run\r* * * * * x", "5 6 * * * date +%s"):
+            self.assertFalse(_cron.install("Ascend-V2-SYNC-x", bad, Path(self.td.name))["ok"], bad)
+        self.assertEqual(self.tab.read_text(), before)
+
+    def test_schedule_refuses_a_workspace_path_it_cannot_trust(self):
+        import schedule
+        before = self.tab.read_text()
+        evil = Path(self.td.name) / "ws\n* * * * * touch /tmp/pwned #"
+        self.assertFalse(schedule.install(evil, "06:30")["ok"])
+        self.assertFalse(evil.exists())
+        self.assertFalse(schedule.install(REPO.parent / "not-a-workspace", "06:30")["ok"])
+        self.assertEqual(self.tab.read_text(), before)
+
 
 class Daily(unittest.TestCase):
     def setUp(self):
