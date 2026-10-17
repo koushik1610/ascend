@@ -24,6 +24,7 @@ import sys
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date
 from pathlib import Path
+from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
 TOOLS = Path(__file__).resolve().parent
@@ -44,7 +45,10 @@ UA = {"User-Agent": "Ascend/2.0 (job search; public board API)"}
 
 def _url(ats, slug):
     host, path = ENDPOINTS[ats]
-    return os.environ.get("ASCEND_ATS_BASE", host) + path.format(slug=slug)
+    override = os.environ.get("ASCEND_ATS_BASE", "")      # tests only, and only on this machine
+    if urlparse(override).hostname in ("127.0.0.1", "localhost"):
+        host = override.rstrip("/")
+    return host + path.format(slug=slug)
 
 
 def fetch_board(ats, slug):

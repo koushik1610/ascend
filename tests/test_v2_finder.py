@@ -25,6 +25,18 @@ def gh_job(i, title, loc="Remote - US", html="<p>Own <b>AWS</b> IAM guardrails</
             "content": html.replace("<", "&lt;").replace(">", "&gt;"), "updated_at": "2026-10-10T00:00:00Z"}
 
 
+
+class Override(unittest.TestCase):
+    def test_board_override_only_points_at_this_machine(self):
+        import finder
+        try:
+            os.environ["ASCEND_ATS_BASE"] = "https://evil.example"
+            self.assertTrue(finder._url("lever", "acme").startswith("https://api.lever.co/"))
+            os.environ["ASCEND_ATS_BASE"] = "http://127.0.0.1:9"
+            self.assertTrue(finder._url("lever", "acme").startswith("http://127.0.0.1:9/"))
+        finally:
+            os.environ.pop("ASCEND_ATS_BASE", None)
+
 class FakeATS:
     def __init__(self):
         self.boards = {}     # path -> payload, or None for a 500

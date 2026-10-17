@@ -47,10 +47,21 @@ from _paths import PathOutsideWorkspace  # noqa: E402
 
 SCOPE = "https://www.googleapis.com/auth/gmail.readonly"
 AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
-# Test-only overrides; production uses Google's endpoints.
-OAUTH_BASE = os.environ.get("ASCEND_GOOGLE_OAUTH_BASE", "https://oauth2.googleapis.com")
-API_BASE = os.environ.get("ASCEND_GMAIL_API_BASE", "https://gmail.googleapis.com")
-SKIP_LABELS = {"SENT", "DRAFT", "SPAM", "TRASH"}
+
+
+def _local_override(var, default):
+    """Test-only endpoint overrides, honoured only for this machine, so a stray environment variable can
+    never send the refresh token or client secret to another host."""
+    v = os.environ.get(var, "")
+    return v.rstrip("/") if urlparse(v).hostname in ("127.0.0.1", "localhost") else default
+
+
+OAUTH_BASE = _local_override("ASCEND_GOOGLE_OAUTH_BASE", "https://oauth2.googleapis.com")
+API_BASE = _local_override("ASCEND_GMAIL_API_BASE", "https://gmail.googleapis.com")
+# Ascend reads job mail. Sent mail, drafts, spam, trash and Gmail's promotions, social and forums tabs
+# are never fetched into the workspace (spec §8: collect only what tracking needs).
+SKIP_LABELS = {"SENT", "DRAFT", "SPAM", "TRASH", "CATEGORY_PROMOTIONS", "CATEGORY_SOCIAL", "CATEGORY_FORUMS"}
+QUERY_EXCLUDE = "-category:promotions -category:social -category:forums"
 EXCERPT = 2000
 KEYCHAIN_SERVICE = "ascend-gmail"
 
@@ -208,7 +219,11 @@ def _access_token(ws):
         tok = _post_form(OAUTH_BASE + "/token", {"client_id": client_id, "client_secret": client_secret,
                                                  "refresh_token": refresh, "grant_type": "refresh_token"})
     except HTTPError as e:
-        if e.code in (400, 401):
+        try:
+            err = json.loads(e.read().decode() or "{}").get("error")
+        except (ValueError, OSError):
+            err = None
+        if err == "invalid_grant":          # revoked or expired; anything else may be transient
             delete_refresh(slug)
             _save_state(ws, {"connected": False})
             raise NotConnected("Google revoked Ascend's access") from e
@@ -283,19 +298,30 @@ def sync(ws, days=30):
     dd = d.data_dir(ws)
     state = d.read_json(_state_path(ws), {})
     known = {m.get("msg_id") for m in d.read_jsonl(dd / "mail.jsonl")}
-    ids, mode = None, "query"
+    ids, mode, cursor = None, "query", None
     if state.get("history_id"):
         try:
-            h = _get(token, "history", {"startHistoryId": state["history_id"], "historyTypes": "messageAdded"})
-            ids = [a["message"]["id"] for rec in h.get("history", []) for a in rec.get("messagesAdded", [])]
+            ids, page = [], None
+            while True:
+                params = {"startHistoryId": state["history_id"], "historyTypes": "messageAdded"}
+                if page:
+                    params["pageToken"] = page
+                h = _get(token, "history", params)
+                ids += [a["message"]["id"] for rec in h.get("history", []) for a in rec.get("messagesAdded", [])]
+                cursor = cursor or h.get("historyId")      # where this read started, not where Gmail is now
+                page = h.get("nextPageToken")
+                if not page:
+                    break
             mode = "history"
         except HTTPError as e:
             if e.code != 404:       # 404 = cursor expired; anything else is a real failure
                 raise
+            ids = None
     if ids is None:
+        cursor = _get(token, "profile").get("historyId")   # taken before listing, so nothing slips between
         ids, page = [], None
         while True:
-            params = {"q": f"newer_than:{days}d", "maxResults": 100}
+            params = {"q": f"newer_than:{days}d {QUERY_EXCLUDE}", "maxResults": 100}
             if page:
                 params["pageToken"] = page
             r = _get(token, "messages", params)
@@ -307,15 +333,21 @@ def sync(ws, days=30):
     for mid in dict.fromkeys(ids):
         if mid in known:
             continue
-        row = message_to_mail(_get(token, f"messages/{mid}", {"format": "full"}))
+        try:
+            row = message_to_mail(_get(token, f"messages/{mid}", {"format": "full"}))
+        except HTTPError as e:
+            if e.code != 404:       # deleted between the listing and the fetch: skip it, keep going
+                raise
+            row = None
         known.add(mid)
         if row:
             d.append_jsonl(dd / "mail.jsonl", row)
             new += 1
     profile = _get(token, "profile")
-    _save_state(ws, {"connected": True, "history_id": profile.get("historyId"), "account": profile.get("emailAddress"),
+    cursor = cursor or profile.get("historyId")
+    _save_state(ws, {"connected": True, "history_id": cursor, "account": profile.get("emailAddress"),
                      "last_sync": datetime.now(timezone.utc).isoformat(timespec="seconds")})
-    return {"new": new, "mode": mode, "history_id": profile.get("historyId")}
+    return {"new": new, "mode": mode, "history_id": cursor}
 
 
 def add(ws, rows):

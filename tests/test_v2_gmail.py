@@ -45,6 +45,10 @@ class FakeGoogle:
         self.history_id = 100
         self.history_expired = False
         self.revoked = False
+        self.token_error = "invalid_grant"
+        self.history_page = 0      # >0: history answers in pages of this many records
+        self.deleted = set()       # message IDs listed by history but gone when fetched
+        self.on_profile = None     # called before profile answers: mail arriving mid-sync
         self.requests = []
         fake = self
 
@@ -65,7 +69,7 @@ class FakeGoogle:
                 form = parse_qs(self.rfile.read(n).decode())
                 fake.requests.append(("POST", self.path, form))
                 if fake.revoked:
-                    return self._json(400, {"error": "invalid_grant"})
+                    return self._json(400, {"error": fake.token_error})
                 return self._json(200, {"access_token": "at-123", "expires_in": 3600})
 
             def do_GET(self):
@@ -77,17 +81,29 @@ class FakeGoogle:
                 base = "/gmail/v1/users/me/"
                 p = u.path[len(base):]
                 if p == "profile":
+                    if fake.on_profile:
+                        fake.on_profile()
                     return self._json(200, {"emailAddress": "user@example.com", "historyId": str(fake.history_id)})
                 if p == "messages":
                     return self._json(200, {"messages": [{"id": m} for m in fake.messages]})
                 if p.startswith("messages/"):
-                    return self._json(200, fake.messages[p.split("/", 1)[1]])
+                    mid = p.split("/", 1)[1]
+                    if mid in fake.deleted or mid not in fake.messages:
+                        return self._json(404, {"error": {"code": 404}})
+                    return self._json(200, fake.messages[mid])
                 if p == "history":
                     if fake.history_expired:
                         return self._json(404, {"error": {"code": 404, "message": "Requested entity was not found."}})
                     start = int(q["startHistoryId"][0])
                     added = [{"messagesAdded": [{"message": {"id": mid}}]} for hid, mid in fake.history if hid > start]
-                    return self._json(200, {"history": added, "historyId": str(fake.history_id)})
+                    hid = str(fake.history_id)
+                    if fake.history_page:
+                        at = int(q.get("pageToken", ["0"])[0])
+                        page = added[at:at + fake.history_page]
+                        more = at + fake.history_page < len(added)
+                        return self._json(200, dict({"history": page, "historyId": hid},
+                                                    **({"nextPageToken": str(at + fake.history_page)} if more else {})))
+                    return self._json(200, {"history": added, "historyId": hid})
                 return self._json(404, {})
 
         self.server = ThreadingHTTPServer(("127.0.0.1", 0), H)
@@ -101,6 +117,14 @@ class FakeGoogle:
 
     def close(self):
         self.server.shutdown()
+
+
+class Overrides(unittest.TestCase):
+    def test_endpoint_overrides_only_point_at_this_machine(self):
+        env = dict(os.environ, ASCEND_GMAIL_API_BASE="https://evil.example", ASCEND_GOOGLE_OAUTH_BASE="http://127.0.0.1:9")
+        r = subprocess.run([sys.executable, "-c", "import sys; sys.path.insert(0, 'tools'); import gmail_sync as g; "
+                            "print(g.API_BASE, g.OAUTH_BASE)"], capture_output=True, text=True, env=env, cwd=str(REPO))
+        self.assertEqual(r.stdout.split(), ["https://gmail.googleapis.com", "http://127.0.0.1:9"])
 
 
 class Auth(unittest.TestCase):
@@ -208,6 +232,56 @@ class Sync(unittest.TestCase):
         self.assertIsNone(g.get_refresh("tester"))
         state = json.loads((self.ws / "data" / "sync-state.json").read_text())
         self.assertFalse(state["connected"])
+
+    def test_history_is_read_to_the_last_page(self):
+        self.connected()
+        self.fake.add(gmsg("p0", "Zero", "a@co.example", "zero"))
+        self.run_tool("sync", str(self.ws))
+        for i in range(1, 6):
+            self.fake.add(gmsg(f"p{i}", f"N{i}", "a@co.example", "x"))
+        self.fake.history_page = 2
+        out = json.loads(self.run_tool("sync", str(self.ws), "--json").stdout)
+        self.assertEqual((out["mode"], out["new"]), ("history", 5))
+
+    def test_mail_arriving_during_a_sync_is_picked_up_next_time(self):
+        self.connected()
+        self.fake.add(gmsg("r1", "One", "a@co.example", "one"))
+        late = gmsg("r2", "Arrived mid-sync", "talent@co.example", "Can you share availability?")
+        self.fake.on_profile = lambda: (self.fake.add(late), setattr(self.fake, "on_profile", None))
+        self.run_tool("sync", str(self.ws))
+        self.run_tool("sync", str(self.ws))
+        self.assertIn("r2", [m["msg_id"] for m in self.mail()])
+
+    def test_a_deleted_message_does_not_stall_the_sync(self):
+        self.connected()
+        self.fake.add(gmsg("d0", "Zero", "a@co.example", "zero"))
+        self.run_tool("sync", str(self.ws))
+        self.fake.add(gmsg("d1", "Gone", "a@co.example", "deleted before fetch"))
+        self.fake.add(gmsg("d2", "Kept", "a@co.example", "kept"))
+        self.fake.deleted.add("d1")
+        r = self.run_tool("sync", str(self.ws), "--json")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(json.loads(r.stdout)["new"], 1)
+        self.fake.add(gmsg("d3", "Next", "a@co.example", "next"))
+        self.assertEqual(json.loads(self.run_tool("sync", str(self.ws), "--json").stdout)["new"], 1)
+
+    def test_promotions_social_and_forums_are_not_stored(self):
+        self.connected()
+        self.fake.add(gmsg("e1", "Sale", "shop@store.example", "50% off", labels=["INBOX", "CATEGORY_PROMOTIONS"]))
+        self.fake.add(gmsg("e2", "Friend", "x@social.example", "tagged you", labels=["INBOX", "CATEGORY_SOCIAL"]))
+        self.fake.add(gmsg("e3", "Thanks for applying", "no-reply@ashbyhq.com", "received", labels=["INBOX", "CATEGORY_UPDATES"]))
+        self.run_tool("sync", str(self.ws))
+        self.assertEqual([m["msg_id"] for m in self.mail()], ["e3"])
+        q = [r[2].get("q", [""])[0] for r in self.fake.requests if r[1].endswith("/messages")]
+        self.assertIn("-category:promotions", q[0])
+
+    def test_a_transient_token_error_keeps_the_sign_in(self):
+        self.connected()
+        self.fake.revoked, self.fake.token_error = True, "invalid_request"
+        r = self.run_tool("sync", str(self.ws))
+        self.assertNotEqual(r.returncode, 0)
+        import gmail_sync as g
+        self.assertEqual(g.get_refresh("tester"), "rt-1")
 
     def test_file_store_is_private_and_outside_data(self):
         self.connected()
