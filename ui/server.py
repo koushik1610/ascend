@@ -222,32 +222,14 @@ def install_daily_brief(slug: str, hhmm: str, agent: str = ""):
         return {"ok": False, "manual": True,
                 "note": f"On Windows, schedule Task Scheduler to run: bash {wrapper} {slug} daily at {hhmm}."}
     line = (f"{m} {h} * * * /bin/bash {shlex.quote(str(wrapper))} {shlex.quote(slug)} "
-            f"{shlex.quote(agent)} >> {shlex.quote(str(logp))} 2>&1 # Ascend-DAILY-BRIEF-{slug}")
-    try:
-        # `crontab -l` exits non-zero both for "you have no crontab" (fine, stdout empty) and for a
-        # real failure such as macOS denying Full Disk Access (NOT fine, stdout also empty). The
-        # return code was never inspected, so any such failure looked like an empty crontab and we
-        # replaced the user's entire crontab with just the Ascend line, unrecoverably. Distinguish
-        # the two, and keep a backup either way (2026-08-20 council).
-        cur = subprocess.run(["crontab", "-l"], capture_output=True, text=True)
-        err = (cur.stderr or "").lower()
-        no_crontab = "no crontab" in err or not err.strip()
-        if cur.returncode != 0 and not no_crontab:
-            return {"ok": False, "manual": True, "error": (cur.stderr or "").strip(),
-                    "note": "Could not read your existing crontab, so nothing was changed (refusing "
-                            "to risk overwriting it). Add this line via `crontab -e`:\n" + line}
-        existing = cur.stdout.splitlines()
-        if existing:
-            bak = WORKSPACE / slug / "crontab.bak"
-            bak.parent.mkdir(parents=True, exist_ok=True)
-            bak.write_text(cur.stdout, encoding="utf-8")
-        kept = [l for l in existing if f"Ascend-DAILY-BRIEF-{slug}" not in l]
-        new = "\n".join(kept + [line]) + "\n"
-        subprocess.run(["crontab", "-"], input=new, text=True, check=True)
-        return {"ok": True, "time": hhmm, "preserved": len(kept)}
-    except Exception as e:
-        return {"ok": False, "error": str(e), "manual": True,
-                "note": f"Could not set cron automatically. Add this line via `crontab -e`:\n{line}"}
+            f"{shlex.quote(agent)} >> {shlex.quote(str(logp))} 2>&1")
+    # The crontab handling (refuse an unreadable crontab, back up, replace only our tagged line) now lives
+    # in tools/_cron.py, shared with the Ascend 2.0 sync scheduler (tools/schedule.py).
+    import _cron
+    out = _cron.install(f"Ascend-DAILY-BRIEF-{slug}", line, WORKSPACE / slug)
+    if out.get("ok"):
+        out["time"] = hhmm
+    return out
 
 
 def read_status(slug: str):

@@ -30,7 +30,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-PHASES = ["1", "2", "3", "4", "5", "6", "7", "11", "26"]
+PHASES = ["1", "2", "3", "4", "5", "6", "7", "11", "26", "27", "28", "29"]
 STATUSES = ["todo", "in-progress", "done"]
 
 

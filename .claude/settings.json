@@ -23,6 +23,8 @@
       "Bash(python3 tools/alerts.py*)",
       "Bash(python3 tools/run.py*)",
       "Bash(python3 tools/fakeform.py*)",
+      "Bash(python3 tools/schedule.py*)",
+      "Bash(python3 tools/daily.py*)",
       "Bash(python3 tools/apply.py*)",
       "Bash(python3 tools/jobqueue.py*)",
       "Bash(python3 tools/usage.py*)",

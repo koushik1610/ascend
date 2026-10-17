@@ -44,6 +44,7 @@ run. Delete it to wipe yourself entirely; run for a friend and they get their ow
   META: J13  Run it for someone else / wipe a person
   LOOP + LATE STAGE: J14 Weekly review · J15 Rejection · J16 Adjacent titles · J17 Offers
                      J18 Work sample · J19 References · J20 Industry language
+  ASCEND 2.0: J21 Daily sync · J22 Score and approve · J23 Apply · J24 Track replies
 ```
 
 The shape: **one setup**, then you live in the **loop** and react to **opportunities**. The dashboard
@@ -288,6 +289,31 @@ Each reacts to a real event and updates the dashboard.
   `workspace/<name>/industry-fit.md` (personal).
 - **Implemented by:** [`prompts/26-industry-language.md`](prompts/26-industry-language.md) and
   [`tools/industry_research.py`](tools/industry_research.py).
+
+
+### J21: The daily sync (Ascend 2.0)
+- **Trigger:** cron, from `python3 tools/schedule.py install workspace/<name> --at HH:MM`.
+- **Path:** `tools/daily.py`: Gmail sync and classify (engine A), ingest, finder, prefilter, alerts, hub
+  build. Zero tokens. A failing stage is logged and the rest still run.
+- **Ends with:** a current `hub.html` and a row in `data/run-log.jsonl`.
+
+### J22: Score and approve
+- **Trigger:** `/ascend run-v2`.
+- **Path:** `tools/run.py plan` (token estimate, prerequisite check) → Phase 27 scores the survivors with
+  reasons and gaps → the user approves or rejects in the served hub.
+- **Implemented by:** [`prompts/29-run-v2.md`](prompts/29-run-v2.md), [`prompts/27-score-queue.md`](prompts/27-score-queue.md).
+
+### J23: Apply
+- **Trigger:** an approved job; `/ascend apply`.
+- **Path:** `tools/apply.py sheet` gate → assisted (the user submits from the hub), agent-submit or
+  automatic (Claude in Chrome, stop rules, cap, pause) → `tools/apply.py record`.
+- **Implemented by:** [`prompts/28-apply.md`](prompts/28-apply.md).
+
+### J24: Track replies
+- **Trigger:** new mail.
+- **Path:** `classify.py` (rules, zero tokens) → the model resolves only what the rules leave
+  (`classify.py resolve`) → `pipeline.py ingest` moves each job → the hub pins info requests and
+  assessments with due dates.
 
 ---
 

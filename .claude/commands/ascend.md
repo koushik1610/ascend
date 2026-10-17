@@ -62,6 +62,21 @@ and `workspace/<name>/.ascend-state.json` first, then:
 - **`rejected <NN>`** → **Rejection Protocol** (`prompts/21-rejection-protocol.md`): capture what was
   actually said, verbatim, record the stage it died at, and activate a named replacement target.
   90 seconds. Never asks the user to theorize about why.
+**Ascend 2.0: find, apply, track** (`prompts/29-run-v2.md`, beta):
+- **`run-v2`** → one v2 run. Pick engine A (deterministic core, your own Gmail sign-in), B (Claude does
+  every stage) or C (core, Gmail through the claude.ai connector) and an apply mode (assisted,
+  agent-submit, fully automatic). `python3 tools/run.py plan` states the token estimate before anything is
+  spent and refuses a combination that cannot run.
+- **`apply`** → `prompts/28-apply.md`: approved jobs through one gate (`tools/apply.py sheet`: approved, not a
+  duplicate, résumé lint-clean, answers only from `data/profile.json`). Agent modes stop on any CAPTCHA,
+  sign-in or question the sheet cannot answer, and only open allow-listed ATS URLs.
+- **`linkedin-search`** → LinkedIn Jobs in the user's own browser, result cards only, added through
+  `tools/finder.py add --source linkedin`.
+- **`hub`** → `python3 tools/hub.py build workspace/<name>` (read-only file) or the served hub at
+  `/hub?slug=<name>` with Approve, Reject, Apply and the pause switch.
+- **`schedule`** → `python3 tools/schedule.py install workspace/<name> --at 06:30`: the daily zero-token
+  sync (`tools/daily.py`).
+
 - **`industry`** → **Industry Language** (`prompts/26-industry-language.md`): how people at the user's
   target level, in their field, phrase their work. Shared across users under
   `industryresearch/<industry>/<domain>/`, rebuilt only when not from this calendar month

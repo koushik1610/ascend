@@ -877,8 +877,10 @@ def test_council_gates():
 
     # (7) install_daily_brief ignored `crontab -l`'s return code, so a read failure looked like an
     #     empty crontab and every other cron job the user had was replaced.
+    #     The logic moved to tools/_cron.py (shared with the Ascend 2.0 scheduler); the server delegates.
+    cron = (REPO / "tools/_cron.py").read_text(encoding="utf-8")
     check("crontab install inspects the return code before replacing",
-          "cur.returncode" in srv and "crontab.bak" in srv)
+          "cur.returncode" in cron and "crontab.bak" in cron and "_cron.install(" in srv)
 
     # (8) CI installed no TeX engine, so the renderer's compile assertions silently skipped.
     ci = (REPO / ".github/workflows/ci.yml").read_text(encoding="utf-8")
@@ -1082,10 +1084,11 @@ def test_registry():
           set(reg["run_order"]) == set(reg["phases"]), f"{reg['run_order']} vs {list(reg['phases'])}")
     new_ops = [o["op"] for o in reg["ops"] if o.get("new")]
     check("this PR's new ops are registered",
-          set(new_ops) == {"industry"}, str(new_ops))
+          set(new_ops) == {"run-v2", "apply", "linkedin-search", "hub", "schedule"}, str(new_ops))
     # Each new prompt must exist and carry the injection quarantine, same bar as every other phase.
     for f in ("prompts/23-offer-compare.md", "prompts/24-work-sample.md",
-              "prompts/25-references.md", "prompts/26-industry-language.md"):
+              "prompts/25-references.md", "prompts/26-industry-language.md", "prompts/27-score-queue.md",
+              "prompts/28-apply.md", "prompts/29-run-v2.md"):
         txt = (REPO / f).read_text(encoding="utf-8") if (REPO / f).is_file() else ""
         check(f"{f} exists", bool(txt))
         check(f"{f} cites the injection quarantine", "untrusted-content-policy" in txt)

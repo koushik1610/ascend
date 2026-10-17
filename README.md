@@ -147,7 +147,7 @@ industryresearch/
 
 - **Monthly, shared, and skipped when fresh.** Every run calls
   `python3 tools/industry_research.py status <industry> <domain>`. If the file was built this calendar
-  month the run reuses it in seconds; otherwise it rebuilds it. The industry and domain come from your
+  month the run reuses it in seconds. Otherwise it rebuilds it. The industry and domain come from your
   intake, so a finance or journalism user gets their own field's reference, not a security engineer's.
 - **Phrasing, never facts.** Phases 3, 5 and 18 use it to choose how to say something true. What is
   true still comes only from your evidence. Your personal mapping against it (which clusters you can
@@ -155,12 +155,51 @@ industryresearch/
 - **Anonymized.** No names, no profile URLs, no employer attached to a person's career path, and
   phrases are short fragments rather than copied bullets. See [`industryresearch/README.md`](industryresearch/README.md).
 - **The one shared write.** This folder is the only place a run writes outside `workspace/`, through a
-  scoped `Write(industryresearch/**)` permission. Whether to commit a refreshed file back is your call;
+  scoped `Write(industryresearch/**)` permission. Whether to commit a refreshed file back is your call:
   it holds no personal data by construction.
 
 First master résumé draft feeling weak? That is the system working: the bullet-quality gate flags
 weak bullets and tells you what evidence would fix them. Expect one revision pass. The iteration is
 where the quality comes from.
+
+## Ascend 2.0 (beta): find, apply, track
+
+Version 1 builds the apply packs. Version 2 keeps the search running: it finds matching roles every day,
+applies in the mode you choose, and reads your inbox to track what happened, all on your machine.
+
+```
+  every day, zero tokens      finder (public ATS boards) → prefilter → alerts → Gmail sync → classify → ledger → hub
+  when you run it             score the survivors (Phase 27) → you approve → apply (Phase 28) → hub
+```
+
+**You choose two things per run, and see the token estimate before anything is spent**
+(`python3 tools/run.py plan workspace/<you> --engine A --mode assisted`):
+
+| Engine | How it gathers | Setup |
+|---|---|---|
+| **A** deterministic core | Python reads the job boards and your Gmail (your own Google sign-in, read-only) | a Google Cloud OAuth client, once ([docs/GMAIL-SETUP.md](docs/GMAIL-SETUP.md)) |
+| **B** agent-driven | Claude does every stage, including web search | none, but the most tokens |
+| **C** core + connector | Python reads the boards; Claude reads Gmail through the claude.ai connector | none |
+
+| Apply mode | What happens |
+|---|---|
+| **assisted** | The hub shows the apply sheet, the answers to copy, the résumé and the link. You submit. |
+| **agent-submit** | Claude in Chrome fills and submits each job you approved. |
+| **fully automatic** | The same, without per-job approval, up to a daily cap, with a pause switch and an automatic pause when replies dry up. |
+
+Every mode goes through one gate first: the job is approved (or matched at a high fit in automatic
+mode), it is not a duplicate, its résumé passes the linter, and every answer comes from your own
+profile. Work authorization, sponsorship, salary and start date are never filled for you. The agent
+stops on any CAPTCHA, sign-in or question it cannot answer, and only opens job links on known
+application systems, never links from email.
+
+**The hub** (`python3 tools/hub.py build workspace/<you>`, or served with actions at `/hub?slug=<you>`)
+shows the funnel from found to offer, this week's applications, replies and interviews, the mail
+waiting on you with its due date, a queue you approve from, a classified inbox, and token spend by
+stage. **`python3 tools/schedule.py install workspace/<you> --at 06:30`** runs the zero-token part every
+morning.
+
+What has run on real data and what is still beta: [docs/V2-READINESS.md](docs/V2-READINESS.md).
 
 ## Day-to-day
 
@@ -201,6 +240,11 @@ reading nothing.
 | "Ascend negotiate Acme" *(beta)* | Salary plan: market anchors, your numbers, scripts |
 | "Run Ascend maintenance" *(beta)* | Weekly: new/closed jobs, follow-ups due, retro patterns |
 | "Ascend industry" *(beta)* | Rebuild or inspect the phrasing reference for your field (runs monthly by itself) |
+| "Ascend run-v2" *(beta)* | Ascend 2.0 run: choose engine and apply mode, see the token estimate, find, score, track |
+| "Ascend apply" *(beta)* | Apply to approved jobs in the run's mode, through one gate |
+| "Ascend linkedin-search" *(beta)* | LinkedIn Jobs in your own browser, result cards only |
+| "Ascend hub" *(beta)* | The live dashboard: funnel, queue with approve and apply, inbox, token spend |
+| "Ascend schedule" *(beta)* | Run the zero-token daily sync on a schedule |
 | "Ascend titles" *(beta)* | Job titles your own evidence already supports, that you aren't searching for |
 | "Ascend offers" *(beta)* | Compare offers component by component, read the letter, work the timeline |
 | "Ascend work-sample" *(beta)* | The portfolio piece or take-home that decides the loop: build one, re-angle per job |

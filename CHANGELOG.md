@@ -11,6 +11,17 @@ _Working toward v1.0. Real-run gate: **1 of 2–3 runs signed off** (2026-07-01,
 see `docs/ROADMAP.md` → sign-off log); cases (b) no-résumé/non-tech and (c) resume-after-interruption
 remain, plus a green CI run on the remote + a demo GIF._
 
+### Added: Ascend 2.0 (beta), M10 scheduling and release (branch `ascend-v2`)
+**Ascend 2.0 finds jobs every day, applies in the mode you choose, and tracks replies from your inbox.**
+It is beta: see `docs/V2-READINESS.md` for what has run on real data and what has not.
+- **`tools/daily.py`** runs the zero-token sync (Gmail when engine A is connected, classify, ingest,
+  finder, prefilter, alerts, hub), each stage isolated, one row per run in `data/run-log.jsonl`.
+  **`tools/schedule.py install WS --at HH:MM`** schedules it.
+- **`tools/_cron.py`**: the daily brief's safe crontab handling, now shared with the v2 scheduler.
+- Registered: ops `run-v2`, `apply`, `linkedin-search`, `hub`, `schedule`; phases 27 to 29; README
+  "Ascend 2.0" section; WORKFLOW J21 to J24.
+- Real check: the sync ran on a real workspace in 21 seconds with every stage passing.
+
 ### Added: Ascend 2.0, M9 engines B and C, LinkedIn search (branch `ascend-v2`)
 - **`finder.py add`** and **`gmail_sync.py add`**: rows Claude produces (engine B's web search,
   engines B and C's Gmail reads through the connector, LinkedIn search) go through the same validation as
