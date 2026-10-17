@@ -51,7 +51,8 @@ A to C, and cron instead of launchd (a sleeping Mac skips that day's sync).
   and a fetch. This repo allows `WebFetch` for every domain, and a narrower local allow does not override
   it. Close it with `"ask": ["WebFetch"]` (every fetch asks you) or, on engine C, `"deny": ["WebFetch"]` in
   your own `.claude/settings.local.json`. The search also misses a recruiter writing from a personal
-  address with no job word in the subject.
+  address with no job word in the subject, and a thread whose subject names only the company ("Acme:
+  Thursday?"). Engine A reads all mail and has neither gap.
 - **LinkedIn search** runs in your logged-in browser. "Never use Easy Apply" is an instruction to Claude,
   not a setting. Claude in Chrome's per-action permission prompts are the guard, so keep them on.
 - **Engine A in Google's Testing mode** signs you out after about seven days. The daily sync then fails
