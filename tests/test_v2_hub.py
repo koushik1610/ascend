@@ -145,6 +145,36 @@ class Compute(unittest.TestCase):
         self.assertEqual((out["rates"]["reply"], out["rates"]["positive"]), (1.0, 0.0))
         self.assertIn("positive", out["warning"])
 
+    def v2_ws(self, sends, interviews):
+        import _v2data as d
+        ws = make_ws(self.td.name, [(f"{i:02d}-co{i}", f"Co{i}", "Engineer", "applied") for i in range(sends)])
+        d.write_json_atomic(ws / "data" / "queue.json", {"jobs": [
+            {"posting_id": f"gh:co{i}:{i}", "company": f"Co{i}", "title": "Engineer", "nn": f"{i:02d}", "state": "applied"}
+            for i in range(sends)]})
+        for i in range(sends):
+            d.append_jsonl(ws / "data" / "apply-log.jsonl", {"posting_id": f"gh:co{i}:{i}", "result": "submitted",
+                                                             "at": f"2026-09-{1 + i % 28:02d}T09:{i % 60:02d}:00"})
+        for i in range(interviews):
+            d.append_jsonl(ws / "data" / "events.jsonl", {"msg_id": f"iv{i}", "category": "interview-invite",
+                                                          "match": f"{i:02d}", "date": "2026-10-01T00:00:00Z"})
+        return ws
+
+    def test_callback_gate_waits_for_fifty_v2_sends(self):
+        import hub
+        g = hub.compute(self.v2_ws(12, 1), today=TODAY)["callback_gate"]
+        self.assertEqual((g["sends"], g["interview_rate"], g["baseline"]), (12, None, 0.003))
+        self.assertIn("12 of 50", g["note"])
+
+    def test_callback_gate_measures_the_first_fifty_v2_sends_only(self):
+        import _v2data as d
+        import hub
+        ws = self.v2_ws(55, 2)
+        ledger(ws, [("99-v1-only", "2026-08-01", "queued", "screen", "log", "-")])     # a v1 interview never counts
+        g = hub.compute(ws, today=TODAY)["callback_gate"]
+        self.assertEqual((g["sends"], g["interviews"], g["interview_rate"]), (50, 2, 0.04))
+        self.assertTrue(g["beats_baseline"])
+        self.assertIn('id="callbackGate"', hub.render(ws, today=TODAY))
+
     def test_inbox_newest_first_with_job_names(self):
         import hub
         out = hub.compute(seed(self.td.name), today=TODAY)

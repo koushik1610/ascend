@@ -25,9 +25,9 @@ import _v2data as d  # noqa: E402
 
 CHARS_PER_TOKEN = 4
 BASE_DAILY = {"A": 85_000, "B": 700_000, "C": 140_000}      # finding + mail, before any application
-PER_JOB = {"assisted": 7_500, "agent": 55_000, "automatic": 55_000}
-JOB_STAGES = {"assisted": ["score", "tailor"], "agent": ["score", "tailor", "apply"],
-              "automatic": ["score", "tailor", "apply"]}
+BASE_STAGES = ("mail", "web_search", "linkedin_search")     # what a day costs before any application
+STAGE_DEFAULT = {"score": 3_000, "tailor": 4_500}           # per application, until measured
+JOB_STAGES = {"assisted": ["score", "tailor"]}
 MIN_SAMPLES = 3
 
 
@@ -48,16 +48,30 @@ def _per_item(rows):
     return sum(r.get("input_tokens", 0) + r.get("output_tokens", 0) for r in rows) / n
 
 
-def estimate(ws, engine, mode, jobs=20):
+def estimate(ws, engine, mode="assisted", jobs=20):
+    """Each stage uses its own measured average once it has MIN_SAMPLES records, else its default, so the
+    estimate moves toward real figures one stage at a time. The daily base is measured per recorded day."""
     rows = d.read_jsonl(Path(ws) / "data" / "usage.jsonl")
     by_stage = {}
     for r in rows:
         by_stage.setdefault(r.get("stage"), []).append(r)
-    stages = JOB_STAGES[mode]
-    measured = all(len(by_stage.get(s, [])) >= MIN_SAMPLES for s in stages)
-    per_job = round(sum(_per_item(by_stage[s]) for s in stages)) if measured else PER_JOB[mode]
-    return {"engine": engine, "mode": mode, "jobs": jobs, "per_job": per_job,
-            "daily": BASE_DAILY[engine] + jobs * per_job, "basis": "measured" if measured else "default"}
+    stages, per_job = {}, 0
+    for s in JOB_STAGES[mode]:
+        got = by_stage.get(s, [])
+        stages[s] = "measured" if len(got) >= MIN_SAMPLES else "default"
+        per_job += _per_item(got) if len(got) >= MIN_SAMPLES else STAGE_DEFAULT[s]
+    days = {}
+    for r in rows:
+        if r.get("stage") in BASE_STAGES and r.get("engine") in (engine, None):
+            day = str(r.get("at", ""))[:10]
+            days[day] = days.get(day, 0) + r.get("input_tokens", 0) + r.get("output_tokens", 0)
+    stages["base"] = "measured" if len(days) >= MIN_SAMPLES else "default"
+    base = round(sum(days.values()) / len(days)) if len(days) >= MIN_SAMPLES else BASE_DAILY[engine]
+    kinds = set(stages.values())
+    basis = "measured" if kinds == {"measured"} else "default" if kinds == {"default"} else "partly measured"
+    per_job = round(per_job)
+    return {"engine": engine, "mode": mode, "jobs": jobs, "per_job": per_job, "daily": base + jobs * per_job,
+            "basis": basis, "stages": stages}
 
 
 def summary(ws):

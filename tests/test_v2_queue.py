@@ -60,7 +60,24 @@ class Usage(unittest.TestCase):
             usage.record(self.ws, "score", chars_in=8000, chars_out=0, engine="A", mode="assisted")
             usage.record(self.ws, "tailor", chars_in=12000, chars_out=0, engine="A", mode="assisted")
         e = usage.estimate(self.ws, "A", "assisted", jobs=20)
-        self.assertEqual((e["basis"], e["per_job"]), ("measured", 5000))
+        self.assertEqual((e["basis"], e["per_job"]), ("partly measured", 5000))   # the daily base is not measured yet
+
+    def test_each_stage_replaces_its_default_on_its_own(self):
+        import usage
+        for _ in range(3):
+            usage.record(self.ws, "score", chars_in=2000, chars_out=200, engine="C", mode="assisted")
+        e = usage.estimate(self.ws, "C", "assisted", jobs=20)
+        self.assertEqual((e["basis"], e["per_job"]), ("partly measured", 550 + usage.STAGE_DEFAULT["tailor"]))
+        self.assertEqual(e["stages"], {"score": "measured", "tailor": "default", "base": "default"})
+
+    def test_the_daily_base_is_measured_from_recorded_days(self):
+        import _v2data as d
+        import usage
+        for day in ("2026-10-01", "2026-10-02", "2026-10-03"):
+            d.append_jsonl(self.ws / "data" / "usage.jsonl", {"stage": "mail", "input_tokens": 9000, "output_tokens": 1000,
+                                                              "engine": "C", "items": 1, "at": f"{day}T08:00:00"})
+        e = usage.estimate(self.ws, "C", "assisted", jobs=0)
+        self.assertEqual((e["daily"], e["stages"]["base"]), (10000, "measured"))
 
 
 class Queue(unittest.TestCase):

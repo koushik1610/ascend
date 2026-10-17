@@ -8,7 +8,7 @@ first stage of a v2 run that spends tokens, so it reads as little as a good judg
 
 **Read first:** `master-resume.md` (the evidence), `industry-fit.md` (which keyword clusters the user can
 claim), `intake.md` (targets, floor, walk-away), and the run settings:
-`python3 tools/run.py plan workspace/<name> --engine <E> --mode <M>` (shows the token estimate. Stop and
+`python3 tools/run.py plan workspace/<name> --engine <E>` (shows the token estimate. Stop and
 tell the user if it reports problems).
 
 ---
@@ -41,7 +41,7 @@ python3 tools/jobqueue.py score workspace/<name> <posting_id> --fit <0-100> --wh
 Once per batch, record the characters you read (the candidates output plus anything fetched) and wrote:
 
 ```
-python3 tools/usage.py record workspace/<name> --stage score --chars-in <N> --chars-out <N> --items <jobs scored> --engine <E> --mode <M>
+python3 tools/usage.py record workspace/<name> --stage score --chars-in <N> --chars-out <N> --items <jobs scored> --engine <E>
 ```
 
 ## Step 4. Rebuild the hub

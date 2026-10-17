@@ -72,6 +72,7 @@
     <h2>Needs a reply</h2><div class="panel" id="pinned"></div>
     <h2>Pipeline</h2><div class="panel funnel" id="funnel"></div>
     <h2>Rates</h2><div class="panel" id="rates"></div>
+    <h2>Interviews from v2 applications</h2><div class="panel sub" id="callbackGate"></div>
     <h2>Token spend</h2><div class="panel" id="tokens"></div>
   </section>
 
@@ -105,6 +106,7 @@ document.querySelectorAll("nav button").forEach(b => b.addEventListener("click",
 const w = D.week;
 $("week").innerHTML = [["Applied", w.applied], ["Replies", w.replies], ["Interviews", w.interviews]]
   .map(([l, v]) => `<div class="stat"><div class="v">${esc(v)}</div><div class="l">${l} this week</div></div>`).join("");
+if (D.callback_gate) $("callbackGate").textContent = D.callback_gate.note;
 if (D.gmail && D.gmail.warning) $("gmailStatus").innerHTML = `<div class="banner">${esc(D.gmail.warning)}</div>`;
 if (D.warning) $("warning").innerHTML = `<div class="banner">${esc(D.warning)}</div>`;
 
@@ -127,7 +129,7 @@ $("tokens").innerHTML = D.tokens
 const S = D.server || null;   // present only when ui/server.py serves the hub with a session token
 if (D.run) {
   const e = D.run.estimate;
-  $("runLine").textContent = `Engine ${D.run.engine} · ${D.run.mode} · about ${e.daily.toLocaleString()} tokens a day at ${e.jobs} applications (${e.basis === "measured" ? "from your runs" : "default estimate"})`;
+  $("runLine").textContent = `Engine ${D.run.engine} · ${D.run.mode} · about ${e.daily.toLocaleString()} tokens a day at ${e.jobs} applications (${e.basis === "measured" ? "estimated from your runs" : e.basis === "partly measured" ? "partly from your runs" : "default estimate"})`;
 }
 const ACTIONABLE = new Set(["matched", "needs-you", "queued"]);
 function queueRow(q) {
