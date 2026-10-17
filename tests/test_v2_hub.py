@@ -111,6 +111,27 @@ class Compute(unittest.TestCase):
         log.write_text(log.read_text().replace("status: applied", "status: screen"))
         self.assertEqual(hub.compute(ws, today=TODAY)["pinned"], [])
 
+    def test_week_counts_jobs_not_emails(self):
+        import _v2data as d
+        import hub
+        ws = seed(self.td.name)
+        for i, day in enumerate(["2026-10-14", "2026-10-15"]):
+            d.append_jsonl(ws / "data" / "events.jsonl",
+                           {"msg_id": f"g{i}", "category": "interview-invite", "match": "03",
+                            "date": f"{day}T09:00:00Z", "subject": "Interview", "from": "x@litware.example"})
+        self.assertEqual(hub.compute(ws, today=TODAY)["week"]["interviews"], 1)
+
+    def test_inbox_takes_subject_and_sender_from_mail(self):
+        import _v2data as d
+        import hub
+        ws = make_ws(self.td.name, [])
+        d.append_jsonl(ws / "data" / "mail.jsonl", {"msg_id": "z1", "from": "talent@co.example",
+                                                     "subject": "Interview invitation", "date": "2026-10-15T09:00:00Z"})
+        d.append_jsonl(ws / "data" / "events.jsonl", {"msg_id": "z1", "category": "interview-invite", "match": None,
+                                                       "date": "2026-10-15T09:00:00Z"})
+        row = hub.compute(ws, today=TODAY)["inbox"][0]
+        self.assertEqual((row["subject"], row["from"]), ("Interview invitation", "talent@co.example"))
+
     def test_queue_rows(self):
         import hub
         q = hub.compute(seed(self.td.name), today=TODAY)["queue"]
@@ -127,6 +148,65 @@ class Compute(unittest.TestCase):
             d.append_jsonl(ws / "data" / "usage.jsonl", row)
         t = hub.compute(ws, today=TODAY)["tokens"]
         self.assertEqual((t["by_stage"], t["total"]), ({"score": 1800, "tailor": 3900}, 5700))
+
+
+class Build(unittest.TestCase):
+    def setUp(self):
+        self.td = tempfile.TemporaryDirectory()
+        self.ws = seed(self.td.name)
+
+    def tearDown(self):
+        self.td.cleanup()
+
+    def test_writes_page_with_embedded_data(self):
+        import hub
+        out = hub.build(self.ws, today=TODAY)
+        html = out.read_text()
+        self.assertEqual(out, (self.ws / "hub.html").resolve())
+        m = __import__("re").search(r'<script type="application/json" id="hub-data">(.*?)</script>', html, 16)
+        self.assertEqual(json.loads(m.group(1))["funnel"][0], {"stage": "found", "count": 5})
+        self.assertNotIn("__HUB_DATA__", html)
+
+    def test_hostile_subject_cannot_close_the_script(self):
+        import _v2data as d
+        import hub
+        d.append_jsonl(self.ws / "data" / "events.jsonl",
+                       {"msg_id": "x1", "category": "other", "match": None, "date": "2026-10-16T09:00:00Z",
+                        "subject": "</script><img src=x onerror=alert(1)>", "from": "a@b.example"})
+        html = hub.build(self.ws, today=TODAY).read_text()
+        self.assertEqual(html.lower().count("</script"), html.lower().count("<script"))
+        self.assertNotIn("<img src=x", html)
+
+    def test_page_cannot_call_out(self):
+        import hub
+        html = hub.build(self.ws, today=TODAY).read_text()
+        self.assertIn("connect-src 'none'", html)
+        self.assertNotIn("fetch(", html)
+
+    def test_cli(self):
+        r = subprocess.run([sys.executable, str(REPO / "tools/hub.py"), "build", str(self.ws), "--today", TODAY],
+                           capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertTrue((self.ws / "hub.html").is_file())
+        r = subprocess.run([sys.executable, str(REPO / "tools/hub.py"), "build", str(self.ws), "--json",
+                            "--today", TODAY], capture_output=True, text=True)
+        self.assertEqual(json.loads(r.stdout)["week"]["applied"], 1)
+
+    def test_template_declares_no_browser_global_names(self):
+        # `const top = ...` at script top level throws "Identifier 'top' has already been declared"
+        # in a browser (window.top), which silently blanks the whole page. Caught on the real hub.
+        import re
+        html = (REPO / "templates/hub.template.html").read_text()
+        script = html.split('<script>', 1)[1]
+        clash = {"top", "name", "length", "status", "parent", "self", "location", "history", "event",
+                 "origin", "frames", "opener", "closed", "screen", "navigator", "document", "window"}
+        declared = set(re.findall(r"^(?:const|let|var|function)\s+([A-Za-z_$][\w$]*)", script, re.M))
+        self.assertEqual(declared & clash, set())
+
+    def test_refuses_outside_allowed_roots(self):
+        r = subprocess.run([sys.executable, str(REPO / "tools/hub.py"), "build", "/etc/ascend-ws"],
+                           capture_output=True, text=True)
+        self.assertEqual(r.returncode, 2)
 
 
 if __name__ == "__main__":

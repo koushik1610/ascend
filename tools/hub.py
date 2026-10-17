@@ -102,9 +102,15 @@ def compute(ws, today=None):
 
     week_start = today - timedelta(days=6)
     in_week = lambda day: day is not None and week_start <= day <= today  # noqa: E731
-    week = {"applied": sum(1 for r in ledger if r["to"] == "applied" and in_week(_day(r["date"]))),
-            "replies": sum(1 for e in events if e.get("category") in REPLY_CATEGORIES and in_week(_day(e.get("date")))),
-            "interviews": sum(1 for e in events if e.get("category") == "interview-invite" and in_week(_day(e.get("date"))))}
+    def distinct(categories):
+        # A reminder and an availability request about one interview are one interview: count jobs,
+        # and count unmatched mail per message since there is no job to collapse it into.
+        keys = {slug_for(e.get("match")) or ("msg", e.get("msg_id")) for e in events
+                if e.get("category") in categories and in_week(_day(e.get("date")))}
+        return len(keys)
+
+    week = {"applied": len({r["slug"] for r in ledger if r["to"] == "applied" and in_week(_day(r["date"]))}),
+            "replies": distinct(REPLY_CATEGORIES), "interviews": distinct({"interview-invite"})}
 
     n = len(applied_on)
     rates, warning = {"reply": None, "ghost": None}, None
@@ -123,11 +129,13 @@ def compute(ws, today=None):
         j = jobs[slug]
         return f"{j['nn']} {j['company']}"
 
+    mail = {m.get("msg_id"): m for m in d.read_jsonl(data / "mail.jsonl")}
     inbox, pinned = [], []
     for e in sorted(events, key=lambda e: e.get("date") or "", reverse=True):
         slug = slug_for(e.get("match"))
-        row = {"msg_id": e.get("msg_id"), "category": e.get("category"), "subject": e.get("subject", ""),
-               "from": e.get("from", ""), "date": (e.get("date") or "")[:10], "job": label(slug),
+        m = mail.get(e.get("msg_id"), {})
+        row = {"msg_id": e.get("msg_id"), "category": e.get("category"),
+               "subject": e.get("subject") or m.get("subject", ""), "from": e.get("from") or m.get("from", ""), "date": (e.get("date") or "")[:10], "job": label(slug),
                "due": e.get("due"), "needs_llm": bool(e.get("needs_llm")),
                "gmail_url": f"https://mail.google.com/mail/u/0/#all/{e.get('msg_id')}"}
         inbox.append(row)
@@ -154,3 +162,37 @@ def compute(ws, today=None):
 
     return {"as_of": today.isoformat(), "funnel": funnel, "week": week, "rates": rates, "warning": warning,
             "inbox": inbox, "pinned": pinned, "queue": rows, "tokens": tokens}
+
+
+def build(ws, today=None):
+    """Write ws/hub.html with the computed data embedded. Returns the path."""
+    out = resolve_out(str(Path(ws) / "hub.html"))
+    data = compute(ws, today)
+    # JSON inside <script>: escape <, > and & so no value (an email subject, say) can close the
+    # block or open a tag. JSON.parse reads < back as "<"; the browser's HTML parser never sees it.
+    blob = json.dumps(data, ensure_ascii=False).replace("&", "\\u0026").replace("<", "\\u003c").replace(">", "\\u003e")
+    html = TEMPLATE.read_text(encoding="utf-8").replace("__HUB_DATA__", blob)
+    out.write_text(html, encoding="utf-8")
+    return out
+
+
+def main(argv):
+    if len(argv) < 3 or argv[1] != "build" or argv[2].startswith("--"):
+        print(__doc__, file=sys.stderr)
+        return 2
+    args = argv[3:]
+    today = args[args.index("--today") + 1] if "--today" in args and args.index("--today") + 1 < len(args) else None
+    try:
+        if "--json" in args:
+            resolve_out(str(Path(argv[2]) / "hub.html"))
+            print(json.dumps(compute(argv[2], today)))
+            return 0
+        print(build(argv[2], today))
+    except PathOutsideWorkspace as e:
+        print(f"hub: {e}", file=sys.stderr)
+        return 2
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))

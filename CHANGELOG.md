@@ -11,6 +11,16 @@ _Working toward v1.0. Real-run gate: **1 of 2–3 runs signed off** (2026-07-01,
 see `docs/ROADMAP.md` → sign-off log); cases (b) no-résumé/non-tech and (c) resume-after-interruption
 remain, plus a green CI run on the remote + a demo GIF._
 
+### Added: Ascend 2.0, M3 hub dashboard (branch `ascend-v2`)
+- **`tools/hub.py build WS`** writes `workspace/<name>/hub.html`: Dashboard (this week's
+  applications, replies and interviews counted by job, a funnel from found to offer, mail waiting on
+  you pinned with its due date, reply and ghost rates once there are 10 applications, token spend by
+  stage), Queue, and Inbox (filterable, linked to Gmail and to the job). Built from the data files at
+  zero tokens. The data is embedded with `<`, `>` and `&` escaped, and the page's CSP forbids every
+  network call.
+- Checked on a real workspace in the browser. That caught a script that blanked the page (`const top`
+  shadows `window.top`), now pinned by a test that rejects browser-global names in the template.
+
 ### Added: Ascend 2.0, M2 ledger ingest and duplicate guard (branch `ascend-v2`)
 - **`pipeline.py ingest WS`** turns classified mail into status changes: acknowledgement → applied,
   info request or assessment → responded (with the due date), interview invite → screen, rejection →

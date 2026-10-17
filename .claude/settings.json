@@ -17,6 +17,7 @@
       "Bash(python3 tools/grade_run.py*)",
       "Bash(python3 tools/industry_research.py*)",
       "Bash(python3 tools/classify.py*)",
+      "Bash(python3 tools/hub.py*)",
       "Bash(mkdir -p workspace/*)",
       "Bash(mkdir workspace/*)",
       "Bash(rm -f workspace/*)",
