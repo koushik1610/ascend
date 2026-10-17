@@ -54,8 +54,19 @@
     {"op": "references",    "status": "beta",
      "what": "A consent-tracked reference bench, plus the brief that changes the call"},
 
-    {"op": "industry",      "status": "beta", "new": true,
-     "what": "How people at your target level write about their work: a monthly, shared phrasing reference"}
+    {"op": "industry",      "status": "beta",
+     "what": "How people at your target level write about their work: a monthly, shared phrasing reference"},
+
+    {"op": "run-v2",        "status": "beta", "new": true,
+     "what": "Ascend 2.0 run: pick an engine (token estimate and permissions shown), find, score, track"},
+    {"op": "apply",         "status": "beta", "new": true,
+     "what": "Apply to approved jobs: a gated apply sheet in the hub, you submit"},
+    {"op": "linkedin-search", "status": "beta", "new": true,
+     "what": "Search LinkedIn Jobs in your own browser, result cards only, into the finder"},
+    {"op": "hub",           "status": "beta", "new": true,
+     "what": "The live dashboard: funnel, queue with approve and apply, classified inbox, token spend"},
+    {"op": "schedule",      "status": "beta", "new": true,
+     "what": "Run the zero-token sync (Gmail, boards, filters, hub) every day"}
   ],
   "skills": {
     "_comment": [

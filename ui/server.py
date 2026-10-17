@@ -21,6 +21,7 @@ REPO = Path(__file__).resolve().parent.parent          # ascend/
 UIDIR = REPO / "ui"
 TEMPLATES = REPO / "templates"
 WORKSPACE = REPO / "workspace"
+sys.path.insert(0, str(REPO / "tools"))     # Ascend 2.0 tools (hub, jobqueue)
 
 # Set in main(). The server is local-only, but a localhost port is still reachable by any site you
 # visit while it runs, so we defend against CSRF and DNS-rebinding:
@@ -221,32 +222,14 @@ def install_daily_brief(slug: str, hhmm: str, agent: str = ""):
         return {"ok": False, "manual": True,
                 "note": f"On Windows, schedule Task Scheduler to run: bash {wrapper} {slug} daily at {hhmm}."}
     line = (f"{m} {h} * * * /bin/bash {shlex.quote(str(wrapper))} {shlex.quote(slug)} "
-            f"{shlex.quote(agent)} >> {shlex.quote(str(logp))} 2>&1 # Ascend-DAILY-BRIEF-{slug}")
-    try:
-        # `crontab -l` exits non-zero both for "you have no crontab" (fine, stdout empty) and for a
-        # real failure such as macOS denying Full Disk Access (NOT fine, stdout also empty). The
-        # return code was never inspected, so any such failure looked like an empty crontab and we
-        # replaced the user's entire crontab with just the Ascend line, unrecoverably. Distinguish
-        # the two, and keep a backup either way (2026-08-20 council).
-        cur = subprocess.run(["crontab", "-l"], capture_output=True, text=True)
-        err = (cur.stderr or "").lower()
-        no_crontab = "no crontab" in err or not err.strip()
-        if cur.returncode != 0 and not no_crontab:
-            return {"ok": False, "manual": True, "error": (cur.stderr or "").strip(),
-                    "note": "Could not read your existing crontab, so nothing was changed (refusing "
-                            "to risk overwriting it). Add this line via `crontab -e`:\n" + line}
-        existing = cur.stdout.splitlines()
-        if existing:
-            bak = WORKSPACE / slug / "crontab.bak"
-            bak.parent.mkdir(parents=True, exist_ok=True)
-            bak.write_text(cur.stdout, encoding="utf-8")
-        kept = [l for l in existing if f"Ascend-DAILY-BRIEF-{slug}" not in l]
-        new = "\n".join(kept + [line]) + "\n"
-        subprocess.run(["crontab", "-"], input=new, text=True, check=True)
-        return {"ok": True, "time": hhmm, "preserved": len(kept)}
-    except Exception as e:
-        return {"ok": False, "error": str(e), "manual": True,
-                "note": f"Could not set cron automatically. Add this line via `crontab -e`:\n{line}"}
+            f"{shlex.quote(agent)} >> {shlex.quote(str(logp))} 2>&1")
+    # The crontab handling (refuse an unreadable crontab, back up, replace only our tagged line) now lives
+    # in tools/_cron.py, shared with the Ascend 2.0 sync scheduler (tools/schedule.py).
+    import _cron
+    out = _cron.install(f"Ascend-DAILY-BRIEF-{slug}", line, WORKSPACE / slug)
+    if out.get("ok"):
+        out["time"] = hhmm
+    return out
 
 
 def read_status(slug: str):
@@ -432,6 +415,14 @@ class Handler(BaseHTTPRequestHandler):
         if u.path == "/api/exists":     # does a finished report already exist for this name?
             slug = slugify(parse_qs(u.query).get("name", [""])[0])
             return self._send(200, {"slug": slug, "hasReport": (WORKSPACE / slug / "start-here.html").exists()})
+        if u.path == "/hub":     # Ascend 2.0 hub, built on request, with the token for queue actions
+            slug = slugify(parse_qs(u.query).get("slug", [""])[0])
+            ws = WORKSPACE / slug
+            if not ws.is_dir():
+                return self._send(404, {"error": "no such workspace"})
+            import hub
+            html = hub.render(ws, server={"token": TOKEN, "slug": slug})
+            return self._send(200, html, "text/html; charset=utf-8", FRAME_HEADERS_DENY)
         if u.path.startswith("/view/"):
             return self._serve_md_reader(u.path)
         if u.path.startswith("/workspace/"):
@@ -457,6 +448,30 @@ class Handler(BaseHTTPRequestHandler):
         if u.path == "/api/daily-brief":
             d = self._body()
             return self._send(200, install_daily_brief(slugify(d.get("slug", "")), d.get("time", ""), d.get("agent", "")))
+        if u.path == "/api/queue":    # Ascend 2.0: approve / reject / mark from the hub's Queue tab
+            body = self._body()
+            ws = WORKSPACE / slugify(body.get("slug", ""))
+            import apply
+            import jobqueue
+            pid, action = str(body.get("posting_id", "")), str(body.get("action", ""))
+            if action not in ("approved", "rejected", "applied"):
+                return self._send(400, {"error": "the hub can approve, reject or mark a job applied"})
+            try:
+                # "I submitted it" goes through the apply log, so the day's count and reply rates see it.
+                entry = apply.record(ws, pid, "submitted") if action == "applied" else jobqueue.set_state(ws, pid, action)
+            except (ValueError, apply.Refused) as e:
+                return self._send(400, {"error": str(e)})
+            except KeyError:
+                return self._send(404, {"error": "no such job in the queue"})
+            return self._send(200, {"ok": True, "state": entry["state"]})
+        if u.path == "/api/apply":    # Ascend 2.0: the gated apply sheet for one job (assisted mode)
+            body = self._body()
+            ws = WORKSPACE / slugify(body.get("slug", ""))
+            import apply
+            try:
+                return self._send(200, apply.sheet(ws, str(body.get("posting_id", ""))))
+            except apply.Refused as e:
+                return self._send(409, {"error": str(e)})
         if u.path == "/api/shutdown":
             threading.Thread(target=self.server.shutdown, daemon=True).start()
             return self._send(200, {"ok": True})

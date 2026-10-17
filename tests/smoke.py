@@ -41,11 +41,19 @@ def check(name, ok, detail=""):
 # ── 1. Hardened server ───────────────────────────────────────────────────────
 def test_server():
     print("server (security)")
-    port = 8911
+    import socket
+    with socket.socket() as sk:          # a free port, so parallel runs never collide
+        sk.bind(("127.0.0.1", 0))
+        port = sk.getsockname()[1]
     proc = subprocess.Popen([sys.executable, str(REPO / "ui/server.py"), "--port", str(port), "--no-browser"],
                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     try:
-        time.sleep(1.4)
+        for _ in range(100):             # until it answers, at most ten seconds
+            try:
+                socket.create_connection(("127.0.0.1", port), timeout=0.5).close()
+                break
+            except OSError:
+                time.sleep(0.1)
         def req(method, path, headers=None, host=None):
             c = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
             h = dict(headers or {});  h["Host"] = host or f"127.0.0.1:{port}"
@@ -877,8 +885,10 @@ def test_council_gates():
 
     # (7) install_daily_brief ignored `crontab -l`'s return code, so a read failure looked like an
     #     empty crontab and every other cron job the user had was replaced.
+    #     The logic moved to tools/_cron.py (shared with the Ascend 2.0 scheduler); the server delegates.
+    cron = (REPO / "tools/_cron.py").read_text(encoding="utf-8")
     check("crontab install inspects the return code before replacing",
-          "cur.returncode" in srv and "crontab.bak" in srv)
+          "cur.returncode" in cron and "crontab.bak" in cron and "_cron.install(" in srv)
 
     # (8) CI installed no TeX engine, so the renderer's compile assertions silently skipped.
     ci = (REPO / ".github/workflows/ci.yml").read_text(encoding="utf-8")
@@ -1082,10 +1092,11 @@ def test_registry():
           set(reg["run_order"]) == set(reg["phases"]), f"{reg['run_order']} vs {list(reg['phases'])}")
     new_ops = [o["op"] for o in reg["ops"] if o.get("new")]
     check("this PR's new ops are registered",
-          set(new_ops) == {"industry"}, str(new_ops))
+          set(new_ops) == {"run-v2", "apply", "linkedin-search", "hub", "schedule"}, str(new_ops))
     # Each new prompt must exist and carry the injection quarantine, same bar as every other phase.
     for f in ("prompts/23-offer-compare.md", "prompts/24-work-sample.md",
-              "prompts/25-references.md", "prompts/26-industry-language.md"):
+              "prompts/25-references.md", "prompts/26-industry-language.md", "prompts/27-score-queue.md",
+              "prompts/28-apply.md", "prompts/29-run-v2.md"):
         txt = (REPO / f).read_text(encoding="utf-8") if (REPO / f).is_file() else ""
         check(f"{f} exists", bool(txt))
         check(f"{f} cites the injection quarantine", "untrusted-content-policy" in txt)
@@ -1139,11 +1150,22 @@ def test_industry_research():
     check("shipped reference is not gitignored", not ignored)
     check("state.py knows phase 26", '"26"' in (REPO / "tools/state.py").read_text(encoding="utf-8"))
 
+# ── 4l. Ascend 2.0 unit suites (stdlib unittest) ─────────────────────────────
+def test_v2_units():
+    # v2 modules carry their own focused unittest files; smoke runs them so CI covers them without a
+    # second workflow step, and a red v2 test fails the same gate as a red v1 check.
+    print("ascend 2.0 units")
+    for f in sorted((REPO / "tests").glob("test_v2_*.py")):
+        r = subprocess.run([sys.executable, "-m", "unittest", str(f.relative_to(REPO))],
+                           cwd=REPO, capture_output=True, text=True)
+        tail = (r.stderr or r.stdout).strip().splitlines()[-1:] or [""]
+        check(f"{f.name} passes", r.returncode == 0, tail[0])
+
 if __name__ == "__main__":
     for t in (test_server, test_html_json, test_gitignore, test_crossrefs, test_phase_order,
               test_op_parity, test_skills, test_resume_builder, test_latex_render, test_bash_allowlist,
               test_honesty, test_linter, test_council_gates, test_pipeline, test_registry,
-              test_grade_run, test_paths_and_state, test_scripts, test_industry_research):
+              test_grade_run, test_paths_and_state, test_scripts, test_industry_research, test_v2_units):
         try: t()
         except Exception as e:
             check(f"{t.__name__} raised", False, repr(e))

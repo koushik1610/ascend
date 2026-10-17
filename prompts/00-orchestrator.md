@@ -182,6 +182,10 @@ interview prep is generated **on demand**, per job, only when a screen is booked
 - `24-work-sample.md` — **Work-Sample Plan**: the portfolio case study, design doc or take-home that
   decides the loop — one piece, built properly, re-angled per job: `/ascend work-sample [NN]`. Fires
   when Phase 4's industry scan says the target set rewards an artifact.
+- **Ascend 2.0 (beta)**: `29-run-v2.md` drives a find, apply and track run: `/ascend run-v2` (engine and
+  token estimate and permissions shown per run), `27-score-queue.md` scores, `28-apply.md` applies
+  (`/ascend apply`), `/ascend linkedin-search` reads LinkedIn result cards, `/ascend hub` builds or serves
+  the dashboard, `/ascend schedule` installs the daily zero-token sync.
 - `26-industry-language.md`: **Industry Language**: rebuild or inspect the shared phrasing reference
   for the user's industry/domain outside a full run (normally Phase 26 of the run order): `/ascend industry`.
 - `25-references.md` — **Reference Bench**: a consent-tracked reference list and the referee brief,
