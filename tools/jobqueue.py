@@ -146,7 +146,7 @@ def main(argv):
             gaps = [g.strip() for g in (_opt(args, "--gaps", "") or "").split(";") if g.strip()]
             out = score(ws, args[0], _opt(args, "--fit"), _opt(args, "--why", ""), gaps)
         else:
-            if args[1] in HUB_ONLY:
+            if args[1] in HUB_ONLY | SENT:
                 raise ValueError(f"{args[1]} is set by you in the hub's Queue tab, not from the command line")
             out = set_state(ws, args[0], args[1])
     except (ValueError, KeyError, IndexError) as e:

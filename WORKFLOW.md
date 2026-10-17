@@ -315,7 +315,7 @@ Each reacts to a real event and updates the dashboard.
 ### J23: Apply
 - **Trigger:** an approved job; `/ascend apply`.
 - **Path:** the user approves in the hub → `tools/apply.py sheet` gate → the user submits in their own
-  browser → **I submitted it** → `tools/apply.py record`.
+  browser → **I submitted it** (the hub calls `apply.record`, which accepts only an approved job).
 - **Implemented by:** [`prompts/28-apply.md`](prompts/28-apply.md).
 
 ### J24: Track replies

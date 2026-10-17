@@ -2,8 +2,10 @@
 """apply.py: the apply sheet and the record of what was sent (Ascend 2.0, M8, assisted mode).
 
   python3 tools/apply.py sheet  WS POSTING_ID                                   # the apply sheet, gated
-  python3 tools/apply.py record WS POSTING_ID submitted|unclear|stopped [--reason TEXT]
   python3 tools/apply.py status WS
+
+Recording a send is the hub's "I submitted it" button (ui/server.py calls record()); it is not a command,
+so nothing but the user's click marks a job applied.
 
 The user submits every application in their own browser. The sheet is built only when the job is
 approved, it is not a duplicate, its résumé passes lint_artifacts.py, and every answer comes from the
@@ -104,16 +106,17 @@ def status(ws):
                                                   and str(r.get("at", "")).startswith(today)))
 
 
-def record(ws, posting_id, result, reason=""):
-    if result not in ("submitted", "unclear", "stopped"):
-        raise ValueError("result is submitted, unclear or stopped")
-    if result == "submitted":
-        entry = jobqueue.set_state(ws, posting_id, "applied")
-    elif result == "unclear":
-        entry = jobqueue.set_state(ws, posting_id, "applied?")
-    else:
-        entry = jobqueue.set_state(ws, posting_id, "needs-you", stop_reason=reason)
-    d.append_jsonl(d.data_dir(ws) / "apply-log.jsonl", {"posting_id": posting_id, "result": result, "reason": reason,
+def record(ws, posting_id, result="submitted"):
+    """The user pressed "I submitted it". Only an approved job can be recorded, and a second press is a no-op."""
+    if result != "submitted":
+        raise ValueError("this release records only submissions the user made")
+    entry = _entry(ws, posting_id)
+    if entry.get("state") == "applied":
+        return entry
+    if entry.get("state") != "approved":
+        raise Refused(f"{entry.get('company')} is {entry.get('state')}, not approved")
+    entry = jobqueue.set_state(ws, posting_id, "applied")
+    d.append_jsonl(d.data_dir(ws) / "apply-log.jsonl", {"posting_id": posting_id, "result": result,
                                                          "at": datetime.now().isoformat(timespec="seconds")})
     return entry
 
@@ -123,7 +126,11 @@ def _opt(args, name, default=None):
 
 
 def main(argv):
-    cmds = ("sheet", "record", "status")
+    cmds = ("sheet", "status")
+    if len(argv) >= 2 and argv[1] == "record":
+        print("apply: a send is recorded by your click on \"I submitted it\" in the hub, not from the command line",
+              file=sys.stderr)
+        return 2
     if len(argv) < 3 or argv[1] not in cmds:
         print(__doc__, file=sys.stderr)
         return 2
@@ -132,8 +139,6 @@ def main(argv):
         ws = args[0]
         if cmd == "sheet":
             out = sheet(ws, args[1])
-        elif cmd == "record":
-            out = record(ws, args[1], args[2], _opt(args, "--reason", ""))
         else:
             out = status(ws)
     except Refused as e:

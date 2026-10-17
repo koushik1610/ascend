@@ -454,10 +454,12 @@ class Handler(BaseHTTPRequestHandler):
             import apply
             import jobqueue
             pid, action = str(body.get("posting_id", "")), str(body.get("action", ""))
+            if action not in ("approved", "rejected", "applied"):
+                return self._send(400, {"error": "the hub can approve, reject or mark a job applied"})
             try:
                 # "I submitted it" goes through the apply log, so the day's count and reply rates see it.
                 entry = apply.record(ws, pid, "submitted") if action == "applied" else jobqueue.set_state(ws, pid, action)
-            except ValueError as e:
+            except (ValueError, apply.Refused) as e:
                 return self._send(400, {"error": str(e)})
             except KeyError:
                 return self._send(404, {"error": "no such job in the queue"})

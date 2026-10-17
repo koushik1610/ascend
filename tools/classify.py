@@ -323,8 +323,9 @@ def resolve(ws, msg_id, category, due=None):
     if msg_id not in pending(ws):
         raise ValueError(f"{msg_id} is not waiting for a model: the rules already placed it")
     jobs = d.read_json(dd / "queue.json", {}).get("jobs", [])
+    match, how = match_detail(msg, jobs) if category not in ("other", "job-alert") else (None, None)
     ev = {"msg_id": msg_id, "category": category, "confidence": 0.8, "rule": "model", "needs_llm": False,
-          "match": match_job(msg, jobs) if category not in ("other", "job-alert") else None,
+          "match": match, "match_by": how,
           "due": due or due_date(msg, category), "date": msg.get("date"),
           "classified_at": datetime.now().isoformat(timespec="seconds")}
     d.append_jsonl(dd / "events.jsonl", ev)

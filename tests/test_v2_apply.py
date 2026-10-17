@@ -185,15 +185,29 @@ class Record(unittest.TestCase):
         self.assertEqual(d.read_json(ws / "data" / "queue.json", {})["jobs"][0]["state"], "applied")
         self.assertEqual(pipeline.parse_state(ws / "jobs/05-acme-staff/application-log.md")["status"], "applied")
 
-    def test_record_unclear_and_stopped(self):
+    def test_record_needs_an_approved_job_and_counts_a_send_once(self):
         import _v2data as d
         import apply
+        with self.assertRaises(apply.Refused):
+            apply.record(apply_ws(self.td.name + "/m", state="matched"), "greenhouse:acme:1", "submitted")
         ws = apply_ws(self.td.name)
-        apply.record(ws, "greenhouse:acme:1", "stopped", "CAPTCHA on the form")
-        job = d.read_json(ws / "data" / "queue.json", {})["jobs"][0]
-        self.assertEqual((job["state"], job["stop_reason"]), ("needs-you", "CAPTCHA on the form"))
-        apply.record(ws, "greenhouse:acme:1", "unclear")
-        self.assertEqual(d.read_json(ws / "data" / "queue.json", {})["jobs"][0]["state"], "applied?")
+        apply.record(ws, "greenhouse:acme:1", "submitted")
+        apply.record(ws, "greenhouse:acme:1", "submitted")      # a double-click
+        self.assertEqual(len(d.read_jsonl(ws / "data" / "apply-log.jsonl")), 1)
+
+    def test_record_is_not_a_command(self):
+        ws = apply_ws(self.td.name)
+        r = subprocess.run([sys.executable, str(REPO / "tools/apply.py"), "record", str(ws), "greenhouse:acme:1",
+                            "submitted"], capture_output=True, text=True)
+        self.assertEqual(r.returncode, 2)
+        self.assertIn("hub", r.stderr)
+
+    def test_only_a_submission_is_recorded_in_this_release(self):
+        import apply
+        ws = apply_ws(self.td.name)
+        for result in ("unclear", "stopped"):
+            with self.assertRaises(ValueError):
+                apply.record(ws, "greenhouse:acme:1", result)
 
     def test_marking_applied_from_the_hub_moves_the_folder(self):
         import jobqueue

@@ -140,6 +140,20 @@ class Resolve(unittest.TestCase):
         inbox = hub.compute(self.ws)["inbox"]
         self.assertEqual([(i["msg_id"], i["category"]) for i in inbox], [("n1", "interview-invite")])
 
+    def test_a_resolved_body_only_rejection_never_closes_the_job(self):
+        import _v2data as d
+        import classify
+        d.append_jsonl(self.ws / "data" / "mail.jsonl", {"msg_id": "b1", "from": "talent@recruiting.example",
+                                                         "subject": "Next steps", "date": "2026-10-16T23:00:00Z",
+                                                         "body_excerpt": "Thanks again for taking the time to chat about StreamCo. After connecting with the team, we"})
+        subprocess.run([sys.executable, str(REPO / "tools/classify.py"), "run", str(self.ws)], check=True, capture_output=True)
+        self.assertIn("b1", classify.pending(self.ws))
+        ev = classify.resolve(self.ws, "b1", "rejection")
+        self.assertEqual((ev["match"], ev["match_by"]), ("01", "body"))
+        subprocess.run([sys.executable, str(REPO / "tools/pipeline.py"), "ingest", str(self.ws)], check=True, capture_output=True)
+        import pipeline
+        self.assertEqual(pipeline.parse_state(self.ws / "jobs/01-streamco/application-log.md")["status"], "applied")
+
     def test_resolve_only_touches_mail_waiting_for_a_model(self):
         import _v2data as d
         import classify

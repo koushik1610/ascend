@@ -144,7 +144,7 @@ class Queue(unittest.TestCase):
 
     def test_cli_cannot_approve_or_mark_applied(self):
         import _v2data as d
-        for state in ("approved", "applied"):
+        for state in ("approved", "applied", "applied?", "applying"):
             r = subprocess.run([sys.executable, str(REPO / "tools/jobqueue.py"), "set-state", str(self.ws),
                                 "greenhouse:d:4", state], capture_output=True, text=True)
             self.assertEqual(r.returncode, 2, r.stdout)
@@ -272,6 +272,12 @@ class Server(unittest.TestCase):
                                    token=self.token)
         self.assertEqual(status, 409, body)
         self.assertIn("not approved", json.loads(body)["error"])
+
+    def test_hub_queue_actions_are_limited(self):
+        for action in ("applying", "applied?", "needs-you", "matched"):
+            status, _, _ = self.req("POST", "/api/queue", {"slug": self.SLUG, "posting_id": "greenhouse:d:4",
+                                                           "action": action}, token=self.token)
+            self.assertEqual(status, 400, action)
 
     def test_no_apply_control_endpoint(self):
         status, _, _ = self.req("POST", "/api/apply-control", {"slug": self.SLUG, "paused": True}, token=self.token)
