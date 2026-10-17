@@ -11,6 +11,14 @@ _Working toward v1.0. Real-run gate: **1 of 2–3 runs signed off** (2026-07-01,
 see `docs/ROADMAP.md` → sign-off log); cases (b) no-résumé/non-tech and (c) resume-after-interruption
 remain, plus a green CI run on the remote + a demo GIF._
 
+### Added: Ascend 2.0, M6 job alerts and recruiter inbound (branch `ascend-v2`)
+- **`tools/alerts.py run WS`** turns the jobs named in Wellfound and LinkedIn alert emails into leads
+  that the prefilter judges like any posting, and turns recruiter mail into queue entries: `needs-you`
+  when it matches the user's filters, `inbound-filtered` with the reasons when it does not. Nothing is
+  replied to and no link from email is ever opened.
+- Real check: a Wellfound alert yielded its Meta lead; three hybrid contract emails from staffing
+  agencies were filtered as not remote.
+
 ### Added: Ascend 2.0, M5 finder and prefilter (branch `ascend-v2`)
 - **`tools/finder.py run WS`** polls the public job boards in `data/sources.json` (Greenhouse, Ashby,
   Lever, Workable, SmartRecruiters) at zero tokens. New postings append to `postings.jsonl`; first and
