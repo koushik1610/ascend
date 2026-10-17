@@ -19,6 +19,8 @@
       "Bash(python3 tools/classify.py*)",
       "Bash(python3 tools/hub.py*)",
       "Bash(python3 tools/gmail_sync.py*)",
+      "Bash(python3 tools/prefilter.py*)",
+      "Bash(python3 tools/finder.py*)",
       "Bash(mkdir -p workspace/*)",
       "Bash(mkdir workspace/*)",
       "Bash(rm -f workspace/*)",

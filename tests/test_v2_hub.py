@@ -132,6 +132,17 @@ class Compute(unittest.TestCase):
         row = hub.compute(ws, today=TODAY)["inbox"][0]
         self.assertEqual((row["subject"], row["from"]), ("Interview invitation", "talent@co.example"))
 
+    def test_screened_uses_latest_verdict_per_posting(self):
+        import _v2data as d
+        import hub
+        ws = make_ws(self.td.name, [])
+        for row in [{"posting_id": "p1", "passed": True, "filters_hash": "old"},
+                    {"posting_id": "p1", "passed": False, "filters_hash": "new"},
+                    {"posting_id": "p2", "passed": True, "filters_hash": "new"}]:
+            d.append_jsonl(ws / "data" / "candidates.jsonl", row)
+        funnel = dict((s["stage"], s["count"]) for s in hub.compute(ws, today=TODAY)["funnel"])
+        self.assertEqual(funnel["screened"], 1)
+
     def test_queue_rows(self):
         import hub
         q = hub.compute(seed(self.td.name), today=TODAY)["queue"]

@@ -1,0 +1,127 @@
+{
+  "_comment": [
+    "Copy to workspace/<name>/data/sources.json (the intake does this) and edit.",
+    "boards: public ATS boards to poll. ats is greenhouse, ashby, lever, workable or smartrecruiters; slug is the",
+    "company's board name in that ATS's URL. filters: hard rules the prefilter applies before any model runs.",
+    "This example targets senior cloud security roles; replace the titles, seniority and keywords with your own."
+  ],
+  "boards": [
+    {
+      "ats": "greenhouse",
+      "slug": "datadog",
+      "company": "datadog"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "anthropic",
+      "company": "anthropic"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "databricks",
+      "company": "databricks"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "reddit",
+      "company": "reddit"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "gitlab",
+      "company": "gitlab"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "twilio",
+      "company": "twilio"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "elastic",
+      "company": "elastic"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "instacart",
+      "company": "instacart"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "pinterest",
+      "company": "pinterest"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "airbnb",
+      "company": "airbnb"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "rubrik",
+      "company": "rubrik"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "cloudflare",
+      "company": "cloudflare"
+    }
+  ],
+  "filters": {
+    "title_include": [
+      "\\bsecurity\\b"
+    ],
+    "title_exclude": [
+      "\\bintern\\b",
+      "\\banalyst\\b",
+      "\\bsales\\b",
+      "\\bcounsel\\b",
+      "\\brecruit",
+      "solutions? engineer",
+      "\\bcustomer\\b",
+      "\\bphysical\\b",
+      "\\bgrc\\b",
+      "product manager",
+      "program manager",
+      "specialist",
+      "marketing",
+      "professional services",
+      "\\bpolicy\\b",
+      "data cent(er|re)",
+      "field engineer",
+      "solutions? architect",
+      "technical account",
+      "\\bpartner\\b"
+    ],
+    "seniority": [
+      "\\b(staff|principal|senior staff|lead|architect|distinguished)\\b",
+      "\\b(manager|head of)\\b"
+    ],
+    "remote_only": true,
+    "locations": [
+      "remote",
+      "united states",
+      "usa",
+      "us",
+      "anywhere"
+    ],
+    "comp_floor": null,
+    "exclude_keywords": [
+      "clearance required",
+      "ts/sci",
+      "polygraph"
+    ],
+    "blocklist": [],
+    "keywords": [
+      "aws",
+      "iam",
+      "cloud security",
+      "detection",
+      "terraform",
+      "kubernetes",
+      "posture",
+      "guardrail",
+      "threat model"
+    ]
+  }
+}

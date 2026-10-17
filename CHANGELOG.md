@@ -11,6 +11,22 @@ _Working toward v1.0. Real-run gate: **1 of 2–3 runs signed off** (2026-07-01,
 see `docs/ROADMAP.md` → sign-off log); cases (b) no-résumé/non-tech and (c) resume-after-interruption
 remain, plus a green CI run on the remote + a demo GIF._
 
+### Added: Ascend 2.0, M5 finder and prefilter (branch `ascend-v2`)
+- **`tools/finder.py run WS`** polls the public job boards in `data/sources.json` (Greenhouse, Ashby,
+  Lever, Workable, SmartRecruiters) at zero tokens. New postings append to `postings.jsonl`; first and
+  last seen dates live in `postings-state.json`. A posting closes only when its board answered without
+  it, so a board that is down for a day closes nothing.
+- **`tools/prefilter.py run WS`** applies the user's hard rules (titles, exclusions, seniority,
+  remote, regions, pay floor, excluded keywords, blocklist, already applied) and records why each
+  posting passed or failed. One role posted in several locations passes once. "Remote" is not a region:
+  a location passes when it names an allowed region, with US states, common US cities and "U.S."
+  recognised. When a board does not flag remote, an explicit statement in the description counts.
+  Incremental, and re-judges everything when the filters or the rules change.
+- `templates/sources.example.json`: a starting board list and filters.
+- **Real run:** 127 boards, 15,092 postings in 22 seconds at zero tokens, 48 survivors for the model to
+  score. The real data drove four fixes: whole-word regions ("us" inside "Australia"), US geography,
+  description-stated remote, and per-role de-duplication.
+
 ### Added: Ascend 2.0, M4 engine A Gmail sync (branch `ascend-v2`)
 - **`tools/gmail_sync.py`**: `connect` (Google sign-in through your own Desktop OAuth client, PKCE,
   loopback redirect on 127.0.0.1, read-only scope), `sync` (incremental through the Gmail history API,

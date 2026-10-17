@@ -96,7 +96,10 @@ def compute(ws, today=None):
     offers = {s for s in jobs if "offer" in reached.get(s, set())}
 
     postings = {p.get("id") for p in d.read_jsonl(data / "postings.jsonl")}
-    screened = {c.get("posting_id") for c in d.read_jsonl(data / "candidates.jsonl") if c.get("passed")}
+    latest = {}
+    for c in d.read_jsonl(data / "candidates.jsonl"):     # append-only: the last row is the current verdict
+        latest[c.get("posting_id")] = c.get("passed")
+    screened = {pid for pid, ok in latest.items() if ok}
     funnel = [{"stage": s, "count": n} for s, n in [
         ("found", len(postings - {None})), ("screened", len(screened - {None})), ("matched", len(queue)),
         ("applied", len(applied_on)), ("replied", len(replied)), ("interviewing", len(interviewing)),
