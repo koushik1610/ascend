@@ -97,9 +97,16 @@ def sheet(ws, posting_id):
     dup = pipeline.check_duplicate(ws, entry.get("company"), entry.get("title"), posting_id)
     if dup:
         raise Refused(dup)
-    job = pipeline.find_job(ws, entry["nn"]) if entry.get("nn") else None
+    if not entry.get("nn"):
+        jobqueue.sync_folders(ws)               # a folder for this posting may exist from an earlier run
+        entry = _entry(ws, posting_id)
+    job = pipeline.job_folder(ws, entry["nn"]) if entry.get("nn") else None
     if not job:
-        raise Refused("no apply pack yet: build it with Phase 5 (prompts/05-job-folders.md)")
+        raise Refused("no apply pack linked yet: build it with Phase 5 (prompts/05-job-folders.md), then run "
+                      f"python3 tools/jobqueue.py link {ws} {posting_id} <NN>")
+    f_company, f_title, *_ = pipeline.folder_job(job)
+    if not jobqueue._same_role(entry.get("company"), entry.get("title"), f_company, f_title):
+        raise Refused(f"{job.name} is for {f_company}, {f_title}: a different role from this job")
     pdfs = sorted(job.glob("*-Resume-*.pdf"))
     if not pdfs or not (job / "resume.md").is_file():
         raise Refused(f"no résumé PDF in {job.name}: render it with Phase 8")
@@ -140,7 +147,7 @@ def record(ws, posting_id, result="submitted"):
             return entry
         if entry.get("state") != "approved":
             raise Refused(f"{entry.get('company')} is {entry.get('state')}, not approved")
-        entry = jobqueue.set_state(ws, posting_id, "applied")
+        entry = jobqueue.set_state(ws, posting_id, "applied", via_hub=True)
         with open(p, "a", encoding="utf-8") as f:     # inside the lock already: not append_jsonl
             f.write(json.dumps({"posting_id": posting_id, "result": result,
                                 "at": datetime.now().isoformat(timespec="seconds")}, sort_keys=True) + "\n")

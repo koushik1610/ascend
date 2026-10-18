@@ -241,7 +241,7 @@ class Record(unittest.TestCase):
         import jobqueue
         import pipeline
         ws = apply_ws(self.td.name)
-        jobqueue.set_state(ws, "greenhouse:acme:1", "applied")
+        jobqueue.set_state(ws, "greenhouse:acme:1", "applied", via_hub=True)
         self.assertEqual(pipeline.parse_state(ws / "jobs/05-acme-staff/application-log.md")["status"], "applied")
 
 

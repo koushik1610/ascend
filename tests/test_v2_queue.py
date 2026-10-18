@@ -142,23 +142,23 @@ class Queue(unittest.TestCase):
     def test_set_state(self):
         import _v2data as d
         import jobqueue as qt
-        qt.set_state(self.ws, "greenhouse:d:4", "approved")
+        qt.set_state(self.ws, "greenhouse:d:4", "approved", via_hub=True)
         self.assertEqual(d.read_json(self.ws / "data" / "queue.json", {})["jobs"][0]["state"], "approved")
         with self.assertRaises(ValueError):
             qt.set_state(self.ws, "greenhouse:d:4", "teleported")
         with self.assertRaises(KeyError):
-            qt.set_state(self.ws, "nope", "approved")
+            qt.set_state(self.ws, "nope", "approved", via_hub=True)
 
     def test_a_sent_job_never_moves_back(self):
         import jobqueue as qt
-        qt.set_state(self.ws, "greenhouse:d:4", "approved")
-        qt.set_state(self.ws, "greenhouse:d:4", "applied?")
+        qt.set_state(self.ws, "greenhouse:d:4", "approved", via_hub=True)
+        qt.set_state(self.ws, "greenhouse:d:4", "applied?", via_hub=True)
         for back in ("approved", "matched", "rejected", "needs-you"):
             with self.assertRaises(ValueError):
-                qt.set_state(self.ws, "greenhouse:d:4", back)
-        self.assertEqual(qt.set_state(self.ws, "greenhouse:d:4", "applied")["state"], "applied")
+                qt.set_state(self.ws, "greenhouse:d:4", back, via_hub=True)
+        self.assertEqual(qt.set_state(self.ws, "greenhouse:d:4", "applied", via_hub=True)["state"], "applied")
         with self.assertRaises(ValueError):
-            qt.set_state(self.ws, "greenhouse:d:4", "approved")
+            qt.set_state(self.ws, "greenhouse:d:4", "approved", via_hub=True)
 
     def test_cli_cannot_approve_or_mark_applied(self):
         import _v2data as d

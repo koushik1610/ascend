@@ -458,7 +458,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(400, {"error": "the hub can approve, reject or mark a job applied"})
             try:
                 # "I submitted it" goes through the apply log, so the day's count and reply rates see it.
-                entry = apply.record(ws, pid, "submitted") if action == "applied" else jobqueue.set_state(ws, pid, action)
+                entry = apply.record(ws, pid, "submitted") if action == "applied" else jobqueue.set_state(ws, pid, action, via_hub=True)
             except (ValueError, apply.Refused) as e:
                 return self._send(400, {"error": str(e)})
             except KeyError:

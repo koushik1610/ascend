@@ -68,6 +68,26 @@ def find_job(ws, nn):
     return None
 
 
+def job_folder(ws, nn):
+    """The folder whose name starts with exactly `NN-`, else None. Never a substring: a link that could
+    land on another role's folder would attach that role's résumé to this application."""
+    if not re.fullmatch(r"\d{2,3}", str(nn or "")):
+        return None
+    hits = [p for p in job_dirs(Path(ws)) if p.name.split("-", 1)[0] == str(nn)]
+    return hits[0] if len(hits) == 1 else None
+
+
+def folder_job(job):
+    """(company, title, jd_url, fit, status) read from a v1 job folder's application log."""
+    log = job / "application-log.md"
+    text = log.read_text(encoding="utf-8") if log.is_file() else ""
+    m = LOG_HEADING.search(text)
+    url = re.search(r"^\|\s*JD\s*\|\s*(https://\S+?)\s*\|", text, re.M)
+    fit = re.search(r"^\|\s*Fit Score\s*\|\s*(\d{1,3})\s*/\s*100", text, re.M)
+    return (m.group(1).strip() if m else None, m.group(2).strip() if m else None, url.group(1) if url else None,
+            int(fit.group(1)) if fit else None, parse_state(log).get("status", "queued"))
+
+
 def parse_state(path):
     """Read the fenced state block, falling back to legacy prose key: value lines."""
     if not path.is_file():
@@ -337,19 +357,22 @@ def _job_for_match(ws, match, queue):
     nn = match
     if not re.fullmatch(r"\d{2,3}", str(match)):
         nn = next((j.get("nn") for j in queue if j.get("posting_id") == match and j.get("nn")), None)
-    return find_job(ws, nn) if nn else None
+    return job_folder(ws, nn) if nn else None
 
 
 def cmd_ingest(ws, args):
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     import _v2data as d
     data = ws / "data"
-    from classify import latest_events
+    from classify import latest_events, match_detail
+    import jobqueue
+    jobqueue.sync_folders(ws)          # job folders from earlier runs are jobs mail can be about
     # Keyed by message AND category: a model's later resolution of an already-ingested message (rule
     # said "other", the model says "interview-invite") is a new fact and must be applied.
     rows = d.read_jsonl(data / "ingested.jsonl")
     done = {r["key"] for r in rows if r.get("key")} | {r.get("msg_id") for r in rows if not r.get("key")}
     queue = d.read_json(data / "queue.json", {}).get("jobs", [])
+    mail = {m.get("msg_id"): m for m in d.read_jsonl(data / "mail.jsonl")}
     order = {s: i for i, s in enumerate(STATUSES)}
     out = {"applied": 0, "skipped": 0, "unmatched": 0, "transitions": []}
 
@@ -360,15 +383,22 @@ def cmd_ingest(ws, args):
                      if key(e) not in done and (e.get("rule") == "model" or e.get("msg_id") not in done)),
                     key=lambda e: e.get("date") or "")
     for e in events:
-        d.append_jsonl(data / "ingested.jsonl", {"msg_id": e.get("msg_id"), "key": key(e)})
         target = EVENT_STATUS.get(e.get("category"))
         if not target:
+            d.append_jsonl(data / "ingested.jsonl", {"msg_id": e.get("msg_id"), "key": key(e)})
             out["skipped"] += 1
             continue
+        if not e.get("match") and e.get("msg_id") in mail:
+            # Mail is classified when it arrives, often before its job is in the queue. Match it again
+            # against today's queue.
+            e = dict(e)
+            e["match"], e["match_by"] = match_detail(mail[e["msg_id"]], queue)
         job = _job_for_match(ws, e.get("match"), queue)
         if not job or not (job / "application-log.md").is_file():
+            # Not marked done: a later run, once the job is queued or linked, applies it.
             out["unmatched"] += 1
             continue
+        d.append_jsonl(data / "ingested.jsonl", {"msg_id": e.get("msg_id"), "key": key(e)})
         cur = parse_state(job / "application-log.md").get("status", "queued")
         # A company named only in the body is too weak to close a job: the hub still shows the mail.
         if target in TERMINAL and e.get("match_by") == "body":
