@@ -1,0 +1,29 @@
+{
+  "_comment": [
+    "Copy to workspace/<name>/data/sources.json. prompts/29-run-v2.md Step 0 builds it with you from your intake",
+    "and master résumé §4. Every value below is a placeholder: replace all of them.",
+    "boards: the companies to poll every day. ats is greenhouse, ashby, lever, workable or smartrecruiters.",
+    "Finding a slug: open the company's careers page and follow any job link. The slug is the name after the",
+    "ATS host: boards.greenhouse.io/<slug>/jobs/123, jobs.ashbyhq.com/<slug>/..., jobs.lever.co/<slug>/...,",
+    "apply.workable.com/<slug>/..., jobs.smartrecruiters.com/<slug>/... A wrong slug shows up as 'unreachable'.",
+    "filters: hard rules applied before any model runs. Patterns are case-insensitive regular expressions.",
+    "retention_days: mail older than this is deleted from data/mail.jsonl by the daily sync (default 180)."
+  ],
+  "boards": [
+    {"ats": "greenhouse", "slug": "example-company-one", "company": "Example Company One"},
+    {"ats": "lever", "slug": "example-company-two", "company": "Example Company Two"},
+    {"ats": "ashby", "slug": "example-company-three", "company": "Example Company Three"}
+  ],
+  "filters": {
+    "title_include": ["\\byour target title words\\b"],
+    "title_exclude": ["\\bintern\\b"],
+    "seniority": ["\\b(senior|staff|lead)\\b"],
+    "remote_only": false,
+    "locations": ["remote", "your city"],
+    "comp_floor": null,
+    "exclude_keywords": [],
+    "blocklist": [],
+    "keywords": ["skill one", "skill two", "skill three"]
+  },
+  "retention_days": 180
+}

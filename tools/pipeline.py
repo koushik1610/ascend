@@ -13,6 +13,8 @@ here just reads what it wrote.
   python3 tools/pipeline.py overdue WS [--today DATE]
   python3 tools/pipeline.py funnel  WS [--json]
   python3 tools/pipeline.py show    WS [NN]
+  python3 tools/pipeline.py ingest  WS [--json]      # Ascend 2.0: classified mail → status changes
+  python3 tools/pipeline.py guard   WS --company C --title T [--posting-id P]   # exit 3 = duplicate
 
 WS is the workspace directory (workspace/<name>). Writes stay inside it, always.
 
@@ -141,29 +143,17 @@ def read_ledger(ws):
     return rows
 
 
-# ── commands ────────────────────────────────────────────────────────────────
-def cmd_log(ws, args):
-    if len(args) < 2:
-        return die("usage: log WS NN STATUS [--on DATE] [--note TEXT] [--contact NAME] "
-                   "[--deadline DATE]")
-    nn, status = args[0], args[1].lower()
-    if status not in STATUSES:
-        return die(f"unknown status {status!r}. One of: {', '.join(STATUSES)}")
-    opts = {}
-    it = iter(args[2:])
-    for a in it:
-        if a in ("--on", "--note", "--contact", "--deadline"):
-            opts[a.lstrip("-")] = next(it, "")
-    job = find_job(ws, nn)
-    if not job:
-        return die(f"no unique job folder for {nn!r} under {ws / 'jobs'}")
-    log = job / "application-log.md"
-    if not log.is_file():
-        return die(f"{log} does not exist. Build the CORE apply pack first (Phase 5).")
+def transition(ws, job, status, when, source, note="", opts=None):
+    """Move one job to `status` on `when`: rewrite its state block, append a ledger row.
 
+    The single write path for a status change. `log` (a person typing) and `ingest` (Gmail) both
+    come through here, so the cadence, the follow-up dates and the ledger row are identical no matter
+    who recorded the event. Returns (previous_status, the state keys written).
+    """
+    opts = opts or {}
+    log = job / "application-log.md"
     cur = parse_state(log)
     prev = cur.get("status", "queued")
-    when = opts.get("on") or str(date.today())
     upd = {"status": status, "last_contact_on": when}
 
     if status == "applied":
@@ -189,7 +179,32 @@ def cmd_log(ws, args):
             upd["screen_with"] = opts["contact"]
 
     write_state(log, upd)
-    append_ledger(ws, job.name, when, prev, status, "log", opts.get("note", ""))
+    append_ledger(ws, job.name, when, prev, status, source, note)
+    return prev, upd
+
+
+# ── commands ────────────────────────────────────────────────────────────────
+def cmd_log(ws, args):
+    if len(args) < 2:
+        return die("usage: log WS NN STATUS [--on DATE] [--note TEXT] [--contact NAME] "
+                   "[--deadline DATE]")
+    nn, status = args[0], args[1].lower()
+    if status not in STATUSES:
+        return die(f"unknown status {status!r}. One of: {', '.join(STATUSES)}")
+    opts = {}
+    it = iter(args[2:])
+    for a in it:
+        if a in ("--on", "--note", "--contact", "--deadline"):
+            opts[a.lstrip("-")] = next(it, "")
+    job = find_job(ws, nn)
+    if not job:
+        return die(f"no unique job folder for {nn!r} under {ws / 'jobs'}")
+    log = job / "application-log.md"
+    if not log.is_file():
+        return die(f"{log} does not exist. Build the CORE apply pack first (Phase 5).")
+
+    when = opts.get("on") or str(date.today())
+    prev, upd = transition(ws, job, status, when, "log", opts.get("note", ""), opts)
     print(f"  {job.name}: {prev} → {status}  ({when})")
     if upd.get("next_followup_due"):
         print(f"  next follow-up due {upd['next_followup_due']}: {upd['next_action']}")
@@ -306,6 +321,161 @@ def cmd_show(ws, args):
     return 0
 
 
+# ── ingest: Gmail events → status transitions (Ascend 2.0, M2) ───────────────
+# What each classified email means for the job it is about. Categories not listed (status updates,
+# recruiter inbound, job alerts, other) are information, not a change of state.
+EVENT_STATUS = {"acknowledgement": "applied", "info-request": "responded", "assessment": "responded",
+                "interview-invite": "screen", "rejection": "rejected"}
+TERMINAL = {"offer", "rejected", "move-on"}
+DUE_ACTION = {"info-request": "answer the info request", "assessment": "complete the assessment"}
+
+
+def _job_for_match(ws, match, queue):
+    """An event's `match` is a job folder's NN, or a posting ID that queue.json maps to an NN."""
+    if not match:
+        return None
+    nn = match
+    if not re.fullmatch(r"\d{2,3}", str(match)):
+        nn = next((j.get("nn") for j in queue if j.get("posting_id") == match and j.get("nn")), None)
+    return find_job(ws, nn) if nn else None
+
+
+def cmd_ingest(ws, args):
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import _v2data as d
+    data = ws / "data"
+    from classify import latest_events
+    # Keyed by message AND category: a model's later resolution of an already-ingested message (rule
+    # said "other", the model says "interview-invite") is a new fact and must be applied.
+    rows = d.read_jsonl(data / "ingested.jsonl")
+    done = {r["key"] for r in rows if r.get("key")} | {r.get("msg_id") for r in rows if not r.get("key")}
+    queue = d.read_json(data / "queue.json", {}).get("jobs", [])
+    order = {s: i for i, s in enumerate(STATUSES)}
+    out = {"applied": 0, "skipped": 0, "unmatched": 0, "transitions": []}
+
+    def key(e):
+        return f"{e.get('msg_id')}|{e.get('category')}"
+
+    events = sorted((e for e in latest_events(d.read_jsonl(data / "events.jsonl"))
+                     if key(e) not in done and (e.get("rule") == "model" or e.get("msg_id") not in done)),
+                    key=lambda e: e.get("date") or "")
+    for e in events:
+        d.append_jsonl(data / "ingested.jsonl", {"msg_id": e.get("msg_id"), "key": key(e)})
+        target = EVENT_STATUS.get(e.get("category"))
+        if not target:
+            out["skipped"] += 1
+            continue
+        job = _job_for_match(ws, e.get("match"), queue)
+        if not job or not (job / "application-log.md").is_file():
+            out["unmatched"] += 1
+            continue
+        cur = parse_state(job / "application-log.md").get("status", "queued")
+        # A company named only in the body is too weak to close a job: the hub still shows the mail.
+        if target in TERMINAL and e.get("match_by") == "body":
+            out["skipped"] += 1
+            continue
+        if cur in TERMINAL or (target != "rejected" and order[target] <= order.get(cur, 0)):
+            out["skipped"] += 1
+            continue
+        when = (e.get("date") or str(date.today()))[:10]
+        prev, _ = transition(ws, job, target, when, "gmail", f"{e.get('category')} {e.get('msg_id')}")
+        if e.get("due") and e.get("category") in DUE_ACTION:
+            write_state(job / "application-log.md",
+                        {"next_followup_due": e["due"], "next_action": DUE_ACTION[e["category"]]})
+        out["applied"] += 1
+        out["transitions"].append({"job": job.name, "from": prev, "to": target, "on": when,
+                                   "msg_id": e.get("msg_id")})
+    if "--json" in args:
+        print(json.dumps(out))
+    else:
+        print(f"  ingested {len(events)} event(s): {out['applied']} status change(s), "
+              f"{out['unmatched']} not matched to a job, {out['skipped']} informational or no-op")
+        for t in out["transitions"]:
+            print(f"    {t['job']}: {t['from']} → {t['to']}  ({t['on']})")
+    return 0
+
+
+# ── guard: never apply to the same job twice (Ascend 2.0, M2) ────────────────
+GUARD_DAYS = 60
+BLOCKING = {"applied", "applying", "applied?"}
+TITLE_SYNONYMS = {"sr": "senior", "jr": "junior", "eng": "engineer", "engr": "engineer", "mgr": "manager",
+                  "mgmt": "management", "sec": "security"}
+TITLE_NOISE = {"remote", "hybrid", "onsite", "us", "usa", "the"}
+LOG_HEADING = re.compile(r"^#\s*Application Log:\s*(.+?),\s*(.+?)\s*$", re.M)
+
+
+def normalize_title(t):
+    """'Sr. Staff Security Eng (Remote)' and 'Senior Staff Security Engineer' compare equal."""
+    t = re.sub(r"\(.*?\)", " ", (t or "").lower())
+    words = [TITLE_SYNONYMS.get(w, w) for w in re.findall(r"[a-z0-9]+", t)]
+    return " ".join(w for w in words if w not in TITLE_NOISE)
+
+
+def _company_key(name):
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from classify import company_tokens
+    return "".join(company_tokens(name))
+
+
+def _same_company_key(a, b):
+    """Equal keys, or a board slug that is the name plus a region or corporate suffix (doordashusa)."""
+    if a == b:
+        return True
+    from jobqueue import SLUG_SUFFIXES
+    short, long_ = sorted((a or "", b or ""), key=len)
+    return bool(short) and long_.startswith(short) and long_[len(short):] in SLUG_SUFFIXES
+
+
+def _applied_records(ws):
+    """(posting_id, company_key, title_key, applied_on) for everything already sent."""
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import _v2data as d
+    recs = []
+    for j in d.read_json(ws / "data" / "queue.json", {}).get("jobs", []):
+        if j.get("state") in BLOCKING:
+            recs.append((j.get("posting_id"), _company_key(j.get("company")), normalize_title(j.get("title")),
+                         j.get("applied_on")))
+    for job in job_dirs(ws):
+        log = job / "application-log.md"
+        st = parse_state(log)
+        if st.get("status", "queued") == "queued" or not log.is_file():
+            continue
+        m = LOG_HEADING.search(log.read_text(encoding="utf-8"))
+        if m:
+            recs.append((None, _company_key(m.group(1)), normalize_title(m.group(2)), st.get("applied_on")))
+    return recs
+
+
+def cmd_guard(ws, args):
+    opts, it = {}, iter(args)
+    for a in it:
+        if a in ("--company", "--title", "--posting-id", "--today"):
+            opts[a.lstrip("-")] = next(it, "")
+    if not opts.get("company") or not opts.get("title"):
+        return die("usage: guard WS --company C --title T [--posting-id P] [--today YYYY-MM-DD]")
+    dup = check_duplicate(ws, opts["company"], opts["title"], opts.get("posting-id"), opts.get("today"))
+    print(dup or "OK")
+    return 3 if dup else 0
+
+
+def check_duplicate(ws, company_name, title_text, pid=None, today=None):
+    """'DUPLICATE <why>' when this job was already applied to, else None. Shared by guard and apply."""
+    today = _today(today)
+    company, title = _company_key(company_name), normalize_title(title_text)
+    for rpid, rco, rtitle, applied_on in _applied_records(ws):
+        if pid and rpid and pid == rpid:
+            return f"DUPLICATE already applied to posting {pid}" + (f" on {applied_on}" if applied_on else "")
+        if rtitle == title and _same_company_key(rco, company):
+            try:
+                age = (today - _today(applied_on)).days if applied_on else 0
+            except ValueError:
+                age = 0
+            if age <= GUARD_DAYS:
+                when = f"{age} day(s) ago" if applied_on else "already in progress, application date unknown"
+                return f"DUPLICATE {company_name} / {title_text}: {when} (window {GUARD_DAYS} days)"
+    return None
+
+
 def main(argv):
     if len(argv) < 3:
         print(__doc__)
@@ -315,7 +485,8 @@ def main(argv):
         return die(f"workspace not found: {ws}")
     if "workspace" not in ws.parts:
         return die(f"refusing to operate outside a workspace/ directory: {ws}")
-    fn = {"log": cmd_log, "overdue": cmd_overdue, "funnel": cmd_funnel, "show": cmd_show}.get(cmd)
+    fn = {"log": cmd_log, "overdue": cmd_overdue, "funnel": cmd_funnel, "show": cmd_show,
+          "ingest": cmd_ingest, "guard": cmd_guard}.get(cmd)
     if not fn:
         return die(f"unknown command {cmd!r}")
     return fn(ws, argv[3:])

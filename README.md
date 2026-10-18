@@ -147,7 +147,7 @@ industryresearch/
 
 - **Monthly, shared, and skipped when fresh.** Every run calls
   `python3 tools/industry_research.py status <industry> <domain>`. If the file was built this calendar
-  month the run reuses it in seconds; otherwise it rebuilds it. The industry and domain come from your
+  month the run reuses it in seconds. Otherwise it rebuilds it. The industry and domain come from your
   intake, so a finance or journalism user gets their own field's reference, not a security engineer's.
 - **Phrasing, never facts.** Phases 3, 5 and 18 use it to choose how to say something true. What is
   true still comes only from your evidence. Your personal mapping against it (which clusters you can
@@ -155,12 +155,75 @@ industryresearch/
 - **Anonymized.** No names, no profile URLs, no employer attached to a person's career path, and
   phrases are short fragments rather than copied bullets. See [`industryresearch/README.md`](industryresearch/README.md).
 - **The one shared write.** This folder is the only place a run writes outside `workspace/`, through a
-  scoped `Write(industryresearch/**)` permission. Whether to commit a refreshed file back is your call;
+  scoped `Write(industryresearch/**)` permission. Whether to commit a refreshed file back is your call:
   it holds no personal data by construction.
 
 First master résumé draft feeling weak? That is the system working: the bullet-quality gate flags
 weak bullets and tells you what evidence would fix them. Expect one revision pass. The iteration is
 where the quality comes from.
+
+## Ascend 2.0 (beta): find, apply, track
+
+Version 1 builds the apply packs. Version 2 keeps the search running: it finds matching roles every day,
+prepares the applications you approve, and reads your inbox to track what happened, all on your machine.
+You submit every application yourself. Ascend never sends one.
+
+```
+  every day, zero tokens      finder (public ATS boards) → prefilter → alerts → Gmail sync → classify → ledger → hub
+  when you run it             score the survivors (Phase 27) → you approve → apply (Phase 28) → hub
+```
+
+**You choose the engine per run, and see the token estimate and the permissions before anything is spent**
+(`python3 tools/run.py plan workspace/<you> --engine A`):
+
+| Engine | How it gathers | Setup |
+|---|---|---|
+| **A** deterministic core | Python reads the job boards and your Gmail (your own Google sign-in, read-only) | a Google Cloud OAuth client, once ([docs/GMAIL-SETUP.md](docs/GMAIL-SETUP.md)) |
+| **B** agent-driven | Claude does every stage, including web search | none, but the most tokens |
+| **C** core + connector | Python reads the boards; Claude reads Gmail through the claude.ai connector | none |
+
+**Applying is assisted.** For each job you approve, the hub shows an apply sheet: the answers to copy,
+the résumé to attach and the application link. You submit and press **I submitted it**. The sheet is
+built only when the job is approved, it is not a duplicate, its résumé passes the linter, and every answer
+comes from your own `data/profile.json`. Work authorization, sponsorship, salary and start date are always
+left for you to answer. Agent-submit and fully automatic modes are being developed separately on the
+`ascend-v2-agent-modes` branch and are not in this release.
+
+**What you are granting, per engine.** `run.py plan` prints this list every time.
+
+| | Engine A | Engine B | Engine C |
+|---|---|---|---|
+| Gmail | Your own Google OAuth client, `gmail.readonly` scope. Ascend cannot send, change or delete mail. The token stays in your macOS Keychain. | Claude reads your mail through the claude.ai Gmail connector. | Same as B. |
+| Gmail write tools | Not requested. | Denied in this repo's `.claude/settings.json`: send, reply, forward, drafts, labels, spam, trash. | Same as B. |
+| Google Drive | Not used. | Share, create, update, copy and trash are denied. | Same as B. |
+| Web | Public job-board APIs, read only. | Public boards plus Claude's web searches. | Public job-board APIs, read only. |
+| Applications | Never submitted by Ascend. | Never submitted by Ascend. | Never submitted by Ascend. |
+
+Engines B and C search Gmail with a query limited to job senders and job subjects, starting from the day
+before the last read. The mail Claude reads is untrusted, and the same session can fetch web pages. Claude
+treats mail as data, but this repo's settings allow web fetches to any domain, and a narrower allow in a
+local file does not override that. To close it, add `"ask": ["WebFetch"]` to the `permissions` in your own
+`.claude/settings.local.json` so every fetch asks you first, or `"deny": ["WebFetch"]` if you use engine C,
+which never needs one (that also stops the v1 research prompts from fetching pages in this checkout). A deny in this
+repo's `.claude/settings.json` cannot be reopened from a local file: to let Claude draft mail here, remove
+the entry from `.claude/settings.json` itself. **LinkedIn search** is opt-in on
+every engine. It drives your own logged-in LinkedIn session through Claude in Chrome and reads result
+cards only. Automated browsing can break LinkedIn's terms of use and put the account at risk, so Claude
+asks before each search.
+
+**First run.** After a v1 run, `/ascend run-v2` sets up two files with you: `data/profile.json` (the only
+answers an apply sheet pre-fills) and `data/sources.json` (the company boards to watch and your filters).
+`run.py plan` will not start until both exist. Restart `python3 ui/server.py` after updating Ascend: the
+server keeps the tool code it started with.
+
+**The hub** (`python3 tools/hub.py build workspace/<you>`, or served with actions at `/hub?slug=<you>`)
+shows the funnel from found to offer, this week's applications, replies and interviews, the mail
+waiting on you with its due date, a queue you approve from, a classified inbox, and token spend by
+stage. **`python3 tools/schedule.py install workspace/<you> --at 06:30`** runs the zero-token part every
+morning (cron skips the run if the Mac is asleep at that time). It also deletes mail older than 180 days
+from the workspace and keeps only the headers of mail that is not about a job.
+
+What has run on real data and what is still beta: [docs/V2-READINESS.md](docs/V2-READINESS.md).
 
 ## Day-to-day
 
@@ -201,6 +264,11 @@ reading nothing.
 | "Ascend negotiate Acme" *(beta)* | Salary plan: market anchors, your numbers, scripts |
 | "Run Ascend maintenance" *(beta)* | Weekly: new/closed jobs, follow-ups due, retro patterns |
 | "Ascend industry" *(beta)* | Rebuild or inspect the phrasing reference for your field (runs monthly by itself) |
+| "Ascend run-v2" *(beta)* | Ascend 2.0 run: choose an engine, see the token estimate and permissions, find, score, track |
+| "Ascend apply" *(beta)* | Apply to approved jobs: a gated apply sheet in the hub, you submit |
+| "Ascend linkedin-search" *(beta)* | LinkedIn Jobs in your own browser, result cards only |
+| "Ascend hub" *(beta)* | The live dashboard: funnel, queue with approve and apply, inbox, token spend |
+| "Ascend schedule" *(beta)* | Run the zero-token daily sync on a schedule |
 | "Ascend titles" *(beta)* | Job titles your own evidence already supports, that you aren't searching for |
 | "Ascend offers" *(beta)* | Compare offers component by component, read the letter, work the timeline |
 | "Ascend work-sample" *(beta)* | The portfolio piece or take-home that decides the loop: build one, re-angle per job |

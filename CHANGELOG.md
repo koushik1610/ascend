@@ -11,6 +11,164 @@ _Working toward v1.0. Real-run gate: **1 of 2–3 runs signed off** (2026-07-01,
 see `docs/ROADMAP.md` → sign-off log); cases (b) no-résumé/non-tech and (c) resume-after-interruption
 remain, plus a green CI run on the remote + a demo GIF._
 
+### Changed: Ascend 2.0 after the council review (branch `ascend-v2`, PR #15)
+A ten-persona council reviewed the branch twice. Its first round returned nine conditional verdicts and
+one rejection, and the user chose to split the PR:
+- **Assisted apply only.** Agent-submit, fully automatic, the local fake form and the submit exception
+  to "never transmit workspace data" moved to the `ascend-v2-agent-modes` branch. `CLAUDE.md` and
+  `reference/untrusted-content-policy.md` are unchanged from main. Nothing in this release sends an
+  application.
+- **Only the user's click** approves a job or marks it applied (the hub). The command line refuses both,
+  and a sent job never moves back.
+- **Gmail through the claude.ai connector is read-only in settings**: `.claude/settings.json` denies its
+  send, reply, forward, draft, label, spam and trash tools and Drive's write tools. `run.py plan`, the
+  README and prompt 29 state each engine's permissions and the mail-plus-web-fetch risk.
+- **Tracking that does not go quiet:** Gmail history is paginated with a safe cursor; deleted messages
+  are skipped; the connector reads from the day before its last read with a job-only query; a signed-out
+  Gmail or an empty board list fails the daily sync with the fix, and the hub shows a banner.
+- **Less data kept:** 180-day mail retention; non-job mail keeps headers only; promotions, social and
+  forums mail is stored only from job senders.
+- **Correctness:** cron line injection closed; locked read-modify-write for shared files; slug-aware
+  duplicate guard; ranked mail matching that never closes a job on a body-only mention, rule or model.
+- **Measured honestly:** hub rates separate interviews, positive responses and any reply; spec criterion 6
+  (interview rate over the first 50 v2 sends against JobHire's 0.3%) is on the hub; token estimates
+  calibrate stage by stage.
+- **First run:** `run.py plan` refuses a workspace without a master, boards or a profile; prompt 29
+  Step 0 builds them; neutral `templates/sources.example.json` and `templates/profile.example.json`.
+
+### Added: Ascend 2.0 (beta), M10 scheduling and release (branch `ascend-v2`)
+**Ascend 2.0 finds jobs every day, prepares the applications you approve, and tracks replies from your inbox.**
+It is beta: see `docs/V2-READINESS.md` for what has run on real data and what has not.
+- **`tools/daily.py`** runs the zero-token sync (Gmail when engine A is connected, classify, ingest,
+  finder, prefilter, alerts, hub), each stage isolated, one row per run in `data/run-log.jsonl`.
+  **`tools/schedule.py install WS --at HH:MM`** schedules it.
+- **`tools/_cron.py`**: the daily brief's safe crontab handling, now shared with the v2 scheduler.
+- Registered: ops `run-v2`, `apply`, `linkedin-search`, `hub`, `schedule`; phases 27 to 29; README
+  "Ascend 2.0" section; WORKFLOW J21 to J24.
+- Real check: the sync ran on a real workspace in 21 seconds with every stage passing.
+
+### Added: Ascend 2.0, M9 engines B and C, LinkedIn search (branch `ascend-v2`)
+- **`finder.py add`** and **`gmail_sync.py add`**: rows Claude produces (engine B's web search,
+  engines B and C's Gmail reads through the connector, LinkedIn search) go through the same validation as
+  the Python stages: required fields, the 2,000-character excerpt cap, no sent mail, drafts or mail
+  from the user's own address, de-duplication. A Greenhouse, Lever or Ashby URL maps to its board ID,
+  so a search result for a board the finder polls is de-duplicated against it, or filed as closed when
+  the board no longer lists it.
+- **`classify.py pending` and `classify.py resolve`**: the model's verdict on mail the rules could not
+  place is an append-only correction. Ingest, the hub and the pending count all use each message's latest
+  verdict, so a resolved "next steps" email moves the job.
+- **Phase 29 (`prompts/29-run-v2.md`)**: the v2 run driver (plan with the token warning, each engine's
+  steps, connector reads, web search, and `linkedin-search`, which reads result cards only).
+- Real checks: a day of real Gmail through the validator (own reply, trash and a duplicate skipped); a
+  real "next steps" email resolved by the model moved that job to screen; a web search added four
+  postings and exposed a stale one, now caught by the board check; a LinkedIn search added seven cards,
+  caught one as a role already known from another source, and passed five. The real runs found two
+  bugs, both fixed test-first: stale search results, and leads without a URL silently blocking every
+  later add.
+
+### Added: Ascend 2.0, M8 applying (branch `ascend-v2`)
+- **`tools/apply.py`**: `sheet` builds a gated apply sheet (the job is approved, not a duplicate, its
+  résumé passes lint, answers only from `data/profile.json`; work authorization, sponsorship, salary and
+  start date are always left to the user). The hub's "I submitted it" records the send.
+- **Phase 28 (`prompts/28-apply.md`)**: assisted mode in the hub. Apply shows the sheet, the link, the
+  answers to copy and the questions only the user can answer. The user submits.
+- Agent-submit and fully automatic were built in this module and moved to `ascend-v2-agent-modes` after
+  the council review (see above).
+- `lint_artifacts.py` accepts a user's own master entry prefixes (`"id_prefixes"` in lint-config) and
+  the `- **ID**` declaration form, so a master from an older run passes the provenance check on its
+  merits. Parenthesised sources in such a Delta Log are not read as selections. The default grammar is
+  unchanged.
+- Real check: the apply sheets for both approved real jobs passed every gate; an unapproved one was
+  refused. Nothing was sent to an employer.
+
+### Added: Ascend 2.0, M7 run selection, scoring and queue actions (branch `ascend-v2`)
+- **`tools/run.py plan WS --engine A|B|C`** checks a run can go (engine A needs the Gmail client and a
+  sign-in), states the token estimate and the permissions the engine uses, and saves the choice as the
+  default.
+  `run.py steps` lists each engine's stages, marking the ones that spend tokens.
+- **Phase 27 (`prompts/27-score-queue.md`)** scores prefilter survivors 0 to 100 with a reason citing
+  master entry IDs and the gaps stated plainly, through `tools/jobqueue.py`. Candidates are trimmed to
+  the role section of the posting (the first 1,500 characters of most postings are company boilerplate)
+  and roles already queued under another ID or board name are skipped.
+- **`tools/usage.py`** records each Claude stage's cost (characters converted at 4 per token, labelled
+  estimated) and replaces the default estimate with measured figures after three runs.
+- **Queue actions:** `ui/server.py` serves `/hub?slug=` with the session token and `connect-src 'self'`,
+  and `POST /api/queue` approves, rejects or records "I submitted it". The static `hub.html` stays read-only.
+- Real check: ten real postings scored, two approved from the browser, written to the queue. The real
+  data drove five fixes: boilerplate-free excerpts, open decisions first, v1 folders counted as open,
+  de-duplication across ID formats and board slugs, and queue decisions shown over untouched folders.
+
+### Added: Ascend 2.0, M6 job alerts and recruiter inbound (branch `ascend-v2`)
+- **`tools/alerts.py run WS`** turns the jobs named in Wellfound and LinkedIn alert emails into leads
+  that the prefilter judges like any posting, and turns recruiter mail into queue entries: `needs-you`
+  when it matches the user's filters, `inbound-filtered` with the reasons when it does not. Nothing is
+  replied to and no link from email is ever opened.
+- Real check: a Wellfound alert yielded its Meta lead; three hybrid contract emails from staffing
+  agencies were filtered as not remote.
+
+### Added: Ascend 2.0, M5 finder and prefilter (branch `ascend-v2`)
+- **`tools/finder.py run WS`** polls the public job boards in `data/sources.json` (Greenhouse, Ashby,
+  Lever, Workable, SmartRecruiters) at zero tokens. New postings append to `postings.jsonl`; first and
+  last seen dates live in `postings-state.json`. A posting closes only when its board answered without
+  it, so a board that is down for a day closes nothing.
+- **`tools/prefilter.py run WS`** applies the user's hard rules (titles, exclusions, seniority,
+  remote, regions, pay floor, excluded keywords, blocklist, already applied) and records why each
+  posting passed or failed. One role posted in several locations passes once. "Remote" is not a region:
+  a location passes when it names an allowed region, with US states, common US cities and "U.S."
+  recognised. When a board does not flag remote, an explicit statement in the description counts.
+  Incremental, and re-judges everything when the filters or the rules change.
+- `templates/sources.example.json`: a starting board list and filters.
+- **Real run:** 127 boards, 15,092 postings in 22 seconds at zero tokens, 48 survivors for the model to
+  score. The real data drove four fixes: whole-word regions ("us" inside "Australia"), US geography,
+  description-stated remote, and per-role de-duplication.
+
+### Added: Ascend 2.0, M4 engine A Gmail sync (branch `ascend-v2`)
+- **`tools/gmail_sync.py`**: `connect` (Google sign-in through your own Desktop OAuth client, PKCE,
+  loopback redirect on 127.0.0.1, read-only scope), `sync` (incremental through the Gmail history API,
+  falling back to a date query when the cursor has expired, de-duplicated by message ID), `status`.
+  Keeps sender, subject, date, labels and a 2,000-character excerpt. Skips sent mail, drafts, spam and
+  trash. Refresh token in the macOS Keychain. `--then-classify` runs classify, ingest and the hub
+  build, so a scheduled sync costs zero tokens end to end.
+- Exit 4 means not connected or access revoked; a revoked token is deleted and the hub shows Gmail as
+  disconnected.
+- Tested against a fake Google server (11 tests). Setup guide: `docs/GMAIL-SETUP.md`.
+
+### Added: Ascend 2.0, M3 hub dashboard (branch `ascend-v2`)
+- **`tools/hub.py build WS`** writes `workspace/<name>/hub.html`: Dashboard (this week's
+  applications, replies and interviews counted by job, a funnel from found to offer, mail waiting on
+  you pinned with its due date, reply and ghost rates once there are 10 applications, token spend by
+  stage), Queue, and Inbox (filterable, linked to Gmail and to the job). Built from the data files at
+  zero tokens. The data is embedded with `<`, `>` and `&` escaped, and the page's CSP forbids every
+  network call.
+- Checked on a real workspace in the browser. That caught a script that blanked the page (`const top`
+  shadows `window.top`), now pinned by a test that rejects browser-global names in the template.
+
+### Added: Ascend 2.0, M2 ledger ingest and duplicate guard (branch `ascend-v2`)
+- **`pipeline.py ingest WS`** turns classified mail into status changes: acknowledgement → applied,
+  info request or assessment → responded (with the due date), interview invite → screen, rejection →
+  rejected. A job never moves backwards except into rejected. Offer, rejected and move-on are final.
+  Safe to re-run. Rows land in the same append-only ledger as `log`, with `source=gmail`.
+- **`pipeline.py guard WS --company C --title T [--posting-id P]`** exits 3 on a duplicate: the same
+  posting ever, or the same company and normalized title within 60 days.
+- `transition()` is now the single write path for every status change, shared by `log` and `ingest`.
+- **Classifier calibrated on a real inbox** (49 messages, kept local): 77.6% → 100% correct, one
+  message sent to a model. Adds job-board alert domains, staffing-agency and expert-network patterns,
+  bulk-sender detection, careers-subdomain senders, and matches only mail about an application.
+
+### Added: Ascend 2.0, M1 mail classifier (branch `ascend-v2`)
+First module of Ascend 2.0 (spec `docs/superpowers/specs/2026-10-16-ascend-v2-design.md`, plan
+`docs/superpowers/plans/2026-10-16-ascend-v2.md`).
+- **`tools/classify.py run WS`** sorts `workspace/<name>/data/mail.jsonl` into acknowledgement,
+  rejection, info request, assessment, interview invite, status update, recruiter inbound, job alert
+  or other, by rule and at zero tokens. It matches each message to a queued job (including Workday
+  senders like `company@myworkday.com`), sets due dates on info requests and assessments, and is safe
+  to re-run. Only mail that still looks job-related after every rule misses goes to
+  `classify-pending.jsonl` for a model pass. Receipts, newsletters and personal mail never do.
+- **`tools/_v2data.py`**, the v2 data contract's file I/O: append-only JSON Lines, atomic JSON, all
+  writes confined by `_paths.resolve_out`.
+- 36-message synthetic mailbox (`tests/fixtures/v2/`), 36 of 36 classified correctly.
+  `tests/test_v2_tracker.py` (27 tests) runs inside `tests/smoke.py`.
+
 ### Added: Phase 26, industry language research (`/ascend industry`)
 Résumés were phrased from the user's own drafts plus generic rules, which reproduces the user's
 existing voice, including the parts that undersell the level they are targeting.

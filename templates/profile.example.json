@@ -1,0 +1,19 @@
+{
+  "_comment": [
+    "Copy to workspace/<name>/data/profile.json. prompts/29-run-v2.md Step 0 fills it from your intake.",
+    "These are the only answers an apply sheet ever pre-fills. Leave a field empty rather than guess.",
+    "work_authorization, sponsorship, salary_expectation and start_date are never pre-filled, even when set here:",
+    "the apply sheet always asks you."
+  ],
+  "name": "Jordan Rivera",
+  "email": "jordan.rivera@example.com",
+  "phone": "",
+  "location": "Remote, US",
+  "linkedin": "",
+  "website": "",
+  "github": "",
+  "work_authorization": null,
+  "sponsorship": null,
+  "salary_expectation": null,
+  "start_date": null
+}
