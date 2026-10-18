@@ -39,7 +39,7 @@ ENDPOINTS = {
     "workable": ("https://apply.workable.com", "/api/v1/widget/accounts/{slug}"),
     "smartrecruiters": ("https://api.smartrecruiters.com", "/v1/companies/{slug}/postings"),
 }
-TEXT_LIMIT = 6000
+TEXT_LIMIT = 8000
 UA = {"User-Agent": "Ascend/2.0 (job search; public board API)"}
 
 
@@ -67,11 +67,25 @@ def fetch_board(ats, slug):
     return jobs if isinstance(jobs, list) else None
 
 
-def clean(s):
+# Most postings open with paragraphs about the company. Stored text and the scorer's budget start at the
+# first heading that introduces the role instead. Found on real runs: the first 1,500 characters of Affirm's,
+# Twilio's, Upstart's and GitLab's postings were company boilerplate, and 40 of 50 survivors were cut at
+# 6,000 characters before their requirements.
+ROLE_START = re.compile(r"(about the role|about this role|role overview|the role\b|in this role|what you('|’)ll do|"
+                        r"what you will do|what you do\b|responsibilities|your impact|you will:|"
+                        r"the opportunity(?! for)|\bas (a|an|the) [^.]{3,90}?, you will)", re.I)
+
+
+def role_text(text):
+    m = ROLE_START.search(text or "")
+    return (text or "")[m.start():] if m else (text or "")
+
+
+def clean(s, limit=TEXT_LIMIT):
     s = html.unescape(s or "")
     s = re.sub(r"(?is)<(script|style).*?</\1>", " ", s)
     s = re.sub(r"<[^>]+>", " ", s)
-    return re.sub(r"\s+", " ", html.unescape(s)).strip()[:TEXT_LIMIT]
+    return role_text(re.sub(r"\s+", " ", html.unescape(s)).strip())[:limit]
 
 
 def _money(v):
@@ -94,8 +108,11 @@ def normalize(ats, slug, company, j):
     elif ats == "ashby":
         comp = next((c for c in (j.get("compensation") or {}).get("summaryComponents", []) or []
                      if c.get("compensationType") == "Salary"), {})
+        # workplaceType first: Ashby sets isRemote on hybrid jobs too.
+        wp = (j.get("workplaceType") or "").lower()
         p = dict(native=j["id"], title=j.get("title", ""), location=j.get("location", ""),
-                 remote=j.get("isRemote") if isinstance(j.get("isRemote"), bool) else _remote_from_text(j.get("location")),
+                 remote=True if wp == "remote" else False if wp in ("hybrid", "onsite", "on-site") else
+                 j.get("isRemote") if isinstance(j.get("isRemote"), bool) else _remote_from_text(j.get("location")),
                  url=j.get("jobUrl"), apply_url=j.get("applyUrl") or j.get("jobUrl"),
                  text=clean(j.get("descriptionPlain")), comp_min=_money(comp.get("minValue")),
                  comp_max=_money(comp.get("maxValue")))

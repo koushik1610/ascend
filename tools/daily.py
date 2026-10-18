@@ -22,6 +22,7 @@ import _v2data as d  # noqa: E402
 
 
 RETENTION_DAYS = 180
+TRIM_AFTER_DAYS = 14
 
 
 def _engine(ws):
@@ -30,12 +31,17 @@ def _engine(ws):
 
 def prune(ws, today=None):
     """Spec §8 retention: drop mail older than retention_days (sources.json, default 180), and keep only the
-    headers of mail the rules placed as not job-related. Mail waiting for a model keeps its excerpt."""
+    headers of mail placed as not job-related once it is TRIM_AFTER_DAYS old. Mail waiting for a model, and
+    mail in a thread that has job mail (a recruiter's follow-up), keep their excerpt. Claude's staging files
+    are removed: they hold copies that would outlive this."""
     dd = d.data_dir(ws)
     days = d.read_json(dd / "sources.json", {}).get("retention_days") or RETENTION_DAYS
     cutoff = (date.fromisoformat(today) if today else date.today()) - timedelta(days=int(days))
     import classify
     latest = {e.get("msg_id"): e for e in classify.latest_events(d.read_jsonl(dd / "events.jsonl"))}
+    trim_before = ((date.fromisoformat(today) if today else date.today()) - timedelta(days=TRIM_AFTER_DAYS)).isoformat()
+    job_threads = {m.get("thread_id") for m in d.read_jsonl(dd / "mail.jsonl") if m.get("thread_id") and
+                   (latest.get(m.get("msg_id")) or {}).get("category") not in (None, "other", "job-alert")}
     out = {"dropped": 0, "trimmed": 0}
 
     def keep(rows):
@@ -45,13 +51,18 @@ def prune(ws, today=None):
                 out["dropped"] += 1
                 continue
             e = latest.get(m.get("msg_id")) or {}
-            if e.get("category") == "other" and not e.get("needs_llm") and m.get("body_excerpt"):
+            if (e.get("category") == "other" and not e.get("needs_llm") and m.get("body_excerpt")
+                    and (m.get("date") or "")[:10] < trim_before and m.get("thread_id") not in job_threads):
                 m = dict(m, body_excerpt="")
                 out["trimmed"] += 1
             kept.append(m)
         return kept
     if (dd / "mail.jsonl").exists():
         d.rewrite_jsonl(dd / "mail.jsonl", keep)
+    import gmail_sync
+    for name in gmail_sync.STAGING:
+        if (dd / name).is_file():
+            (dd / name).unlink()
     return out
 
 

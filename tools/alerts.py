@@ -26,7 +26,7 @@ sys.path.insert(0, str(TOOLS))
 import _v2data as d  # noqa: E402
 import prefilter  # noqa: E402
 from _paths import PathOutsideWorkspace  # noqa: E402
-from classify import sender_domain  # noqa: E402
+from classify import ALERT_DOMAINS, _domain_in, sender_domain  # noqa: E402
 
 WELLFOUND_JOB = re.compile(
     r"(?P<head>[^|/]*?)\s(?P<company>[A-Z][\w&.'-]*)\s/\s[\d,+\- ]+Employees\s*"
@@ -92,14 +92,33 @@ def _org(mail):
     return re.sub(r"[-_]+", " ", label).title() or "Unknown"
 
 
+BOARD_SUBJECT = re.compile(r"^(?P<title>.+?)\s+(?:@|at)\s+(?P<company>[^@]+?)\s*$")
+
+
 def inbound_entry(mail, filters, applied=()):
+    """A job board's recommendation ("Principal Engineer @ Onebrief") names a title and company and is judged
+    like a posting. A person's email is not: its subject is not a job title and most never state a
+    location, so only what it does state is judged, and the rest is left to the user."""
     body = mail.get("body_excerpt", "") or ""
+    subject = mail.get("subject", "") or ""
     # Stop at the next "Field:" label, so a location never swallows the rate or visa terms after it.
     loc = re.search(r"Location:\s*(.+?)(?=\s+[A-Z][\w ]{1,20}:|[.\n]|$)", body)
-    posting = {"company": _org(mail), "title": mail.get("subject", ""), "location": loc.group(1).strip() if loc else "",
+    location = loc.group(1).strip() if loc else ""
+    board = _domain_in(sender_domain(mail), ALERT_DOMAINS) and BOARD_SUBJECT.match(subject)
+    company, title = (board.group("company").strip(), board.group("title").strip()) if board else (_org(mail), subject)
+    posting = {"company": company, "title": title, "location": location,
                "remote": None, "comp_min": None, "comp_max": None, "text": body}
-    verdict = prefilter.evaluate(posting, filters, list(applied))
-    return {"posting_id": f"inbound:{mail.get('msg_id')}", "company": posting["company"], "title": posting["title"],
+    judged = dict(filters)
+    notes = []
+    if not board:
+        judged.update(title_include=[], seniority=[])
+        notes.append("a person's email: check the role yourself")
+    if not location and not prefilter.REMOTE_IN_TEXT.search(body):
+        judged.update(remote_only=False, locations=[])
+        notes.append("location not stated")
+    verdict = prefilter.evaluate(posting, judged, list(applied))
+    verdict["reasons"] = verdict["reasons"] + notes
+    return {"posting_id": f"inbound:{mail.get('msg_id')}", "company": company, "title": title,
             "source": "recruiter", "msg_id": mail.get("msg_id"), "from": mail.get("from"),
             "state": "needs-you" if verdict["passed"] else "inbound-filtered", "reasons": verdict["reasons"]}
 

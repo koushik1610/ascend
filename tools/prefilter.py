@@ -45,7 +45,7 @@ US_STATES = ["alabama", "alaska", "arizona", "arkansas", "california", "colorado
              "north carolina", "north dakota", "ohio", "oklahoma", "oregon", "pennsylvania", "rhode island",
              "south carolina", "south dakota", "tennessee", "texas", "utah", "vermont", "virginia", "washington",
              "west virginia", "wisconsin", "wyoming", "district of columbia"]
-US_PLACES = ["u s", "u s a", "america", "nyc", "sf", "bay area", "silicon valley", "seattle", "san francisco",
+US_PLACES = ["u s", "u s a", "united states of america", "north america", "nyc", "sf", "bay area", "silicon valley", "seattle", "san francisco",
              "los angeles", "san jose", "boston", "austin", "dallas", "houston", "denver", "chicago", "atlanta",
              "miami", "phoenix", "portland", "salt lake", "dc", "d c", "raleigh", "pittsburgh", "philadelphia",
              "san diego", "minneapolis", "nashville", "detroit", "columbus"]
@@ -109,7 +109,8 @@ def evaluate(posting, filters, applied):
         fail(f"excluded keyword: {kw}")
     if company_key(posting.get("company")) in {company_key(b) for b in filters.get("blocklist", []) or []}:
         fail("company on your blocklist")
-    if (company_key(posting.get("company")), pipeline.normalize_title(title)) in set(applied):
+    key, ntitle = company_key(posting.get("company")), pipeline.normalize_title(title)
+    if any(t == ntitle and pipeline._same_company_key(key, c) for c, t in applied):
         fail("already applied")
     keywords = [k.lower() for k in filters.get("keywords", []) or []]
     overlap = round(sum(1 for k in keywords if k in blob) / len(keywords), 3) if keywords else 0.0

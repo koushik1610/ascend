@@ -132,6 +132,15 @@ def query_matches(msg, terms):
                for t in terms["subjects"])
 
 
+FIRST_READ_DAYS = 30
+STAGING = ("connector-rows.json", "web-rows.json", "linkedin-rows.json")    # Claude's hand-off files under data/
+
+
+def _address(sender_text):
+    m = re.search(r"<([^<>@\s]+@[^<>\s]+)>", sender_text or "")
+    return (m.group(1) if m else (sender_text or "").strip()).lower()
+
+
 def connector_query(ws, today=None):
     """The Gmail search engines B and C run through the connector: from the day before the last complete
     read (so a gap of days is never skipped), job senders or job subjects only, and the promotions, social
@@ -143,10 +152,11 @@ def connector_query(ws, today=None):
     if last:
         window = "after:" + (date.fromisoformat(last[:10]) - timedelta(days=1)).strftime("%Y/%m/%d")
     else:
-        window = "newer_than:2d"
+        window = f"newer_than:{FIRST_READ_DAYS}d"      # a first read backfills a month, like engine A
     t = query_terms(ws)
     senders = " OR ".join(t["domains"] + t["addresses"] + t["from_words"])
-    return f"{window} (from:({senders}) OR (subject:({' OR '.join(t['subjects'])}) {QUERY_EXCLUDE}))"
+    # -in:sent: the user's own replies are dropped by `add` anyway, so they should never reach Claude.
+    return f"{window} -in:sent (from:({senders}) OR (subject:({' OR '.join(t['subjects'])}) {QUERY_EXCLUDE}))"
 
 
 EXCERPT = 2000
@@ -451,7 +461,7 @@ def add(ws, rows, today=None, complete=True):
         sender = (r.get("from") or "").lower()
         when = _iso_date(r.get("date"))
         if (not all(r.get(k) for k in ("msg_id", "from", "subject")) or not when or r["msg_id"] in known
-                or _skip(r.get("labels"), r.get("from")) or (own and own in sender)):
+                or _skip(r.get("labels"), r.get("from")) or (own and _address(sender) == own)):
             out["skipped"] += 1
             continue
         d.append_jsonl(dd / "mail.jsonl", {"msg_id": r["msg_id"], "thread_id": r.get("thread_id"), "from": r["from"],
@@ -480,13 +490,18 @@ def main(argv):
         return 0
     if len(argv) >= 3 and argv[1] == "add" and not argv[2].startswith("--"):
         try:
+            staged = None
             if "--file" in argv:        # rows Claude wrote under the workspace: no email text on the command line
-                rows = json.loads(resolve_out(argv[argv.index("--file") + 1]).read_text(encoding="utf-8"))
+                staged = resolve_out(argv[argv.index("--file") + 1])
+                rows = json.loads(staged.read_text(encoding="utf-8"))
             elif "--json" in argv:
                 rows = json.loads(argv[argv.index("--json") + 1])
             else:
                 rows = json.load(sys.stdin)
             print(json.dumps(add(argv[2], rows, complete="--complete" in argv)))
+            if staged is not None and staged.name in STAGING:
+                # The rows are in mail.jsonl now, under retention. A second copy would outlive it.
+                staged.unlink()
         except PathOutsideWorkspace as e:
             print(f"gmail_sync: {e}", file=sys.stderr)
             return 2

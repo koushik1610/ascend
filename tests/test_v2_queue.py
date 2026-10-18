@@ -38,6 +38,21 @@ def seed_candidates(ws):
                                                       "title": "Staff Cloud Security Engineer", "state": "matched", "fit": 70}]})
 
 
+class RoleText(unittest.TestCase):
+    def test_role_start_skips_company_boilerplate(self):
+        import jobqueue
+        t = ("Join us for the opportunity for growth. " * 5 + "As the Principal Platform Security Engineer at Upstart, "
+             "you will define the strategy.")
+        self.assertTrue(jobqueue.role_text(t).startswith("As the Principal"), jobqueue.role_text(t)[:40])
+        self.assertTrue(jobqueue.role_text("Boilerplate. What you do Act as the DRI.").startswith("What you do"))
+
+    def test_candidate_text_includes_requirements(self):
+        import jobqueue
+        t = "Responsibilities " + "build things. " * 300 + "Requirements: 8+ years of Go and Kubernetes."
+        self.assertIn("8+ years of Go", jobqueue.budget_text(t))
+        self.assertLessEqual(len(jobqueue.budget_text(t)), jobqueue.TEXT_BUDGET + 10)
+
+
 class Usage(unittest.TestCase):
     def setUp(self):
         self.td = tempfile.TemporaryDirectory()

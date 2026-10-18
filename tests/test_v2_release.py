@@ -170,18 +170,25 @@ class Daily(unittest.TestCase):
         import daily
         dd = self.ws / "data"
         d.write_json_atomic(dd / "sources.json", {"boards": [], "retention_days": 180})
-        for mid, when in (("old", "2026-01-01T00:00:00+00:00"), ("job", "2026-10-10T00:00:00+00:00"),
-                          ("news", "2026-10-11T00:00:00+00:00"), ("unsure", "2026-10-12T00:00:00+00:00")):
-            d.append_jsonl(dd / "mail.jsonl", {"msg_id": mid, "from": "a@b.example", "subject": mid, "date": when,
-                                               "body_excerpt": f"body of {mid}"})
-        for mid, cat, llm in (("job", "acknowledgement", False), ("news", "other", False), ("unsure", "other", True)):
+        for mid, when, thread in (("old", "2026-01-01T00:00:00+00:00", "t1"), ("job", "2026-09-10T00:00:00+00:00", "t2"),
+                                  ("news", "2026-09-11T00:00:00+00:00", "t3"), ("unsure", "2026-09-12T00:00:00+00:00", "t4"),
+                                  ("followup", "2026-09-13T00:00:00+00:00", "t2"), ("fresh", "2026-10-15T00:00:00+00:00", "t5")):
+            d.append_jsonl(dd / "mail.jsonl", {"msg_id": mid, "thread_id": thread, "from": "a@b.example", "subject": mid,
+                                               "date": when, "body_excerpt": f"body of {mid}"})
+        for mid, cat, llm in (("job", "acknowledgement", False), ("news", "other", False), ("unsure", "other", True),
+                              ("followup", "other", False), ("fresh", "other", False)):
             d.append_jsonl(dd / "events.jsonl", {"msg_id": mid, "category": cat, "needs_llm": llm})
+        (dd / "connector-rows.json").write_text("[]")
         out = daily.prune(self.ws, today="2026-10-17")
-        mail = {m["msg_id"]: m for m in d.read_jsonl(dd / "mail.jsonl")}
-        self.assertEqual(sorted(mail), ["job", "news", "unsure"])
-        self.assertEqual((mail["job"]["body_excerpt"], mail["news"]["body_excerpt"], mail["unsure"]["body_excerpt"]),
-                         ("body of job", "", "body of unsure"))
-        self.assertEqual(out, {"dropped": 1, "trimmed": 1})
+        mail = {m["msg_id"]: m["body_excerpt"] for m in d.read_jsonl(dd / "mail.jsonl")}
+        self.assertEqual(sorted(mail), ["followup", "fresh", "job", "news", "unsure"])
+        # Trimmed: non-job mail older than two weeks. Kept: a follow-up in a job thread, mail still fresh enough
+        # for a model pass or a second look, and mail waiting for a model.
+        self.assertEqual(mail, {"job": "body of job", "news": "", "unsure": "body of unsure",
+                                "followup": "body of followup", "fresh": "body of fresh"})
+        self.assertEqual(out["dropped"], 1)
+        self.assertEqual(out["trimmed"], 1)
+        self.assertFalse((dd / "connector-rows.json").exists())     # a staging copy left behind is removed
 
 
 class Registry(unittest.TestCase):

@@ -25,16 +25,15 @@ from pathlib import Path
 TOOLS = Path(__file__).resolve().parent
 sys.path.insert(0, str(TOOLS))
 import _v2data as d  # noqa: E402
+from finder import ROLE_START, role_text  # noqa: E402,F401
 
 STATES = ["matched", "approved", "rejected", "needs-you", "applying", "applied", "applied?", "inbound-filtered"]
 SENT = {"applying", "applied", "applied?"}       # once sent, a job only moves on to applied
 HUB_ONLY = {"approved", "applied"}               # the user's own click in the hub, never a CLI call
 TEXT_BUDGET = 1500
-# Most postings open with paragraphs about the company. The budget goes to the role instead: start at
-# the first heading that introduces it. Found on a real run, where the first 1,500 characters of
-# Affirm's and Twilio's postings were entirely company boilerplate.
-ROLE_START = re.compile(r"(about the role|about this role|the role\b|in this role|what you('|’)ll do|"
-                        r"what you will do|responsibilities|your impact|you will:|the opportunity)", re.I)
+REQ_START = re.compile(r"(requirements|qualifications|what you('|’)ll bring|what you bring|what we('|’)re looking for|"
+                       r"who you are|about you|you have:|you might be a fit|minimum)", re.I)
+REQ_SHARE = 500
 
 
 def _queue(ws):
@@ -56,9 +55,16 @@ def role_key(company, title):
     return f"{company_key(company)}|{pipeline.normalize_title(title)}"
 
 
-def role_text(text):
-    m = ROLE_START.search(text or "")
-    return (text or "")[m.start():] if m else (text or "")
+def budget_text(text):
+    """The scorer's TEXT_BUDGET characters: the role from its first heading, plus the requirements section
+    when it starts past that window, so must-haves are judged and not cut off."""
+    t = role_text(text)
+    if len(t) <= TEXT_BUDGET:
+        return t
+    m = REQ_START.search(t, TEXT_BUDGET - REQ_SHARE)
+    if not m:
+        return t[:TEXT_BUDGET]
+    return t[:TEXT_BUDGET - REQ_SHARE - 3] + " … " + t[m.start():m.start() + REQ_SHARE]
 
 
 def _same_role(company_a, title_a, company_b, title_b):
@@ -158,7 +164,7 @@ def candidates(ws, limit=25):
     rows.sort(key=lambda r: -r[0].get("keyword_overlap", 0))
     return [{"posting_id": p["id"], "company": p.get("company"), "title": p.get("title"), "location": p.get("location"),
              "comp": [p.get("comp_min"), p.get("comp_max")], "keyword_overlap": c.get("keyword_overlap"),
-             "url": p.get("url"), "text": role_text(p.get("text"))[:TEXT_BUDGET]} for c, p in rows[:limit]]
+             "url": p.get("url"), "text": budget_text(p.get("text"))} for c, p in rows[:limit]]
 
 
 def score(ws, posting_id, fit, why, gaps):

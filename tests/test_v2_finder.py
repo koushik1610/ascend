@@ -113,6 +113,25 @@ class Adapters(Base):
         self.assertEqual((p["remote"], p["comp_min"], p["comp_max"], p["apply_url"]),
                          (False, 210000, 260000, "https://jobs.example/u1/apply"))
 
+    def test_ashby_hybrid_is_not_remote(self):
+        # Ashby sets isRemote on hybrid jobs: Harvey's San Francisco hybrid roles came through remote_only.
+        import finder
+        base = {"title": "Staff Security Engineer", "location": "San Francisco", "jobUrl": "https://jobs.example/h",
+                "descriptionPlain": "x"}
+        for wp, is_remote, want in [("Hybrid", True, False), ("OnSite", True, False), ("Remote", False, True),
+                                    (None, True, True)]:
+            j = dict(base, id=f"h-{wp}", workplaceType=wp, isRemote=is_remote)
+            self.assertEqual(finder.normalize("ashby", "h", "H", j)["remote"], want, wp)
+
+    def test_stored_text_starts_at_the_role_and_keeps_requirements(self):
+        import finder
+        body = ("About Us. " + "Company boilerplate. " * 300 + "As the Staff Security Engineer at Acme, you will own "
+                "cloud guardrails. " + "Detail. " * 200 + "Requirements: active clearance required.")
+        p = finder.normalize("greenhouse", "acme", "Acme", {"id": 9, "title": "Staff Security Engineer",
+                                                            "location": {"name": "Remote"}, "content": body})
+        self.assertTrue(p["text"].startswith("As the Staff Security Engineer"), p["text"][:60])
+        self.assertIn("clearance required", p["text"])
+
     def test_lever(self):
         import finder
         self.fake.boards["/v0/postings/streamco"] = [{
@@ -251,7 +270,8 @@ class Evaluate(unittest.TestCase):
         for loc in ["remote - california", "remote u.s.", "remote - seattle", "remote - nyc",
                     "remote-friendly (travel-required) | san francisco, ca", "remote - washington d.c."]:
             self.assertTrue(prefilter.location_ok(loc, us), loc)
-        for loc in ["remote - india", "remote - denmark; remote - united kingdom", "london, uk"]:
+        for loc in ["remote - india", "remote - denmark; remote - united kingdom", "london, uk",
+                    "remote - latin america", "south america"]:
             self.assertFalse(prefilter.location_ok(loc, us), loc)
 
     def test_remote_stated_only_in_description(self):
@@ -264,6 +284,8 @@ class Evaluate(unittest.TestCase):
         self.check(False, "blocklist", company="Badco")
         self.check(False, "already applied", applied=[("acme", "staff security engineer")],
                    title="Staff Security Eng (Remote)")
+        # A board slug ("acmeusa") is the same company as the folder's "Acme".
+        self.check(False, "already applied", applied=[("acme", "staff security engineer")], company="acmeusa")
 
 
 class PrefilterRun(Base):
