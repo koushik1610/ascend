@@ -11,6 +11,30 @@ _Working toward v1.0. Real-run gate: **1 of 2–3 runs signed off** (2026-07-01,
 see `docs/ROADMAP.md` → sign-off log); cases (b) no-résumé/non-tech and (c) resume-after-interruption
 remain, plus a green CI run on the remote + a demo GIF._
 
+### Fixed: Ascend 2.0 from scratch (branch `fix/v2-rerun-council`)
+A from-scratch run on a real user's profile, reviewed by the ten-persona council, found that the merged
+release only worked on a workspace seeded by hand:
+- **Job folders from a v1 run join the queue** (`jobqueue.py sync`, run by candidates, ingest and the apply
+  sheet). Before this, an approved job never reached an apply sheet, interview mail matched no job, and
+  roles the user already had folders for were scored again. `jobqueue.py link` connects a pack Phase 5
+  builds, and the sheet refuses a folder for a different role.
+- **Mail matching** reads board slugs as company names and needs the title when the user has two roles at
+  one company. Unmatched application mail is retried on the next ingest and shown on the hub.
+- **Remote-only holds** for Ashby's hybrid jobs. The scorer sees the role and its requirements instead of
+  company boilerplate. "Already applied" compares slugs with folder names.
+- **Gmail through the connector** backfills 30 days on the first read, never asks for sent mail, reads full
+  text for job mail, and leaves no staging copy. Retention trims non-job mail after 14 days and never in a
+  thread with job mail.
+- **Setup:** `finder.py probe` finds a company's board and its name; unreachable and empty boards show on
+  the hub; `run.py plan` lists the fields an apply sheet pre-fills; Step 0 asks for contact details and
+  which v1 jobs were sent.
+- **Permissions** (the user's decisions): `WebFetch` asks every time; Claude in Chrome's form filling, file
+  upload and page scripting are denied; Claude's file tools cannot edit the queue or the logs; Approve and
+  "I submitted it" ask to confirm. CLAUDE.md's permission passage matches the settings.
+- **The token estimate** comes from a measured day: about 73K a day at 5 applications on engine C, where
+  it said 290K at 20.
+- The server never serves `data/`, dotfiles or the Gmail client secret; workspace data is owner-only.
+
 ### Changed: Ascend 2.0 after the council review (branch `ascend-v2`, PR #15)
 A ten-persona council reviewed the branch twice. Its first round returned nine conditional verdicts and
 one rejection, and the user chose to split the PR:

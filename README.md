@@ -113,8 +113,9 @@ Five mechanical gates back it up:
    come out as outlines for your voice, never finished prose.
 3. **The untrusted-content quarantine** ([`reference/untrusted-content-policy.md`](reference/untrusted-content-policy.md)):
    anything fetched from the web is data to analyze, never instructions to obey, backed by an
-   allow-list-only **Bash** boundary (broad `Read`/`WebFetch` stay unscoped, since the pipeline reads
-   arbitrary résumé locations and researches arbitrary career sites).
+   allow-list-only **Bash** boundary. `Read` stays broad, since the pipeline reads arbitrary résumé
+   locations. `WebFetch` asks you before every fetch, so a page or email that asks for one still needs
+   your yes.
 4. **Output-path confinement** ([`tools/_paths.py`](tools/_paths.py)) makes "writes only under
    `workspace/`" true for tools, not just for the agent's Write tool. (The agent may also write the
    anonymized, shared `industryresearch/` reference; see below.) The Bash allow-list pins a tool
@@ -197,14 +198,17 @@ left for you to answer. Agent-submit and fully automatic modes are being develop
 | Gmail write tools | Not requested. | Denied in this repo's `.claude/settings.json`: send, reply, forward, drafts, labels, spam, trash. | Same as B. |
 | Google Drive | Not used. | Share, create, update, copy and trash are denied. | Same as B. |
 | Web | Public job-board APIs, read only. | Public boards plus Claude's web searches. | Public job-board APIs, read only. |
-| Applications | Never submitted by Ascend. | Never submitted by Ascend. | Never submitted by Ascend. |
+| Web page fetches | Ask you every time. | Ask you every time. | Ask you every time. |
+| Applications | Never submitted by Ascend. Claude in Chrome's form filling, file upload and page scripting are denied. | Same as A. | Same as A. |
+| Approve, "I submitted it" | Your click in the hub, with a confirm. Claude's file tools cannot edit the queue or the apply log. | Same as A. | Same as A. |
 
-Engines B and C search Gmail with a query limited to job senders and job subjects, starting from the day
-before the last read. The mail Claude reads is untrusted, and the same session can fetch web pages. Claude
-treats mail as data, but this repo's settings allow web fetches to any domain, and a narrower allow in a
-local file does not override that. To close it, add `"ask": ["WebFetch"]` to the `permissions` in your own
-`.claude/settings.local.json` so every fetch asks you first, or `"deny": ["WebFetch"]` if you use engine C,
-which never needs one (that also stops the v1 research prompts from fetching pages in this checkout). A deny in this
+Engines B and C search Gmail with a query limited to job senders and job subjects: 30 days on the first
+read, then from the day before the last read, never your sent mail. The mail Claude reads is untrusted, and
+the same session can fetch web pages. Claude treats mail as data, and this repo's settings ask you before
+every web fetch, so a fetch an email asked for still needs your yes. Deny beats ask beats allow, so a
+narrower allow in a local file cannot skip that question. On engine C, which never needs a fetch, you can
+add `"deny": ["WebFetch"]` to your own `.claude/settings.local.json` (that also stops the v1 research
+prompts from fetching pages in this checkout). A deny in this
 repo's `.claude/settings.json` cannot be reopened from a local file: to let Claude draft mail here, remove
 the entry from `.claude/settings.json` itself. **LinkedIn search** is opt-in on
 every engine. It drives your own logged-in LinkedIn session through Claude in Chrome and reads result
@@ -212,9 +216,14 @@ cards only. Automated browsing can break LinkedIn's terms of use and put the acc
 asks before each search.
 
 **First run.** After a v1 run, `/ascend run-v2` sets up two files with you: `data/profile.json` (the only
-answers an apply sheet pre-fills) and `data/sources.json` (the company boards to watch and your filters).
-`run.py plan` will not start until both exist. Restart `python3 ui/server.py` after updating Ascend: the
-server keeps the tool code it started with.
+answers an apply sheet pre-fills; Claude asks for your contact details and shows you the file) and
+`data/sources.json` (the company boards to watch and your filters). `run.py plan` will not start until both
+exist. Each board is found with `python3 tools/finder.py probe "Company"`, because a guessed slug fails
+quietly: on the first from-scratch run, 30 of 127 hand-listed boards were wrong. Companies on Workday or
+their own career sites cannot be watched. Your job folders from the v1 run join the queue
+(`jobqueue.py sync`), so their mail is tracked and their roles are not scored again, and Claude asks which
+of them you already sent. Restart `python3 ui/server.py` after updating Ascend: the server keeps the tool
+code it started with.
 
 **The hub** (`python3 tools/hub.py build workspace/<you>`, or served with actions at `/hub?slug=<you>`)
 shows the funnel from found to offer, this week's applications, replies and interviews, the mail

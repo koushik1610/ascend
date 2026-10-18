@@ -84,6 +84,18 @@ locked master — reorder and trim, never reword. Cite the `master_version` in t
 needs a bullet the master lacks is a MASTER GAP note; the answer is to fix + re-lock the master, never
 to write a one-off bullet here (one-off bullets are how derivative résumés drift from the source).
 
+## Ascend 2.0: link the pack to its queue entry
+When the job came from the v2 queue (the user approved it in the hub), link the folder so the apply sheet
+can find this pack, and record what the pack cost:
+
+```
+python3 tools/jobqueue.py link workspace/<name> <posting_id> <NN>
+python3 tools/usage.py record workspace/<name> --stage tailor --chars-in <N> --chars-out <N> --engine <E> --mode assisted
+```
+
+`link` refuses a folder whose company and title differ from the queue entry: write the application log's
+`# Application Log: <Company>, <Title>` heading with the posting's own company and title.
+
 ## Verify (per pack)
 - 3 core files present and conforming; number-policy grep clean.
 - **Lint gate:** `python3 tools/lint_artifacts.py workspace/<name>/jobs/<NN-slug>/`

@@ -165,6 +165,18 @@ class Daily(unittest.TestCase):
         self.assertFalse(f["ok"])
         self.assertIn("unreachable", f["detail"])
 
+    def test_retention_only_runs_without_the_other_stages(self):
+        import _v2data as d
+        dd = self.ws / "data"
+        d.write_json_atomic(dd / "sources.json", {"boards": [], "retention_days": 180})
+        d.append_jsonl(dd / "mail.jsonl", {"msg_id": "old", "from": "a@b.example", "subject": "s",
+                                           "date": "2020-01-01T00:00:00+00:00", "body_excerpt": "x"})
+        r = subprocess.run([sys.executable, str(REPO / "tools/daily.py"), str(self.ws), "--retention-only"],
+                           capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stderr + r.stdout)
+        self.assertIn('"dropped": 1', r.stdout)
+        self.assertEqual(d.read_jsonl(dd / "mail.jsonl"), [])
+
     def test_retention_drops_old_mail_and_keeps_only_headers_of_non_job_mail(self):
         import _v2data as d
         import daily

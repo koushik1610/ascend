@@ -73,7 +73,8 @@ and `workspace/<name>/.ascend-state.json` first, then:
   browsing can break LinkedIn's terms), then LinkedIn Jobs in the user's own browser, result cards only, added through
   `tools/finder.py add --source linkedin`.
 - **`hub`** → `python3 tools/hub.py build workspace/<name>` (read-only file) or the served hub at
-  `/hub?slug=<name>` with Approve, Reject, Apply and the pause switch.
+  `/hub?slug=<name>` with Approve, Reject and Apply. Claude never presses them: each is the user's click,
+  and each asks the user to confirm.
 - **`schedule`** → `python3 tools/schedule.py install workspace/<name> --at 06:30`: the daily zero-token
   sync (`tools/daily.py`).
 

@@ -2,6 +2,7 @@
 """daily.py: the scheduled Ascend 2.0 sync, zero tokens (M10).
 
   python3 tools/daily.py WS
+  python3 tools/daily.py WS --retention-only      # mail retention alone, for runs without the schedule
 
 Runs every stage that needs no model, in order, each isolated so one failure never stops the rest:
 Gmail sync (engine A), classify, ingest, finder, prefilter, alerts, mail retention, hub build. A stage
@@ -140,6 +141,9 @@ def main(argv):
     if len(argv) < 2 or argv[1].startswith("-"):
         print(__doc__, file=sys.stderr)
         return 2
+    if "--retention-only" in argv:          # for runs without the scheduled sync (prompts/29 Step 4)
+        print(json.dumps(prune(argv[1])))
+        return 0
     out = run(argv[1])
     for s in out["stages"]:
         print(f"{'ok ' if s['ok'] else 'ERR'} {s['stage']:<10} {s['detail']}")
