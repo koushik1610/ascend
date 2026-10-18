@@ -167,7 +167,7 @@ const DATA = JSON.parse(document.getElementById("ascend-data").textContent);
 /* ---- render ---- */
 // Company names come from the user's Connections.csv (free text any connection controls) and
 // keyword/step text is derived from profile and JD content. All untrusted. Escape at the SINK: the
-// prompt-level `<\/` rule only stops a </script> breakout and misses `<img src=x onerror=...>`
+// prompt-level `<\/` rule only stops a <\/script> breakout and misses `<img src=x onerror=...>`
 // (2026-08-20 council).
 const esc=v=>String(v==null?"":v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const $=s=>document.querySelector(s), el=(t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e};

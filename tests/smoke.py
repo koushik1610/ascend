@@ -117,6 +117,29 @@ def test_html_json():
             if ok: check(f"{f.relative_to(REPO)} JSON parses", True)
     check("found at least one JSON dashboard", found)
 
+# ── 2b. Script blocks close where they should ───────────────────────────────
+def test_html_script_tags():
+    """A literal `</script>` anywhere inside a script, even in a JS comment, ends the block early and
+    the rest of the code renders as page text. Commit 4fdb130 put one in a comment in both dashboard
+    templates and every dashboard built from them rendered blank until 2026-10-16. Walk the tags and
+    require strict open/close alternation (HTML comments outside scripts are stripped first)."""
+    print("dashboards (script blocks are well-formed)")
+    htmls = list((REPO / "templates").glob("*.html")) + list((REPO / "examples").rglob("*.html"))
+    for f in htmls:
+        text = f.read_text(encoding="utf-8")
+        outside, depth, ok = [], 0, True
+        for m in re.finditer(r"<!--.*?-->|<script\b[^>]*>|</script\s*>", text, re.S | re.I):
+            tok = m.group(0).lower()
+            if tok.startswith("<!--"):
+                continue
+            elif tok.startswith("<script"):
+                ok = ok and depth == 0; depth = 1
+            else:
+                ok = ok and depth == 1; depth = 0
+        check(f"{f.relative_to(REPO)}: no stray </script> inside a script", ok and depth == 0)
+    nav = (REPO / "templates/start-here.template.html").read_text(encoding="utf-8")
+    check("start-here job board renders the fit cell as markup, not escaped text", "${esc(fit)}" not in nav)
+
 # ── 3. gitignore privacy matrix ──────────────────────────────────────────────
 def test_gitignore():
     print("gitignore (privacy matrix)")
@@ -1162,7 +1185,7 @@ def test_v2_units():
         check(f"{f.name} passes", r.returncode == 0, tail[0])
 
 if __name__ == "__main__":
-    for t in (test_server, test_html_json, test_gitignore, test_crossrefs, test_phase_order,
+    for t in (test_server, test_html_json, test_html_script_tags, test_gitignore, test_crossrefs, test_phase_order,
               test_op_parity, test_skills, test_resume_builder, test_latex_render, test_bash_allowlist,
               test_honesty, test_linter, test_council_gates, test_pipeline, test_registry,
               test_grade_run, test_paths_and_state, test_scripts, test_industry_research, test_v2_units):
