@@ -218,6 +218,25 @@ class Permissions(unittest.TestCase):
         for t in self.DRIVE_WRITES:
             self.assertIn(f"mcp__claude_ai_Google_Drive__{t}", perms["deny"])
 
+    def test_web_fetch_asks_and_nothing_can_click_for_the_user(self):
+        # Rerun 1 council: mail, postings and an any-domain WebFetch shared one session; approval and sends
+        # were guarded only by the CLI. The user chose: WebFetch asks, Chrome form tools and direct edits of
+        # the queue and logs are denied.
+        perms = json.loads((REPO / ".claude/settings.json").read_text())["permissions"]
+        self.assertNotIn("WebFetch", perms["allow"])
+        self.assertIn("WebFetch", perms.get("ask", []))
+        for t in ("form_input", "file_upload", "javascript_tool"):
+            self.assertIn(f"mcp__claude-in-chrome__{t}", perms["deny"])
+        for f in ("queue.json", "apply-log.jsonl", "events.jsonl", "ingested.jsonl"):
+            for tool in ("Edit", "Write"):
+                self.assertIn(f"{tool}(workspace/*/data/{f})", perms["deny"])
+
+    def test_claude_md_permissions_match_settings(self):
+        text = (REPO / "CLAUDE.md").read_text()
+        self.assertNotIn("domain-allowlist", text)       # a local allow cannot narrow the project's rules
+        self.assertNotIn("a few pinned forms", text)
+        self.assertIn('"ask"', text)
+
     def test_no_agent_submit_tool_is_allowed(self):
         allow = json.loads((REPO / ".claude/settings.json").read_text())["permissions"]["allow"]
         self.assertFalse([a for a in allow if "fakeform" in a])

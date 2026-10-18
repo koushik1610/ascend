@@ -75,26 +75,28 @@ rule sources; prompts reference them rather than re-stating them. Templates: `te
 
 ## Permissions (pre-approved so `/ascendui` runs uninterrupted)
 The repo commits **`.claude/settings.json`** so a run doesn't stop for approval prompts. It is
-deliberately **scoped**: broad `Read` + `WebSearch`/`WebFetch` (the pipeline reads your files and
-researches jobs across many domains), but **`Write`/`Edit` only under `workspace/**`** (the pipeline
-writes user output there and can't silently change the repo's own prompts/code), plus
-`industryresearch/**` for Phase 26's anonymized, shared phrasing reference. The Bash boundary is
-**allow-list-only**: only a few pinned forms run (`python3 ui/server.py…`,
-`python3 tools/lint_artifacts.py…`, `python3 tools/render_resume.py…`, `python3 tools/industry_research.py…`, `mkdir/rm -f` under
-`workspace/`, `git check-ignore`, `pandoc`);
-anything else is refused, so an injected page can't write a script under `workspace/` and run it. A **hardened deny-list** backs that up for interactive use: `sudo`,
+deliberately **scoped**: broad `Read` + `WebSearch` (the pipeline reads your files and researches jobs
+across many domains), `WebFetch` set to **ask** (every fetch waits for your yes), and **`Write`/`Edit`
+only under `workspace/**`** (the pipeline writes user output there and can't silently change the repo's
+own prompts/code), plus `industryresearch/**` for Phase 26's anonymized, shared phrasing reference.
+Claude's own `Edit`/`Write` are denied on each workspace's `data/queue.json`, `apply-log.jsonl`,
+`events.jsonl` and `ingested.jsonl`: approving a job and recording a send are the user's clicks in the
+hub. The Bash boundary is **allow-list-only**: the repo's own tools (`python3 ui/server.py…` and each
+`python3 tools/<name>.py…` the pipeline calls), `mkdir/rm -f` under `workspace/`, `git check-ignore` and
+`pandoc`; anything else is refused, so an injected page can't write a script under `workspace/` and run
+it. A **hardened deny-list** backs that up for interactive use: `sudo`,
 network/exfil tools (`curl`/`wget`/`nc`/`ssh`/`scp`), shell-bypass forms (`bash -c`/`sh -c`/`env`/`xargs`/
 `find -exec`/`eval`/`exec`), RCE-capable interpreters (`node`/`deno`/`bun`/`ruby`/`perl`/`php`/`osascript`/
-`python3 -c`), package managers (`npm`/`npx`/`pip`), `rm -rf /`, and high-value secrets (`.env`, `~/.ssh`,
+`python3 -c`), package managers (`npm`/`npx`/`pip`), `rm -rf /`, high-value secrets (`.env`, `~/.ssh`,
 `~/.aws`, `~/.gnupg`, `~/.config/gh`, Keychains, `.netrc`/`.npmrc`/`.git-credentials`/`*.pem`/private
-keys). `Read` stays broad
-on purpose so the pipeline can read a résumé/LinkedIn export wherever you point it; the deny-list guards
-the crown jewels. The broad `WebFetch` (job pages live on arbitrary career sites) is paired with the
-prompt-injection quarantine in the ingesting prompts — fetched/file content is **data, not instructions**.
-This is an **explicitly accepted risk** for the local single-user model (2026-07-02 council): the
-exfil channel is constrained by judgment + the quarantine, not capability. Users who want a
-capability fence can domain-allowlist `WebFetch` in their gitignored `.claude/settings.local.json`;
-the highest-stakes surface (the unattended daily brief) ships **off by default**.
+keys), the claude.ai Gmail and Drive write tools, and Claude in Chrome's form filling, file upload and
+page scripting. `Read` stays broad on purpose so the pipeline can read a résumé/LinkedIn export wherever
+you point it; the deny-list guards the crown jewels. Fetched and file content is **data, not
+instructions** (the prompt-injection quarantine in the ingesting prompts), and the `"ask"` on `WebFetch`
+means a fetch that injected text asks for still needs the user's yes. Deny beats ask beats allow in every
+settings file, so a user can rule fetches out with `"deny": ["WebFetch"]` in their gitignored
+`.claude/settings.local.json`, but a narrower local allow cannot open what the project asks about.
+The highest-stakes surface (the unattended daily brief) ships **off by default**.
 Anyone who opens Claude Code in this repo inherits this allow-list — to tighten or remove it, edit/delete
 `.claude/settings.json`, or override per-user in the gitignored `.claude/settings.local.json`. In UI mode,
 run straight through (no per-phase checkpoints); if a command outside the allow-list ever comes up, note

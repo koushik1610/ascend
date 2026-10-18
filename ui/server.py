@@ -43,6 +43,16 @@ FRAME_HEADERS_DENY = {"X-Frame-Options": "DENY", "Content-Security-Policy": "fra
 FRAME_HEADERS_SAMEORIGIN = {"X-Frame-Options": "SAMEORIGIN", "Content-Security-Policy": "frame-ancestors 'self'"}
 
 
+# Files under a workspace the browser may load. data/ holds mail, the queue and the profile; dotfiles hold run
+# state; gmail-client.json is engine A's OAuth client secret. None of those is ever served.
+SERVED_SUFFIXES = {".html", ".pdf", ".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg", ".css"}
+PRIVATE_NAMES = {"data", "gmail-client.json"}
+
+
+def _private(rel_parts):
+    return any(part.startswith(".") or part in PRIVATE_NAMES for part in rel_parts)
+
+
 def slugify(name: str) -> str:
     s = re.sub(r"[^a-zA-Z0-9]+", "-", (name or "").strip().lower()).strip("-")
     return s or "me"
@@ -483,10 +493,12 @@ class Handler(BaseHTTPRequestHandler):
         # (incl. sibling dirs like workspace-secrets that a string startswith would wrongly allow).
         target = (base / path[len(prefix):]).resolve()
         try:
-            target.relative_to(base.resolve())
+            rel = target.relative_to(base.resolve())
         except ValueError:
             return self._send(404, {"error": "not found"})
         if not target.is_file():
+            return self._send(404, {"error": "not found"})
+        if base == WORKSPACE and (_private(rel.parts) or target.suffix.lower() not in SERVED_SUFFIXES):
             return self._send(404, {"error": "not found"})
         ctype = {"html": "text/html; charset=utf-8", "md": "text/plain; charset=utf-8",
                  "json": "application/json", "css": "text/css", "js": "text/javascript",
@@ -513,10 +525,10 @@ class Handler(BaseHTTPRequestHandler):
         # Render a workspace .md file as a styled, offline HTML page (the in-app results reader).
         target = (WORKSPACE / path[len("/view/"):]).resolve()
         try:
-            target.relative_to(WORKSPACE.resolve())
+            rel = target.relative_to(WORKSPACE.resolve())
         except ValueError:
             return self._send(404, {"error": "not found"})
-        if not target.is_file() or target.suffix != ".md":
+        if not target.is_file() or target.suffix != ".md" or _private(rel.parts):
             return self._send(404, {"error": "not found"})
         md = target.read_text(encoding="utf-8", errors="replace")
         esc = md.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")

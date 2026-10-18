@@ -9,7 +9,7 @@ Claude Code does not report token counts to the agent, so each stage records the
 wrote and this tool converts at 4 characters per token. Every figure carries `estimated: true` and the hub
 labels it that way. The conversion is typically within about 20% for English text and JSON.
 
-The estimate uses the user's own measured averages once a stage has 3 or more records, and the design's
+The estimate uses the user's own measured averages once a stage has 3 or more items recorded, and the design's
 defaults until then.
 """
 
@@ -24,9 +24,16 @@ sys.path.insert(0, str(TOOLS))
 import _v2data as d  # noqa: E402
 
 CHARS_PER_TOKEN = 4
-BASE_DAILY = {"A": 85_000, "B": 700_000, "C": 140_000}      # finding + mail, before any application
+# Finding + mail, before any application. Engine C from the from-scratch run (2026-10-17: ~3.5K for a day of
+# connector mail, finding at zero tokens), with room for reading job mail in full. Engine A's sync and
+# finding cost nothing; only the model pass on unplaced mail does. Engine B is unmeasured: its web
+# searches read pages, so it is set well above C.
+BASE_DAILY = {"A": 5_000, "B": 60_000, "C": 10_000}
 BASE_STAGES = ("mail", "web_search", "linkedin_search")     # what a day costs before any application
-STAGE_DEFAULT = {"score": 3_000, "tailor": 4_500}           # per application, until measured
+# Per application, until measured. Score: ~500 measured per job on rerun 1. Tailor (Phase 5 reads the master,
+# the posting and the templates and writes a résumé, outreach and log) is not measured yet.
+STAGE_DEFAULT = {"score": 600, "tailor": 12_000}
+DEFAULT_JOBS = 5                                            # assisted: applications the user sends in a day
 JOB_STAGES = {"assisted": ["score", "tailor"]}
 MIN_SAMPLES = 3
 
@@ -48,7 +55,11 @@ def _per_item(rows):
     return sum(r.get("input_tokens", 0) + r.get("output_tokens", 0) for r in rows) / n
 
 
-def estimate(ws, engine, mode="assisted", jobs=20):
+def _samples(rows):
+    return sum(max(1, int(r.get("items", 1) or 1)) for r in rows)
+
+
+def estimate(ws, engine, mode="assisted", jobs=DEFAULT_JOBS):
     """Each stage uses its own measured average once it has MIN_SAMPLES records, else its default, so the
     estimate moves toward real figures one stage at a time. The daily base is measured per recorded day."""
     rows = d.read_jsonl(Path(ws) / "data" / "usage.jsonl")
@@ -58,8 +69,9 @@ def estimate(ws, engine, mode="assisted", jobs=20):
     stages, per_job = {}, 0
     for s in JOB_STAGES[mode]:
         got = by_stage.get(s, [])
-        stages[s] = "measured" if len(got) >= MIN_SAMPLES else "default"
-        per_job += _per_item(got) if len(got) >= MIN_SAMPLES else STAGE_DEFAULT[s]
+        measured = _samples(got) >= MIN_SAMPLES        # one batch of 25 scored jobs is 25 samples
+        stages[s] = "measured" if measured else "default"
+        per_job += _per_item(got) if measured else STAGE_DEFAULT[s]
     days = {}
     for r in rows:
         if r.get("stage") in BASE_STAGES and r.get("engine") in (engine, None):
@@ -98,7 +110,7 @@ def main(argv):
     elif cmd == "summary":
         out = summary(ws)
     else:
-        out = estimate(ws, _opt(args, "--engine", "A"), _opt(args, "--mode", "assisted"), int(_opt(args, "--jobs", 20)))
+        out = estimate(ws, _opt(args, "--engine", "A"), _opt(args, "--mode", "assisted"), int(_opt(args, "--jobs", DEFAULT_JOBS)))
     print(json.dumps(out, indent=None if "--json" in args else 2))
     return 0
 

@@ -20,15 +20,17 @@ from _paths import resolve_out
 
 
 def data_dir(ws):
-    """workspace/<name>/data, created if missing."""
+    """workspace/<name>/data, created if missing. Mail and the profile live here: the user's eyes only."""
     p = resolve_out(str(Path(ws) / "data"))
-    p.mkdir(parents=True, exist_ok=True)
+    p.mkdir(parents=True, exist_ok=True, mode=0o700)
+    if p.stat().st_mode & 0o077:
+        p.chmod(0o700)
     return p
 
 
 def append_jsonl(path, rec):
     with locked(path) as p:                 # so a retention rewrite never drops a concurrent append
-        with open(p, "a", encoding="utf-8") as f:
+        with os.fdopen(os.open(p, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o600), "a", encoding="utf-8") as f:
             f.write(json.dumps(rec, ensure_ascii=False, sort_keys=True) + "\n")
 
 

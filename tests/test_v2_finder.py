@@ -177,7 +177,7 @@ class Run(Base):
         self.fake.boards["/v1/boards/acme/jobs"] = {"jobs": [gh_job(1, "Staff Security Engineer")]}
         self.fake.boards["/v1/boards/flaky/jobs"] = None
         second = finder.run(self.ws, today="2026-10-11")
-        self.assertEqual((second["new"], second["closed"], second["failed"]), (0, 1, ["flaky"]))
+        self.assertEqual((second["new"], second["closed"], second["failed"]), (0, 1, ["greenhouse:flaky"]))
         self.assertEqual(len(self.postings()), 3)
         state = d.read_json(self.ws / "data" / "postings-state.json", {})
         self.assertEqual(state["greenhouse:acme:1"]["last_seen"], "2026-10-11")
@@ -192,7 +192,7 @@ class Run(Base):
         finder.run(self.ws, today="2026-10-10")
         self.fake.boards["/v1/boards/acme/jobs"] = {"jobs": [{"renamed_id": 1}, {"renamed_id": 2}]}
         out = finder.run(self.ws, today="2026-10-11")
-        self.assertEqual((out["closed"], out["failed"]), (0, ["acme"]))
+        self.assertEqual((out["closed"], out["failed"]), (0, ["greenhouse:acme"]))
         self.assertFalse(d.read_json(self.ws / "data" / "postings-state.json", {})["greenhouse:acme:1"]["closed"])
 
     def test_an_odd_answer_never_closes_a_board_or_stops_the_run(self):
@@ -206,9 +206,30 @@ class Run(Base):
         self.fake.boards["/v1/boards/acme/jobs"] = ["not", "an", "object"]
         self.fake.boards["/v1/boards/weird/jobs"] = {"error": "maintenance"}
         out = finder.run(self.ws, today="2026-10-11")
-        self.assertEqual((out["closed"], sorted(out["failed"])), (0, ["acme", "weird"]))
+        self.assertEqual((out["closed"], sorted(out["failed"])), (0, ["greenhouse:acme", "greenhouse:weird"]))
         state = d.read_json(self.ws / "data" / "postings-state.json", {})
         self.assertFalse(state["greenhouse:weird:5"]["closed"])
+
+    def test_board_health_names_the_ats_and_counts_empty_boards(self):
+        import _v2data as d
+        import finder
+        self.fake.boards["/v1/boards/acme/jobs"] = {"jobs": [gh_job(1, "Staff Security Engineer")]}
+        self.fake.boards["/v1/boards/quiet/jobs"] = {"jobs": []}
+        self.sources([{"ats": "greenhouse", "slug": "acme"}, {"ats": "greenhouse", "slug": "quiet"},
+                      {"ats": "lever", "slug": "acme"}])
+        out = finder.run(self.ws, today="2026-10-17")
+        self.assertEqual((out["failed"], out["empty"]), (["lever:acme"], ["greenhouse:quiet"]))
+        health = d.read_json(self.ws / "data" / "board-health.json", {})
+        self.assertEqual((health["failed"], health["empty"], health["checked"]), (["lever:acme"], ["greenhouse:quiet"], "2026-10-17"))
+
+    def test_probe_finds_the_board_and_its_name(self):
+        import finder
+        self.fake.boards["/v1/boards/acmehq/jobs"] = {"jobs": [gh_job(1, "Staff Security Engineer")]}
+        self.fake.boards["/v1/boards/acmehq"] = {"name": "Acme Robotics"}
+        self.fake.boards["/posting-api/job-board/acme-robotics"] = {"jobs": [{"id": "x"}, {"id": "y"}]}
+        hits = finder.probe("Acme Robotics")
+        self.assertIn({"ats": "greenhouse", "slug": "acmehq", "jobs": 1, "name": "Acme Robotics"}, hits)
+        self.assertIn({"ats": "ashby", "slug": "acme-robotics", "jobs": 2, "name": None}, hits)
 
     def test_cli(self):
         self.sources([{"ats": "greenhouse", "slug": "acme", "company": "Acme"}])

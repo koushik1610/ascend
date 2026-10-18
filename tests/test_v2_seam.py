@@ -146,6 +146,17 @@ class Link(unittest.TestCase):
         self.assertIn("jobqueue.py link", str(cm.exception))
 
 
+class Privacy(unittest.TestCase):
+    def test_data_is_readable_by_the_user_only(self):
+        import _v2data as d
+        with tempfile.TemporaryDirectory() as td:
+            ws = Path(td) / "workspace" / "tester"
+            dd = d.data_dir(ws)
+            d.append_jsonl(dd / "mail.jsonl", {"msg_id": "a"})
+            self.assertEqual(dd.stat().st_mode & 0o777, 0o700)
+            self.assertEqual((dd / "mail.jsonl").stat().st_mode & 0o777, 0o600)
+
+
 class Mail(unittest.TestCase):
     def setUp(self):
         self.td = tempfile.TemporaryDirectory()

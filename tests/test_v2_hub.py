@@ -252,6 +252,29 @@ class Compute(unittest.TestCase):
         rows = {r["nn"]: r["status"] for r in hub.compute(ws, today=TODAY)["queue"]}
         self.assertEqual((rows["03"], rows["01"]), ("approved", "applied"))
 
+    def test_dead_boards_and_unmatched_mail_are_on_the_page(self):
+        import _v2data as d
+        import hub
+        ws = seed(self.td.name)
+        d.write_json_atomic(ws / "data" / "board-health.json", {"checked": TODAY, "boards": 3,
+                                                                "failed": ["lever:plaid"], "empty": ["greenhouse:quiet"]})
+        d.append_jsonl(ws / "data" / "events.jsonl", {"msg_id": "e5", "category": "rejection", "match": None,
+                                                      "date": "2026-10-15T09:00:00Z"})
+        h = hub.compute(ws, today=TODAY)["health"]
+        self.assertIn("lever:plaid", h["boards"])
+        self.assertIn("greenhouse:quiet", h["boards"])
+        self.assertIn("finder.py probe", h["boards"])
+        self.assertIn("1 email", h["mail"])
+
+    def test_matched_leaves_out_filtered_recruiter_mail(self):
+        import _v2data as d
+        import hub
+        ws = seed(self.td.name)
+        d.update_json(ws / "data" / "queue.json", {"jobs": []}, lambda q: q["jobs"].append(
+            {"posting_id": "inbound:m", "company": "Match", "title": "x", "state": "inbound-filtered"}))
+        funnel = {f["stage"]: f["count"] for f in hub.compute(ws, today=TODAY)["funnel"]}
+        self.assertEqual(funnel["matched"], 3)
+
     def test_queue_rows(self):
         import hub
         q = hub.compute(seed(self.td.name), today=TODAY)["queue"]
@@ -313,6 +336,12 @@ class Build(unittest.TestCase):
         r = subprocess.run([sys.executable, str(REPO / "tools/hub.py"), "build", str(self.ws), "--json",
                             "--today", TODAY], capture_output=True, text=True)
         self.assertEqual(json.loads(r.stdout)["week"]["applied"], 1)
+
+    def test_approve_and_submitted_ask_the_user_to_confirm(self):
+        # A click Claude in Chrome could make by mistake still has to get past a confirm the user answers.
+        page = (REPO / "templates" / "hub.template.html").read_text()
+        self.assertIn('confirm(', page)
+        self.assertRegex(page, r'CONFIRM\s*=\s*\{[^}]*approved[^}]*applied')
 
     def test_template_declares_no_browser_global_names(self):
         # `const top = ...` at script top level throws "Identifier 'top' has already been declared"

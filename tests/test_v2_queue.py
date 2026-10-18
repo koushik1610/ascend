@@ -68,10 +68,26 @@ class Usage(unittest.TestCase):
         row = d.read_jsonl(self.ws / "data" / "usage.jsonl")[0]
         self.assertEqual((row["input_tokens"], row["output_tokens"], row["estimated"]), (1001, 200, True))
 
+    def test_defaults_match_a_measured_day(self):
+        # Rerun 1 measured engine C at ~3.5K tokens for mail and ~500 per scored job; the old defaults said
+        # 140K and 3,000 and put 290K a day on the hub.
+        import usage
+        e = usage.estimate(self.ws, "C", "assisted")
+        self.assertEqual(e["jobs"], 5)
+        self.assertLess(e["daily"], 100_000)
+        self.assertEqual(usage.STAGE_DEFAULT["score"], 600)
+
+    def test_one_record_of_many_items_calibrates(self):
+        import usage
+        usage.record(self.ws, "score", chars_in=45500, chars_out=4200, engine="C", mode="assisted", items=25)
+        e = usage.estimate(self.ws, "C", "assisted")
+        self.assertEqual(e["stages"]["score"], "measured")
+
     def test_estimate_defaults_then_measured(self):
         import usage
         e = usage.estimate(self.ws, "A", "assisted", jobs=20)
-        self.assertEqual((e["basis"], e["per_job"], e["daily"]), ("default", 7500, 85000 + 20 * 7500))
+        self.assertEqual((e["basis"], e["per_job"]), ("default", sum(usage.STAGE_DEFAULT.values())))
+        self.assertEqual(e["daily"], usage.BASE_DAILY["A"] + 20 * e["per_job"])
         for _ in range(3):
             usage.record(self.ws, "score", chars_in=8000, chars_out=0, engine="A", mode="assisted")
             usage.record(self.ws, "tailor", chars_in=12000, chars_out=0, engine="A", mode="assisted")
@@ -247,6 +263,19 @@ class Plan(unittest.TestCase):
         self.assertIn("tokens", out["warning"])
         state = d.read_json(Path(self.ws) / ".ascend-state.json", {})
         self.assertEqual(state["run_defaults"], {"engine": "B", "mode": "assisted"})
+
+    def test_plan_names_prefilled_fields_and_missing_industry_fit(self):
+        import run
+        out = run.plan(self.ws, "C")
+        self.assertIn("email", out["prefill"])
+        self.assertNotIn("work_authorization", out["prefill"])
+        self.assertTrue(any("industry-fit.md" in n for n in out["notes"]), out["notes"])
+
+    def test_connector_permission_says_fetches_ask(self):
+        import run
+        perms = " ".join(run.plan(self.ws, "C")["permissions"])
+        self.assertIn("ask you before every web fetch", perms)
+        self.assertIn("form filling", perms)
 
     def test_every_engine_states_the_permissions_it_uses(self):
         import run

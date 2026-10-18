@@ -3,6 +3,7 @@
 
   python3 tools/finder.py run WS [--json]
   python3 tools/finder.py add WS --source web|linkedin --file workspace/<name>/data/<rows>.json   # rows Claude found
+  python3 tools/finder.py probe "Company Name" [...]     # which boards answer for a company (setup)
 
 Reads the board list from workspace/<name>/data/sources.json and calls each board's public JSON API:
 Greenhouse, Ashby, Lever, Workable and SmartRecruiters. No login, no scraping, no model.
@@ -152,17 +153,50 @@ def run(ws, today=None):
     boards = d.read_json(dd / "sources.json", {}).get("boards", [])
     with ThreadPoolExecutor(16) as ex:
         results = list(ex.map(lambda b: (b, fetch_board(b["ats"], b["slug"])), boards))
-    out = {"boards": len(boards), "failed": [], "new": 0, "seen": 0, "closed": 0}
+    out = {"boards": len(boards), "failed": [], "empty": [], "new": 0, "seen": 0, "closed": 0}
     d.update_json(dd / "postings-state.json", {}, lambda state: _merge(dd, results, state, out, today))
+    # The hub shows these: a wrong slug otherwise fails quietly every day.
+    d.write_json_atomic(dd / "board-health.json", {"checked": today, "boards": len(boards),
+                                                   "failed": out["failed"], "empty": out["empty"]})
     return out
+
+
+def probe(company):
+    """Boards on the five supported ATSs that answer for a company name, with their job count and, for
+    Greenhouse, the board's own display name. For setup: a wrong slug is the commonest first-run problem."""
+    words = re.findall(r"[a-z0-9]+", (company or "").lower())
+    if not words:
+        return []
+    base = "".join(words)
+    stems = [base] + ([words[0]] if len(words) > 1 and len(words[0]) >= 4 else [])
+    slugs = list(dict.fromkeys([base, "-".join(words)] + [st + x for st in stems for x in ("", "hq", "inc", "usa", "jobs", "careers")]))
+    tries = [(ats, slug) for ats in ENDPOINTS for slug in slugs]
+    with ThreadPoolExecutor(16) as ex:
+        found = list(ex.map(lambda t: (t, fetch_board(*t)), tries))
+    hits = []
+    for (ats, slug), jobs in found:
+        if jobs is None:
+            continue
+        name = None
+        if ats == "greenhouse":
+            try:
+                with urlopen(Request(_url("greenhouse", slug).split("/jobs?")[0], headers=UA), timeout=20) as r:
+                    name = json.loads(r.read().decode("utf-8", "replace")).get("name")
+            except Exception:
+                name = None
+        hits.append({"ats": ats, "slug": slug, "jobs": len(jobs), "name": name})
+    return hits
 
 
 def _merge(dd, results, state, out, today):
     """Fold the fetched boards into postings-state, under its lock (finder.add may run at the same time)."""
     for board, raw in results:
+        where = f"{board['ats']}:{board['slug']}"
         if raw is None:
-            out["failed"].append(board["slug"])
+            out["failed"].append(where)
             continue
+        if not raw:
+            out["empty"].append(where)
         current = set()
         for j in raw:
             try:
@@ -178,7 +212,7 @@ def _merge(dd, results, state, out, today):
                 state[p["id"]] = {"first_seen": today, "last_seen": today, "closed": False}
                 out["new"] += 1
         if raw and not current:         # every job failed to read: the ATS changed its format, not the board
-            out["failed"].append(board["slug"])
+            out["failed"].append(where)
             continue
         prefix = f"{board['ats']}:{board['slug']}:"
         for pid, st in state.items():
@@ -256,6 +290,13 @@ def main(argv):
             print(f"finder: {e}", file=sys.stderr)
             return 2
         return 0
+    if len(argv) >= 3 and argv[1] == "probe":
+        for name in argv[2:]:
+            hits = probe(name)
+            print(f"{name}: " + ("; ".join(f"{h['ats']}:{h['slug']} ({h['jobs']} jobs"
+                                            + (f", board name {h['name']!r}" if h["name"] else "") + ")" for h in hits)
+                                 or "no board on Greenhouse, Ashby, Lever, Workable or SmartRecruiters"))
+        return 0
     if len(argv) < 3 or argv[1] != "run" or argv[2].startswith("--"):
         print(__doc__, file=sys.stderr)
         return 2
@@ -268,7 +309,8 @@ def main(argv):
         print(json.dumps(out))
     else:
         print(f"{out['boards']} board(s): {out['new']} new, {out['seen']} still open, {out['closed']} closed"
-              + (f", unreachable: {', '.join(out['failed'])}" if out["failed"] else ""))
+              + (f", unreachable: {', '.join(out['failed'])}" if out["failed"] else "")
+              + (f", no jobs listed: {', '.join(out['empty'])}" if out["empty"] else ""))
     return 0
 
 
