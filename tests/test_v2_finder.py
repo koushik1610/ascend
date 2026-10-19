@@ -227,7 +227,9 @@ class Run(Base):
         self.fake.boards["/v1/boards/acmehq/jobs"] = {"jobs": [gh_job(1, "Staff Security Engineer")]}
         self.fake.boards["/v1/boards/acmehq"] = {"name": "Acme Robotics"}
         self.fake.boards["/posting-api/job-board/acme-robotics"] = {"jobs": [{"id": "x"}, {"id": "y"}]}
+        self.fake.boards["/v1/companies/acmerobotics/postings"] = {"content": []}     # answers for any name
         hits = finder.probe("Acme Robotics")
+        self.assertFalse([h for h in hits if h["jobs"] == 0], hits)
         self.assertIn({"ats": "greenhouse", "slug": "acmehq", "jobs": 1, "name": "Acme Robotics"}, hits)
         self.assertIn({"ats": "ashby", "slug": "acme-robotics", "jobs": 2, "name": None}, hits)
 

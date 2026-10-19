@@ -82,7 +82,7 @@ def folder_job(job):
     log = job / "application-log.md"
     text = log.read_text(encoding="utf-8") if log.is_file() else ""
     m = LOG_HEADING.search(text)
-    url = re.search(r"^\|\s*JD\s*\|\s*(https://\S+?)\s*\|", text, re.M)
+    url = re.search(r"^\|\s*JD\s*\|\s*(https://[^\s|]+)", text, re.M)
     fit = re.search(r"^\|\s*Fit Score\s*\|\s*(\d{1,3})\s*/\s*100", text, re.M)
     return (m.group(1).strip() if m else None, m.group(2).strip() if m else None, url.group(1) if url else None,
             int(fit.group(1)) if fit else None, parse_state(log).get("status", "queued"))
@@ -388,15 +388,22 @@ def cmd_ingest(ws, args):
             d.append_jsonl(data / "ingested.jsonl", {"msg_id": e.get("msg_id"), "key": key(e)})
             out["skipped"] += 1
             continue
+        when = (e.get("date") or "")[:10]
         if not e.get("match") and e.get("msg_id") in mail:
-            # Mail is classified when it arrives, often before its job is in the queue. Match it again
-            # against today's queue.
+            # Mail is classified when it arrives, often before its job is in the queue. Match it again, but
+            # only against applications already sent by the mail's date: mail about an application cannot
+            # predate it, and a job queued later must never inherit an older stranger's reply.
+            sent = [j for j in queue if j.get("state") in BLOCKING and (not j.get("applied_on") or not when
+                                                                         or j["applied_on"] <= when)]
             e = dict(e)
-            e["match"], e["match_by"] = match_detail(mail[e["msg_id"]], queue)
+            e["match"], e["match_by"] = match_detail(mail[e["msg_id"]], sent)
         job = _job_for_match(ws, e.get("match"), queue)
         if not job or not (job / "application-log.md").is_file():
-            # Not marked done: a later run, once the job is queued or linked, applies it.
             out["unmatched"] += 1
+            # Retried on later runs while the job may still be queued; after RETRY_DAYS it never will be
+            # (an application made outside Ascend), so stop.
+            if when and when < (date.today() - timedelta(days=RETRY_DAYS)).isoformat():
+                d.append_jsonl(data / "ingested.jsonl", {"msg_id": e.get("msg_id"), "key": key(e), "unmatched": True})
             continue
         d.append_jsonl(data / "ingested.jsonl", {"msg_id": e.get("msg_id"), "key": key(e)})
         cur = parse_state(job / "application-log.md").get("status", "queued")
@@ -423,6 +430,9 @@ def cmd_ingest(ws, args):
         for t in out["transitions"]:
             print(f"    {t['job']}: {t['from']} → {t['to']}  ({t['on']})")
     return 0
+
+
+RETRY_DAYS = 30
 
 
 # ── guard: never apply to the same job twice (Ascend 2.0, M2) ────────────────

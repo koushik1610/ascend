@@ -446,6 +446,10 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(403, {"error": "bad host"})
         if not self._origin_ok():
             return self._send(403, {"error": "bad origin"})
+        # The hub's Approve, Reject, Apply and "I submitted it" come from the page in a browser, which always
+        # sends Origin. A local process holding the token but not the page gets no say.
+        if urlparse(self.path).path in ("/api/queue", "/api/apply") and not self.headers.get("Origin"):
+            return self._send(403, {"error": "bad origin"})
         u = urlparse(self.path)
         if u.path.startswith("/api/") and not self._token_ok():
             return self._send(403, {"error": "forbidden"})

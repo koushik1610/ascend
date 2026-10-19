@@ -77,6 +77,16 @@ class Usage(unittest.TestCase):
         self.assertLess(e["daily"], 100_000)
         self.assertEqual(usage.STAGE_DEFAULT["score"], 600)
 
+    def test_the_first_reads_backfill_is_not_the_daily_base(self):
+        import _v2data as d
+        import usage
+        for day in ("2026-10-01", "2026-10-02", "2026-10-03"):
+            d.append_jsonl(self.ws / "data" / "usage.jsonl", {"stage": "mail", "input_tokens": 3000, "output_tokens": 500,
+                                                              "engine": "C", "items": 1, "at": f"{day}T08:00:00"})
+        usage.record(self.ws, "mail", chars_in=330000, chars_out=38000, engine="C", backfill=True)
+        e = usage.estimate(self.ws, "C", "assisted", jobs=0)
+        self.assertEqual(e["daily"], 3500)
+
     def test_one_record_of_many_items_calibrates(self):
         import usage
         usage.record(self.ws, "score", chars_in=45500, chars_out=4200, engine="C", mode="assisted", items=25)
@@ -271,11 +281,17 @@ class Plan(unittest.TestCase):
         self.assertNotIn("work_authorization", out["prefill"])
         self.assertTrue(any("industry-fit.md" in n for n in out["notes"]), out["notes"])
 
+    def test_plan_warns_about_the_first_connector_read(self):
+        import run
+        notes = " ".join(run.plan(self.ws, "C")["notes"])
+        self.assertIn("first Gmail read", notes)
+        self.assertNotIn("first Gmail read", " ".join(run.plan(self.ws, "A")["notes"]))
+
     def test_connector_permission_says_fetches_ask(self):
         import run
         perms = " ".join(run.plan(self.ws, "C")["permissions"])
         self.assertIn("ask you before every web fetch", perms)
-        self.assertIn("form filling", perms)
+        self.assertIn("form-input", perms)
 
     def test_every_engine_states_the_permissions_it_uses(self):
         import run
@@ -386,6 +402,16 @@ class Server(unittest.TestCase):
         self.assertEqual(status, 200, body)
         log = d.read_jsonl(self.ws / "data" / "apply-log.jsonl")
         self.assertEqual([(r["posting_id"], r["result"]) for r in log], [("greenhouse:e:5", "submitted")])
+
+    def test_queue_action_needs_the_pages_own_origin(self):
+        # A local process with the token but no browser Origin cannot approve: confirm() runs only in the page.
+        c = http.client.HTTPConnection("127.0.0.1", self.port, timeout=5)
+        c.request("POST", "/api/queue", body=json.dumps({"slug": self.SLUG, "posting_id": "greenhouse:d:4",
+                                                         "action": "rejected"}),
+                  headers={"Host": f"127.0.0.1:{self.port}", "X-Ascend-Token": self.token,
+                           "Content-Type": "application/json"})
+        self.assertEqual(c.getresponse().status, 403)
+        c.close()
 
     def test_queue_action_needs_token(self):
         status, _, _ = self.req("POST", "/api/queue", {"slug": self.SLUG, "posting_id": "greenhouse:d:4", "action": "approved"})

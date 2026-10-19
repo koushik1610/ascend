@@ -92,6 +92,14 @@ def _org(mail):
     return re.sub(r"[-_]+", " ", label).title() or "Unknown"
 
 
+WORK_MODE = re.compile(r"\bremote(-| in | )?(us|usa|united states)?\b|\bhybrid\b|\bon-?site\b", re.I)
+PAY = re.compile(r"\$\s?([\d,]{5,})\s*(?:-|–|to)\s*\$\s?([\d,]{5,})\s*(?:a|per) year", re.I)
+
+
+def _int(s):
+    return int(s.replace(",", ""))
+
+
 BOARD_SUBJECT = re.compile(r"^(?P<title>.+?)\s+(?:@|at)\s+(?P<company>[^@]+?)\s*$")
 
 
@@ -104,10 +112,17 @@ def inbound_entry(mail, filters, applied=()):
     # Stop at the next "Field:" label, so a location never swallows the rate or visa terms after it.
     loc = re.search(r"Location:\s*(.+?)(?=\s+[A-Z][\w ]{1,20}:|[.\n]|$)", body)
     location = loc.group(1).strip() if loc else ""
+    # What the subject says counts too: "[Remote-US]", "Phoenix, AZ - Hybrid", "hybrid local priority".
+    worded = WORK_MODE.search(subject)
+    if not location and worded:
+        location = worded.group(0)
+    pay = PAY.search(body)
     board = _domain_in(sender_domain(mail), ALERT_DOMAINS) and BOARD_SUBJECT.match(subject)
     company, title = (board.group("company").strip(), board.group("title").strip()) if board else (_org(mail), subject)
     posting = {"company": company, "title": title, "location": location,
-               "remote": None, "comp_min": None, "comp_max": None, "text": body}
+               "remote": None if not location else ("remote" in location.lower() and "hybrid" not in location.lower()),
+               "comp_min": _int(pay.group(1)) if pay else None, "comp_max": _int(pay.group(2)) if pay else None,
+               "text": body}
     judged = dict(filters)
     notes = []
     if not board:
@@ -132,9 +147,16 @@ def run(ws):
     state, inbound = {}, []
     today = date.today().isoformat()
     out = {"alert_leads": 0, "inbound": 0, "inbound_matching": 0}
-    for e in d.read_jsonl(dd / "events.jsonl"):
+    import pipeline
+    from classify import latest_events
+    applied = [(rco, rtitle) for _, rco, rtitle, _ in pipeline._applied_records(Path(ws))]
+    queued_roles = [(j.get("company"), j.get("title")) for j in d.read_json(dd / "queue.json", {"jobs": []}).get("jobs", [])]
+    for e in latest_events(d.read_jsonl(dd / "events.jsonl")):
         mid = e.get("msg_id")
         if mid in done or mid not in mail or e.get("category") not in ("job-alert", "recruiter-inbound"):
+            continue
+        if e.get("match"):          # about a job already in the queue: the inbox shows it, it is not a new lead
+            d.append_jsonl(dd / "alerts-done.jsonl", {"msg_id": mid})
             continue
         if e["category"] == "job-alert":
             for n, lead in enumerate(parse_alert(mail[mid])):
@@ -146,8 +168,11 @@ def run(ws):
                 state[pid] = {"first_seen": today, "last_seen": today, "closed": False}
                 out["alert_leads"] += 1
         else:
-            entry = inbound_entry(mail[mid], filters)
-            if entry["posting_id"] not in known:
+            entry = inbound_entry(mail[mid], filters, applied)
+            import jobqueue
+            same = any(jobqueue._same_role(c, t, entry["company"], entry["title"]) for c, t in queued_roles)
+            if entry["posting_id"] not in known and not same:
+                queued_roles.append((entry["company"], entry["title"]))
                 inbound.append(entry)
                 known.add(entry["posting_id"])
                 out["inbound"] += 1

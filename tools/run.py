@@ -43,8 +43,10 @@ PERMISSIONS = {
 PERMISSIONS_ALL = [
     "Job boards: public board APIs, read only, no login.",
     "Applications: Ascend never submits anything. You open each application and press Submit yourself. This repo "
-    "denies Claude in Chrome's form filling, file upload and page scripting, and denies Claude direct edits of "
-    "your queue and logs: approving a job and recording a send are your clicks in the hub, each with a confirm.",
+    "denies Claude in Chrome's form-input, file-upload, image-upload, scripting, shortcut and batch tools. Claude in "
+    "Chrome can still click and type, so keep its per-action prompts on. Claude's file tools cannot edit your queue "
+    "or logs: approving a job and recording a send through Ascend are your clicks in the hub, each with a confirm "
+    "(pipeline.py log, for a job you applied to elsewhere, also marks it applied).",
     "LinkedIn search (only if you ask for it): Claude in Chrome reads job result cards in your own logged-in "
     "browser. Automated browsing can break LinkedIn's terms of use and put the account at risk.",
 ]
@@ -111,8 +113,13 @@ def plan(ws, engine, mode="assisted", jobs=usage.DEFAULT_JOBS):
     profile = d.read_json(Path(ws) / "data" / "profile.json", {})
     # Every answer an apply sheet pre-fills, by name: Step 1 shows the values to the user to confirm.
     prefill = [k for k in apply.PROFILE_FIELDS if profile.get(k) and k not in apply.ALWAYS_ASK]
+    notes = _setup_notes(ws)
+    sync = d.read_json(Path(ws) / "data" / "sync-state.json", {})
+    if engine in ("B", "C") and not (sync.get("connector_last_read") or sync.get("connector_first_partial")):
+        notes.append("The first Gmail read covers 30 days, a one-time cost on top of the daily estimate (about 90,000 "
+                      "tokens for 90 threads on the first from-scratch run). Record it with --backfill.")
     return {"ok": ok, "problems": problems, "estimate": est, "warning": warning,
-            "permissions": PERMISSIONS[engine] + PERMISSIONS_ALL, "prefill": prefill, "notes": _setup_notes(ws)}
+            "permissions": PERMISSIONS[engine] + PERMISSIONS_ALL, "prefill": prefill, "notes": notes}
 
 
 def _setup_notes(ws):

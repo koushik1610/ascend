@@ -127,7 +127,18 @@
       "Edit(workspace/*/data/events.jsonl)",
       "Write(workspace/*/data/events.jsonl)",
       "Edit(workspace/*/data/ingested.jsonl)",
-      "Write(workspace/*/data/ingested.jsonl)"
+      "Write(workspace/*/data/ingested.jsonl)",
+      "mcp__claude-in-chrome__browser_batch",
+      "mcp__claude-in-chrome__upload_image",
+      "mcp__claude-in-chrome__shortcuts_execute",
+      "Edit(**/workspace/*/data/queue.json)",
+      "Write(**/workspace/*/data/queue.json)",
+      "Edit(**/workspace/*/data/apply-log.jsonl)",
+      "Write(**/workspace/*/data/apply-log.jsonl)",
+      "Edit(**/workspace/*/data/events.jsonl)",
+      "Write(**/workspace/*/data/events.jsonl)",
+      "Edit(**/workspace/*/data/ingested.jsonl)",
+      "Write(**/workspace/*/data/ingested.jsonl)"
     ],
     "ask": [
       "WebFetch"

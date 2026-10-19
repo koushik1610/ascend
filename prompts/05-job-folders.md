@@ -84,9 +84,17 @@ locked master — reorder and trim, never reword. Cite the `master_version` in t
 needs a bullet the master lacks is a MASTER GAP note; the answer is to fix + re-lock the master, never
 to write a one-off bullet here (one-off bullets are how derivative résumés drift from the source).
 
-## Ascend 2.0: link the pack to its queue entry
-When the job came from the v2 queue (the user approved it in the hub), link the folder so the apply sheet
-can find this pack, and record what the pack cost:
+## Ascend 2.0: a pack for a job approved in the hub
+A job the user approved in the hub has no `job-queue.md` row. Get what the pack needs from the queue instead:
+
+```
+python3 tools/jobqueue.py show workspace/<name> <posting_id>
+```
+
+It prints the company, title, links, fit, gaps, the posting's stored text (from its role heading, up to 8,000
+characters) and `next_nn`, the folder number to use. Build `jobs/<next_nn>-<company>-<role>/` from that, with the
+posting's own company and title in the log heading. Then link the folder so the apply sheet can find this pack,
+and record what the pack cost:
 
 ```
 python3 tools/jobqueue.py link workspace/<name> <posting_id> <NN>

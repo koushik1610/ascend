@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """usage.py: what each Claude stage costs, recorded per run (Ascend 2.0, M7).
 
-  python3 tools/usage.py record WS --stage STAGE --chars-in N --chars-out N [--engine A|B|C] [--mode M] [--items K]
+  python3 tools/usage.py record WS --stage STAGE --chars-in N --chars-out N [--engine A|B|C] [--mode M] [--items K] [--backfill]
   python3 tools/usage.py summary WS [--json]
   python3 tools/usage.py estimate WS --engine A|B|C [--mode assisted] [--jobs N] [--json]
 
@@ -42,10 +42,12 @@ def tokens(chars):
     return math.ceil(max(0, int(chars)) / CHARS_PER_TOKEN)
 
 
-def record(ws, stage, chars_in, chars_out, run_id=None, engine=None, mode=None, items=1):
+def record(ws, stage, chars_in, chars_out, run_id=None, engine=None, mode=None, items=1, backfill=False):
     row = {"stage": stage, "input_tokens": tokens(chars_in), "output_tokens": tokens(chars_out), "estimated": True,
            "items": int(items), "engine": engine, "mode": mode, "run_id": run_id,
            "at": datetime.now().isoformat(timespec="seconds")}
+    if backfill:            # the first read's month of mail: a one-time cost, never part of the daily base
+        row["backfill"] = True
     d.append_jsonl(d.data_dir(ws) / "usage.jsonl", row)
     return row
 
@@ -74,7 +76,7 @@ def estimate(ws, engine, mode="assisted", jobs=DEFAULT_JOBS):
         per_job += _per_item(got) if measured else STAGE_DEFAULT[s]
     days = {}
     for r in rows:
-        if r.get("stage") in BASE_STAGES and r.get("engine") in (engine, None):
+        if r.get("stage") in BASE_STAGES and r.get("engine") in (engine, None) and not r.get("backfill"):
             day = str(r.get("at", ""))[:10]
             days[day] = days.get(day, 0) + r.get("input_tokens", 0) + r.get("output_tokens", 0)
     stages["base"] = "measured" if len(days) >= MIN_SAMPLES else "default"
@@ -106,7 +108,8 @@ def main(argv):
     cmd, ws, args = argv[1], argv[2], argv[3:]
     if cmd == "record":
         out = record(ws, _opt(args, "--stage", "unknown"), _opt(args, "--chars-in", 0), _opt(args, "--chars-out", 0),
-                     engine=_opt(args, "--engine"), mode=_opt(args, "--mode"), items=_opt(args, "--items", 1))
+                     engine=_opt(args, "--engine"), mode=_opt(args, "--mode"), items=_opt(args, "--items", 1),
+                     backfill="--backfill" in args)
     elif cmd == "summary":
         out = summary(ws)
     else:

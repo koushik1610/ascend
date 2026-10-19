@@ -237,11 +237,16 @@ def _health(ws, data, events):
         out["boards"] = (f"{len(bad)} of {bh.get('boards')} job boards need a look on {bh.get('checked')}: "
                          f"{', '.join(bad)}. Find the right board with python3 tools/finder.py probe \"Company\", "
                          f"then fix workspace/{Path(ws).name}/data/sources.json.")
-    unmatched = [e for e in events if e.get("category") in pipeline.EVENT_STATUS and not e.get("match")]
+    # Waiting means not yet settled by ingest: matched there on a second look, or given up as an application
+    # made outside Ascend, it no longer counts.
+    done = {r.get("key") for r in d.read_jsonl(data / "ingested.jsonl")}
+    unmatched = [e for e in events if e.get("category") in pipeline.EVENT_STATUS and not e.get("match")
+                 and f"{e.get('msg_id')}|{e.get('category')}" not in done]
     if unmatched:
         n = len(unmatched)
         out["mail"] = (f"{n} email{'s' if n != 1 else ''} about an application matched no job in your queue. "
-                       "They are in the Inbox. The next run matches them again once the job is queued.")
+                       "They are in the Inbox. The next run tries again; an application you made outside Ascend never "
+                       "matches, and after 30 days it stops being counted.")
     return out
 
 

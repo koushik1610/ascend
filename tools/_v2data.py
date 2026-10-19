@@ -23,8 +23,9 @@ def data_dir(ws):
     """workspace/<name>/data, created if missing. Mail and the profile live here: the user's eyes only."""
     p = resolve_out(str(Path(ws) / "data"))
     p.mkdir(parents=True, exist_ok=True, mode=0o700)
-    if p.stat().st_mode & 0o077:
-        p.chmod(0o700)
+    for folder in (p, p.parent):        # the workspace holds the résumé and intake too
+        if folder.stat().st_mode & 0o077:
+            folder.chmod(0o700)
     return p
 
 

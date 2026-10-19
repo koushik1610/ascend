@@ -13,6 +13,7 @@ wait for the next `/ascend run-v2` session. One row per run lands in data/run-lo
 """
 
 import json
+import re
 import sys
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -28,6 +29,17 @@ TRIM_AFTER_DAYS = 14
 
 def _engine(ws):
     return (d.read_json(Path(ws) / ".ascend-state.json", {}).get("run_defaults") or {}).get("engine")
+
+
+AUTOMATED = re.compile(r"^(no-?reply|do-?not-?reply|donotreply|info|hello|news|newsletter|notifications?|team|"
+                       r"marketing|updates?)[@+.]", re.I)
+
+
+def _automated(sender):
+    """A machine-sent address. Its non-job mail keeps headers only from day one; a person's waits 14 days."""
+    import classify
+    addr = classify.sender({"from": sender or ""})
+    return bool(AUTOMATED.search(addr) or classify.BULK_SENDER.search(addr.partition("@")[2]))
 
 
 def prune(ws, today=None):
@@ -53,7 +65,8 @@ def prune(ws, today=None):
                 continue
             e = latest.get(m.get("msg_id")) or {}
             if (e.get("category") == "other" and not e.get("needs_llm") and m.get("body_excerpt")
-                    and (m.get("date") or "")[:10] < trim_before and m.get("thread_id") not in job_threads):
+                    and m.get("thread_id") not in job_threads
+                    and ((m.get("date") or "")[:10] < trim_before or _automated(m.get("from")))):
                 m = dict(m, body_excerpt="")
                 out["trimmed"] += 1
             kept.append(m)

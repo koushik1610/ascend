@@ -77,12 +77,14 @@ class Sync(unittest.TestCase):
 
     def test_scored_entry_links_to_an_existing_folder(self):
         import jobqueue
+        post(self.ws, "greenhouse:doordashusa:8154315", "doordashusa", "Staff Security Engineer, Proactive Security - AI")
+        jobqueue.score(self.ws, "greenhouse:doordashusa:8154315", 70, "why", [])
         post(self.ws, "greenhouse:doordashusa:999", "doordashusa", "Staff Security Engineer, Proactive Security - AI")
         jobqueue.score(self.ws, "greenhouse:doordashusa:999", 70, "why", [])
         jobqueue.sync_folders(self.ws)
-        dd = [j for j in queue(self.ws) if j.get("company", "").lower().startswith("doordash")]
-        self.assertEqual(len(dd), 1, dd)       # the folder's entry, not a second one
-        self.assertEqual(dd[0]["nn"], "10")
+        dd = {j["posting_id"]: j.get("nn") for j in queue(self.ws) if j.get("company", "").lower().startswith("doordash")}
+        # The folder joins its own posting; a different requisition with the same title stays its own role.
+        self.assertEqual(dd, {"greenhouse:doordashusa:8154315": "10", "greenhouse:doordashusa:999": None})
 
 
 class Link(unittest.TestCase):
@@ -144,6 +146,168 @@ class Link(unittest.TestCase):
         with self.assertRaises(apply.Refused) as cm:
             apply.sheet(self.ws, "greenhouse:affirm:1")
         self.assertIn("jobqueue.py link", str(cm.exception))
+
+
+class Round2(unittest.TestCase):
+    """Council rerun 2: regressions in late matching and the name matcher, and two misfiled kinds of mail."""
+
+    def setUp(self):
+        self.td = tempfile.TemporaryDirectory()
+        self.ws = seed(self.td.name)
+
+    def tearDown(self):
+        self.td.cleanup()
+
+    def ingest(self):
+        r = subprocess.run([sys.executable, str(REPO / "tools" / "pipeline.py"), "ingest", str(self.ws), "--json"],
+                           capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        return json.loads(r.stdout)
+
+    def classify(self):
+        subprocess.run([sys.executable, str(REPO / "tools" / "classify.py"), "run", str(self.ws)], capture_output=True)
+
+    def test_old_mail_never_moves_a_job_queued_later(self):
+        # An acknowledgement for an application made outside Ascend must not land on a folder added later.
+        import _v2data as d
+        dd = self.ws / "data"
+        d.append_jsonl(dd / "mail.jsonl", {"msg_id": "nv", "from": "nvidia@myworkday.com",
+                                           "subject": "Thank you for your interest in NVIDIA", "date": "2026-09-24T21:11:02Z",
+                                           "body_excerpt": "your application for the Principal Engineer, Security "
+                                                           "Architecture role has been received"})
+        self.classify()
+        self.assertEqual(self.ingest()["unmatched"], 1)
+        f = self.ws / "jobs" / "21-nvidia-senior-security"
+        f.mkdir()
+        (f / "application-log.md").write_text("# Application Log: NVIDIA, Senior Security Engineer\n")
+        self.ingest()
+        self.assertEqual(state(self.ws, "21-nvidia-senior-security").get("status", "queued"), "queued")
+
+    def test_unmatched_mail_stops_retrying_after_thirty_days(self):
+        import _v2data as d
+        dd = self.ws / "data"
+        d.append_jsonl(dd / "mail.jsonl", {"msg_id": "old", "from": "no-reply@ashbyhq.com",
+                                           "subject": "Thanks for applying to Nobodyco", "date": "2026-01-01T00:00:00Z",
+                                           "body_excerpt": "Thank you for applying."})
+        self.classify()
+        self.ingest()
+        self.assertEqual(self.ingest()["unmatched"], 0)
+
+    def test_a_suffix_never_turns_a_name_into_a_common_word(self):
+        import classify
+        jobs = [{"posting_id": "s", "company": "Scale AI", "title": "Staff Security Engineer"},
+                {"posting_id": "d", "company": "doordashusa", "title": "Staff Security Engineer"}]
+        self.assertIsNone(classify.match_job({"from": "x@news.example", "subject": "Security leadership at scale"}, jobs))
+        self.assertEqual(classify.match_job({"from": "no-reply@ashbyhq.com",
+                                             "subject": "Your application to DoorDash"}, jobs), "d")
+
+    def test_a_hiring_address_scheduling_an_interview_is_an_interview(self):
+        import classify
+        msg = {"from": "paixc@jobs.netflix.com", "subject": "Next steps w/ Netflix",
+               "body_excerpt": "Thanks again for taking the time to chat. After connecting with the team, we'd love to "
+                               "schedule a 45-minute video conversation with the team's hiring manager. Please send "
+                               "at least three options for days and times you're available. This opportunity"}
+        self.assertEqual(classify.classify_message(msg)["category"], "interview-invite")
+
+    def test_a_newsletter_is_never_an_assessment(self):
+        import classify
+        msg = {"from": "no-reply@substack.com", "subject": "Coding Challenge #140 - Bluetooth Proximity Finder",
+               "body_excerpt": "From John Crickett and Substack"}
+        self.assertEqual(classify.classify_message(msg)["category"], "other")
+
+    def test_recruiter_mail_about_a_known_job_is_not_a_new_lead(self):
+        import _v2data as d
+        import alerts
+        import jobqueue
+        jobqueue.sync_folders(self.ws)
+        dd = self.ws / "data"
+        for mid, sender, subj in (("c1", "eric@growtherapy.com", "Your background and Grow Therapy"),
+                                  ("m1", "donotreply@match.indeed.com", "Sr Security Architect @ MoneyGram"),
+                                  ("m2", "donotreply@match.indeed.com", "Sr Security Architect @ MoneyGram")):
+            d.append_jsonl(dd / "mail.jsonl", {"msg_id": mid, "from": sender, "subject": subj, "date": "2026-10-16T10:00:00Z",
+                                               "body_excerpt": "I came across your profile. $235,000 - $305,000 a year."})
+        self.classify()
+        alerts.run(self.ws)
+        inbound = [j for j in queue(self.ws) if j.get("source") == "recruiter"]
+        self.assertEqual([(j["company"], j["title"]) for j in inbound], [("MoneyGram", "Sr Security Architect")])
+
+    def test_inbound_reads_pay_remote_and_hybrid_from_what_is_written(self):
+        import alerts
+        filters = {"title_include": [r"\bsecurity\b"], "seniority": [r"\b(staff|principal|architect)\b"],
+                   "remote_only": True, "locations": ["remote", "united states", "us"], "comp_floor": 200000}
+        e = alerts.inbound_entry({"msg_id": "q", "from": "donotreply@match.indeed.com",
+                                  "subject": "Staff Security Engineer [Remote-US] @ Quanata",
+                                  "body_excerpt": "$235,000 - $305,000 a year. Hi"}, filters)
+        self.assertEqual(e["state"], "needs-you", e["reasons"])
+        self.assertFalse(any("comp unknown" in r or "location not stated" in r for r in e["reasons"]), e["reasons"])
+        h = alerts.inbound_entry({"msg_id": "p", "from": "x@staffingco.example",
+                                  "subject": "Hiring for Security Architect | Phoenix, AZ - Hybrid",
+                                  "body_excerpt": "I am reaching out on an opportunity with one of our clients."}, filters)
+        self.assertEqual(h["state"], "inbound-filtered", h["reasons"])
+
+    def test_hub_counts_only_mail_still_waiting_for_a_job(self):
+        import _v2data as d
+        import hub
+        dd = self.ws / "data"
+        d.append_jsonl(dd / "mail.jsonl", {"msg_id": "g", "from": "recruiter@growtherapy.com",
+                                           "subject": "Grow Therapy: Availability Request", "body_excerpt": "",
+                                           "date": "2026-10-15T22:24:05Z"})
+        self.classify()
+        self.assertIsNotNone(hub.compute(self.ws)["health"]["mail"])
+        self.ingest()                                   # matched to folder 00 on ingest's second look
+        self.assertIsNone(hub.compute(self.ws)["health"]["mail"])
+
+
+class Names(unittest.TestCase):
+    def test_the_boards_current_name_wins_over_the_stored_slug(self):
+        import _v2data as d
+        import jobqueue
+        with tempfile.TemporaryDirectory() as td:
+            ws = seed(td)
+            d.write_json_atomic(ws / "data" / "sources.json", {"boards": [{"ats": "greenhouse", "slug": "acmeusa",
+                                                                            "company": "Acme"}], "filters": {}})
+            post(ws, "greenhouse:acmeusa:9", "acmeusa", "Principal Security Engineer")
+            self.assertEqual(jobqueue.candidates(ws)[0]["company"], "Acme")
+            jobqueue.score(ws, "greenhouse:acmeusa:9", 60, "why", [])
+            self.assertEqual(next(j for j in queue(ws) if j["posting_id"] == "greenhouse:acmeusa:9")["company"], "Acme")
+
+    def test_show_gives_phase_5_the_whole_posting(self):
+        import jobqueue
+        with tempfile.TemporaryDirectory() as td:
+            ws = seed(td)
+            post(ws, "greenhouse:a:1", "Acme", "Staff Security Engineer")
+            jobqueue.score(ws, "greenhouse:a:1", 60, "why", [])
+            out = jobqueue.show(ws, "greenhouse:a:1")
+            self.assertEqual((out["company"], out["title"], out["text"]), ("Acme", "Staff Security Engineer", "role text"))
+            self.assertIn("next_nn", out)
+
+    def test_two_postings_with_their_own_ids_are_two_roles(self):
+        import jobqueue
+        self.assertFalse(jobqueue._same_role("Elastic", "Principal Security Engineer (Java)", "Elastic",
+                                             "Principal Security Engineer (Go)", "greenhouse:elastic:1",
+                                             "greenhouse:elastic:2"))
+        self.assertTrue(jobqueue._same_role("Elastic", "Principal Security Engineer", "Elastic",
+                                            "Principal Security Engineer", "greenhouse:elastic:1", "v1:04"))
+
+
+class ScoreFile(unittest.TestCase):
+    def test_score_file_checks_every_row_before_writing_and_caps_text(self):
+        import jobqueue
+        with tempfile.TemporaryDirectory() as td:
+            ws = seed(td)
+            post(ws, "greenhouse:a:1", "Acme", "Staff Security Engineer")
+            rows = Path(td) / "workspace" / "tester" / "data" / "scores.json"
+            rows.write_text(json.dumps([{"posting_id": "greenhouse:a:1", "fit": 70, "why": "w" * 5000, "gaps": ["g"] * 30},
+                                        {"posting_id": "nope", "fit": 50, "why": "x"}]))
+            r = subprocess.run([sys.executable, str(REPO / "tools" / "jobqueue.py"), "score", str(ws), "--file", str(rows)],
+                               capture_output=True, text=True)
+            self.assertEqual(r.returncode, 2)
+            self.assertFalse([j for j in queue(ws) if j["posting_id"] == "greenhouse:a:1"])   # nothing half-written
+            rows.write_text(json.dumps([{"posting_id": "greenhouse:a:1", "fit": 70, "why": "w" * 5000, "gaps": ["g"] * 30}]))
+            subprocess.run([sys.executable, str(REPO / "tools" / "jobqueue.py"), "score", str(ws), "--file", str(rows)])
+            e = next(j for j in queue(ws) if j["posting_id"] == "greenhouse:a:1")
+            self.assertLessEqual(len(e["why"]), jobqueue.WHY_MAX)
+            self.assertLessEqual(len(e["gaps"]), jobqueue.GAPS_MAX)
 
 
 class Privacy(unittest.TestCase):

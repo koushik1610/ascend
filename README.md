@@ -115,7 +115,7 @@ Five mechanical gates back it up:
    anything fetched from the web is data to analyze, never instructions to obey, backed by an
    allow-list-only **Bash** boundary. `Read` stays broad, since the pipeline reads arbitrary résumé
    locations. `WebFetch` asks you before every fetch, so a page or email that asks for one still needs
-   your yes.
+   your yes (unless you run Claude Code in bypass-permissions mode, which skips every question).
 4. **Output-path confinement** ([`tools/_paths.py`](tools/_paths.py)) makes "writes only under
    `workspace/`" true for tools, not just for the agent's Write tool. (The agent may also write the
    anonymized, shared `industryresearch/` reference; see below.) The Bash allow-list pins a tool
@@ -199,11 +199,12 @@ left for you to answer. Agent-submit and fully automatic modes are being develop
 | Google Drive | Not used. | Share, create, update, copy and trash are denied. | Same as B. |
 | Web | Public job-board APIs, read only. | Public boards plus Claude's web searches. | Public job-board APIs, read only. |
 | Web page fetches | Ask you every time. | Ask you every time. | Ask you every time. |
-| Applications | Never submitted by Ascend. Claude in Chrome's form filling, file upload and page scripting are denied. | Same as A. | Same as A. |
+| Applications | Never submitted by Ascend. Claude in Chrome's form-input, upload, scripting and batch tools are denied; it can still click and type, so keep its per-action prompts on. | Same as A. | Same as A. |
 | Approve, "I submitted it" | Your click in the hub, with a confirm. Claude's file tools cannot edit the queue or the apply log. | Same as A. | Same as A. |
 
 Engines B and C search Gmail with a query limited to job senders and job subjects: 30 days on the first
-read, then from the day before the last read, never your sent mail. The mail Claude reads is untrusted, and
+read, then from the day before the last read. Your own sent mail is never stored, but a thread Claude opens
+still shows your replies in that session. The mail Claude reads is untrusted, and
 the same session can fetch web pages. Claude treats mail as data, and this repo's settings ask you before
 every web fetch, so a fetch an email asked for still needs your yes. Deny beats ask beats allow, so a
 narrower allow in a local file cannot skip that question. On engine C, which never needs a fetch, you can

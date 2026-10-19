@@ -175,7 +175,7 @@ def probe(company):
         found = list(ex.map(lambda t: (t, fetch_board(*t)), tries))
     hits = []
     for (ats, slug), jobs in found:
-        if jobs is None:
+        if not jobs:            # SmartRecruiters and Workable answer with an empty list for any name at all
             continue
         name = None
         if ats == "greenhouse":
@@ -224,6 +224,17 @@ def _merge(dd, results, state, out, today):
 ATS_URL = [("greenhouse", re.compile(r"https://(?:job-)?boards\.greenhouse\.io/([\w-]+)/jobs/(\d+)")),
            ("lever", re.compile(r"https://jobs\.lever\.co/([\w-]+)/([0-9a-f-]{8,})")),
            ("ashby", re.compile(r"https://jobs\.ashbyhq\.com/([\w-]+)/([0-9a-f-]{8,})"))]
+
+
+def board_names(ws):
+    """{"ats:slug": company} from sources.json: the board's current name, which wins over the name a posting
+    was first stored with (renaming a board fixes every posting on it)."""
+    return {f"{b.get('ats')}:{b.get('slug')}": b.get("company") for b in
+            d.read_json(Path(ws) / "data" / "sources.json", {}).get("boards", []) if b.get("company")}
+
+
+def company_of(posting, names):
+    return names.get(str(posting.get("id", "")).rsplit(":", 1)[0]) or posting.get("company")
 
 
 def ats_id(url):

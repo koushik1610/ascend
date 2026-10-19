@@ -62,7 +62,10 @@ RULES = [
                              r"interview invitation", r"phone screen",
                              r"set up (a|an) (technical |video |phone )?(interview|call)", r"video interview",
                              r"move you forward", r"availability request", r"upcoming interview",
-                             r"interview (details|reminder|confirmation|confirmed)")),
+                             r"interview (details|reminder|confirmation|confirmed)",
+                             r"schedule (a|an) [\w-]+(-minute)? (video |phone )?(conversation|interview|call)",
+                             r"(video|phone) conversation with", r"options for (days|dates|times)",
+                             r"times you('|’)re available")),
     ("info-request", _rx(r"additional information", r"complete your application", r"action required",
                          r"verify your (email|identity)", r"questionnaire", r"remaining questions",
                          r"please (provide|complete|answer|confirm|respond)", r"could you (please )?provide")),
@@ -124,8 +127,15 @@ def classify_message(msg):
                                         and ALERT_SUBJECT.search(msg.get("subject", "") or "")):
         return {"category": "job-alert", "confidence": 0.95, "rule": "sender:alert", "needs_llm": False}
     rules = dict(RULES)
+    domain = sender_domain(msg)
+    hiring_sender = ats or bool(HIRING_SUBDOMAIN.search(domain))
+    bulk = bool(BULK_SENDER.search(domain)) and not hiring_sender
     for category, rx in RULES:
-        if category == "recruiter-inbound" and (ats or NOT_A_JOB.search(text)):
+        # A company's hiring address writes about the user's own application, never cold outreach.
+        if category == "recruiter-inbound" and (hiring_sender or NOT_A_JOB.search(text)):
+            continue
+        # A newsletter's "Coding Challenge #140" is not a take-home.
+        if category == "assessment" and bulk:
             continue
         hit = _interview_hit(text, rx) if category == "interview-invite" else rx.search(text)
         if category == "rejection" and not hit:
@@ -135,9 +145,6 @@ def classify_message(msg):
         if hit:
             return {"category": category, "confidence": 0.95 if ats else 0.85,
                     "rule": f"{category}:{hit.group(0).lower()[:40]}", "needs_llm": False}
-    domain = sender_domain(msg)
-    hiring_sender = ats or bool(HIRING_SUBDOMAIN.search(domain))
-    bulk = bool(BULK_SENDER.search(domain)) and not hiring_sender
     looks_jobby = bool(JOBBY.search(text)) and not NOT_A_JOB.search(text)
     return {"category": "other", "confidence": 0.5, "rule": "none",
             "needs_llm": hiring_sender or (looks_jobby and not bulk)}
@@ -161,14 +168,17 @@ MATCH_RANK = {"sender": 3, "subject": 2, "body": 1}
 
 # A board slug is often the company name plus a region or corporate suffix (doordashusa, acmehq).
 SLUG_SUFFIXES = ("usa", "us", "hq", "inc", "jobs", "careers", "global", "labs", "io", "ai", "co", "corp", "group")
+# Only these may be dropped when looking for the name in a subject or body: dropping "ai" turns "Scale AI" into
+# the word "scale".
+TEXT_SUFFIXES = ("usa", "hq", "inc", "corp", "global", "group")
 
 
-def company_keys(name):
+def company_keys(name, suffixes=SLUG_SUFFIXES, shortest=4):
     """The company's squashed name, plus the name without a board-slug suffix (doordashusa -> doordash)."""
     key = "".join(company_tokens(name))
     keys = {key} if key else set()
-    for suf in SLUG_SUFFIXES:
-        if key.endswith(suf) and len(key) - len(suf) >= 4:
+    for suf in suffixes:
+        if key.endswith(suf) and len(key) - len(suf) >= shortest:
             keys.add(key[:-len(suf)])
     return keys
 
@@ -178,7 +188,8 @@ def _name_rx(name):
     words split or joined, because a board slug ("andurilindustries") loses the spaces the mail has."""
     tokens = company_tokens(name)
     pats = [r"\b" + r"[\W_]*".join(map(re.escape, tokens)) + r"\b"] if tokens else []
-    pats += [r"\b" + r"[\W_]?".join(map(re.escape, k)) + r"\b" for k in company_keys(name) if len(k) >= 5]
+    pats += [r"\b" + r"[\W_]?".join(map(re.escape, k)) + r"\b" for k in company_keys(name, TEXT_SUFFIXES, 6)
+             if len(k) >= 5]
     return re.compile("|".join(pats), re.I) if pats else None
 
 

@@ -21,6 +21,7 @@ written down anywhere.
 | Engines B and C, LinkedIn (M9) | a day of real Gmail, one web search, one LinkedIn search | a real "next steps" email resolved by the model moved a job to screen. A stale search result and a silent-skip bug found and fixed |
 | Daily sync (M10) | the real workspace | every stage ran in 21 seconds at zero tokens |
 | From scratch, run 1 (2026-10-17) | a new workspace from the user's intake, master and 15 v1 job folders, engine C | setup checks held. Found: 30 of 127 boards wrong, no link from job folders to the queue (approve never reached a sheet, interview mail matched nothing, v1 roles scored again), hybrid jobs passing remote-only, a token estimate 18 times the measured day. Fixed in the PR that follows |
+| From scratch, run 2 (2026-10-18) | the same inputs on the fixed branch, engine C, no hand edits to tool data | no v1 role re-scored; Grow and Netflix mail matched their folders; a v1 pack reached an apply sheet through the hub; the 30-day first read cost about 92K tokens once. Found: interview mail from a hiring address filed as a cold lead, newsletters filed as assessments, old mail able to land on a job queued later. Fixed before run 3 |
 
 ## Still beta, and why
 

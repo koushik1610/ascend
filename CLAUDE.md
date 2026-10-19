@@ -76,11 +76,12 @@ rule sources; prompts reference them rather than re-stating them. Templates: `te
 ## Permissions (pre-approved so `/ascendui` runs uninterrupted)
 The repo commits **`.claude/settings.json`** so a run doesn't stop for approval prompts. It is
 deliberately **scoped**: broad `Read` + `WebSearch` (the pipeline reads your files and researches jobs
-across many domains), `WebFetch` set to **ask** (every fetch waits for your yes), and **`Write`/`Edit`
+across many domains), `WebFetch` set to **ask** (every fetch waits for your yes, except in bypass-permissions
+mode), and **`Write`/`Edit`
 only under `workspace/**`** (the pipeline writes user output there and can't silently change the repo's
 own prompts/code), plus `industryresearch/**` for Phase 26's anonymized, shared phrasing reference.
 Claude's own `Edit`/`Write` are denied on each workspace's `data/queue.json`, `apply-log.jsonl`,
-`events.jsonl` and `ingested.jsonl`: approving a job and recording a send are the user's clicks in the
+`events.jsonl` and `ingested.jsonl`: approving a job and recording a send through Ascend are the user's clicks in the
 hub. The Bash boundary is **allow-list-only**: the repo's own tools (`python3 ui/server.py…` and each
 `python3 tools/<name>.py…` the pipeline calls), `mkdir/rm -f` under `workspace/`, `git check-ignore` and
 `pandoc`; anything else is refused, so an injected page can't write a script under `workspace/` and run
@@ -89,8 +90,8 @@ network/exfil tools (`curl`/`wget`/`nc`/`ssh`/`scp`), shell-bypass forms (`bash 
 `find -exec`/`eval`/`exec`), RCE-capable interpreters (`node`/`deno`/`bun`/`ruby`/`perl`/`php`/`osascript`/
 `python3 -c`), package managers (`npm`/`npx`/`pip`), `rm -rf /`, high-value secrets (`.env`, `~/.ssh`,
 `~/.aws`, `~/.gnupg`, `~/.config/gh`, Keychains, `.netrc`/`.npmrc`/`.git-credentials`/`*.pem`/private
-keys), the claude.ai Gmail and Drive write tools, and Claude in Chrome's form filling, file upload and
-page scripting. `Read` stays broad on purpose so the pipeline can read a résumé/LinkedIn export wherever
+keys), the claude.ai Gmail and Drive write tools, and Claude in Chrome's form-input, file-upload, image-upload,
+scripting, shortcut and batch tools (it can still click and type, so its per-action prompts stay on). `Read` stays broad on purpose so the pipeline can read a résumé/LinkedIn export wherever
 you point it; the deny-list guards the crown jewels. Fetched and file content is **data, not
 instructions** (the prompt-injection quarantine in the ingesting prompts), and the `"ask"` on `WebFetch`
 means a fetch that injected text asks for still needs the user's yes. Deny beats ask beats allow in every

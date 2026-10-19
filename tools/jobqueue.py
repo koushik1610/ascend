@@ -7,6 +7,7 @@
   python3 tools/jobqueue.py set-state WS POSTING_ID STATE
   python3 tools/jobqueue.py link WS POSTING_ID NN                     # after Phase 5 builds the job's folder
   python3 tools/jobqueue.py sync WS                                   # bring v1 job folders into the queue
+  python3 tools/jobqueue.py show WS POSTING_ID                        # what Phase 5 needs for an approved job
   python3 tools/jobqueue.py list WS
 
 Named jobqueue, not queue: a tools/queue.py would shadow the standard library module that
@@ -31,6 +32,7 @@ STATES = ["matched", "approved", "rejected", "needs-you", "applying", "applied",
 SENT = {"applying", "applied", "applied?"}       # once sent, a job only moves on to applied
 HUB_ONLY = {"approved", "applied"}               # the user's own click in the hub, never a CLI call
 TEXT_BUDGET = 1500
+WHY_MAX, GAPS_MAX, GAP_MAX = 400, 8, 200      # model-written text: a sentence, a short list
 REQ_START = re.compile(r"(requirements|qualifications|what you('|’)ll bring|what you bring|what we('|’)re looking for|"
                        r"who you are|about you|you have:|you might be a fit|minimum)", re.I)
 REQ_SHARE = 500
@@ -67,8 +69,14 @@ def budget_text(text):
     return t[:TEXT_BUDGET - REQ_SHARE - 3] + " … " + t[m.start():m.start() + REQ_SHARE]
 
 
-def _same_role(company_a, title_a, company_b, title_b):
+def _same_role(company_a, title_a, company_b, title_b, pid_a=None, pid_b=None):
+    """Same company and title. Two different board postings are two roles even when their titles differ only in
+    a parenthesis ("(Java)" vs "(Go)")."""
     import pipeline
+    from finder import ats_id
+    board = lambda p: bool(p) and str(p).split(":", 1)[0] in ("greenhouse", "ashby", "lever", "workable", "smartrecruiters")  # noqa: E731
+    if board(pid_a) and board(pid_b) and pid_a != pid_b:
+        return False
     return same_company(company_a, company_b) and pipeline.normalize_title(title_a) == pipeline.normalize_title(title_b)
 
 
@@ -87,20 +95,22 @@ def sync_folders(ws):
             continue
         company, title, url, fit, status = pipeline.folder_job(job)
         if company and title:
-            folders.append((nn, company, title, url, fit, status))
+            applied_on = pipeline.parse_state(job / "application-log.md").get("applied_on") or None
+            folders.append((nn, company, title, url, fit, status, applied_on))
     out = {"added": 0, "linked": 0}
     if not folders:
         return out
 
     def change(q):
         jobs = q.setdefault("jobs", [])
-        for nn, company, title, url, fit, status in folders:
+        for nn, company, title, url, fit, status, applied_on in folders:
             sent = status != "queued"
             pid = ats_id(url) or f"v1:{nn}"
             entry = next((j for j in jobs if j.get("nn") == nn), None)
             if entry is None:
                 entry = next((j for j in jobs if not j.get("nn") and (j.get("posting_id") == pid or
-                              _same_role(j.get("company"), j.get("title"), company, title))), None)
+                              _same_role(j.get("company"), j.get("title"), company, title, j.get("posting_id"), pid))),
+                             None)
                 if entry is not None:
                     entry["nn"] = nn
                     out["linked"] += 1
@@ -112,6 +122,8 @@ def sync_folders(ws):
                 out["added"] += 1
             if sent and entry.get("state") not in SENT:
                 entry["state"] = "applied"
+            if sent and applied_on and not entry.get("applied_on"):
+                entry["applied_on"] = str(applied_on)[:10]
         return out
     d.update_json(Path(ws) / "data" / "queue.json", {"jobs": []}, change)
     return out
@@ -162,7 +174,9 @@ def candidates(ws, limit=25):
     rows = [(c, posts[pid]) for pid, c in latest.items() if c.get("passed") and pid not in queued and pid in posts
             and pid not in closed and not already_queued(posts[pid])]
     rows.sort(key=lambda r: -r[0].get("keyword_overlap", 0))
-    return [{"posting_id": p["id"], "company": p.get("company"), "title": p.get("title"), "location": p.get("location"),
+    from finder import board_names, company_of
+    names = board_names(ws)
+    return [{"posting_id": p["id"], "company": company_of(p, names), "title": p.get("title"), "location": p.get("location"),
              "comp": [p.get("comp_min"), p.get("comp_max")], "keyword_overlap": c.get("keyword_overlap"),
              "url": p.get("url"), "text": budget_text(p.get("text"))} for c, p in rows[:limit]]
 
@@ -181,12 +195,46 @@ def score(ws, posting_id, fit, why, gaps):
     def change(q):
         entry = next((j for j in q.setdefault("jobs", []) if j.get("posting_id") == posting_id), None)
         if entry is None:
-            entry = {"posting_id": posting_id, "company": post.get("company"), "title": post.get("title"),
+            from finder import board_names, company_of
+            entry = {"posting_id": posting_id, "company": company_of(post, board_names(ws)) if post else None,
+                     "title": post.get("title"),
                      "url": post.get("url"), "apply_url": post.get("apply_url"), "state": "matched"}
             q["jobs"].append(entry)
-        entry.update(fit=fit, why=why, gaps=list(gaps), scored_at=datetime.now().isoformat(timespec="seconds"))
+        entry.update(fit=fit, why=str(why)[:WHY_MAX], gaps=[str(g)[:GAP_MAX] for g in list(gaps)[:GAPS_MAX]],
+                     scored_at=datetime.now().isoformat(timespec="seconds"))
         return entry
     return d.update_json(dd / "queue.json", {"jobs": []}, change)
+
+
+def show(ws, posting_id):
+    """Everything Phase 5 needs to build a pack for a queued job: the entry, the posting's full stored text, and
+    the folder number to use."""
+    import pipeline
+    entry = next((j for j in _queue(ws).get("jobs", []) if j.get("posting_id") == posting_id), None)
+    if entry is None:
+        raise KeyError(posting_id)
+    post = next((p for p in d.read_jsonl(Path(ws) / "data" / "postings.jsonl") if p.get("id") == posting_id), {})
+    nns = [int(p.name.split("-", 1)[0]) for p in pipeline.job_dirs(Path(ws)) if p.name.split("-", 1)[0].isdigit()]
+    return {"posting_id": posting_id, "company": entry.get("company"), "title": entry.get("title"),
+            "state": entry.get("state"), "nn": entry.get("nn"), "url": entry.get("url"),
+            "apply_url": entry.get("apply_url"), "location": post.get("location"),
+            "comp": [post.get("comp_min"), post.get("comp_max")], "fit": entry.get("fit"), "why": entry.get("why"),
+            "gaps": entry.get("gaps") or [], "text": post.get("text", ""),
+            "next_nn": f"{(max(nns) + 1) if nns else 0:02d}"}
+
+
+def check_scores(ws, rows):
+    """Refuse a score file with any row that would fail, before any row is written."""
+    if not isinstance(rows, list):
+        raise ValueError("the score file is a JSON list of {posting_id, fit, why, gaps}")
+    dd = Path(ws) / "data"
+    known = {p.get("id") for p in d.read_jsonl(dd / "postings.jsonl")} | \
+            {j.get("posting_id") for j in _queue(ws).get("jobs", [])}
+    for r in rows:
+        if not isinstance(r, dict) or r.get("posting_id") not in known:
+            raise KeyError(f"{(r or {}).get('posting_id') if isinstance(r, dict) else r!r} is not a known posting")
+        if not 0 <= int(r.get("fit", -1)) <= 100:
+            raise ValueError(f"{r['posting_id']}: fit must be 0 to 100")
 
 
 def set_state(ws, posting_id, state, via_hub=False, **fields):
@@ -223,7 +271,7 @@ def _opt(args, name, default=None):
 
 
 def main(argv):
-    if len(argv) < 3 or argv[1] not in ("candidates", "score", "set-state", "link", "sync", "list"):
+    if len(argv) < 3 or argv[1] not in ("candidates", "score", "set-state", "link", "sync", "show", "list"):
         print(__doc__, file=sys.stderr)
         return 2
     cmd, ws, args = argv[1], argv[2], argv[3:]
@@ -235,6 +283,7 @@ def main(argv):
         elif cmd == "score" and "--file" in args:
             # Model-written text read from a file, never through the shell, where "$(...)" would expand.
             rows = json.loads(Path(_opt(args, "--file")).read_text(encoding="utf-8"))
+            check_scores(ws, rows)                      # every row first: a bad row writes nothing
             out = [score(ws, r["posting_id"], r["fit"], r.get("why", ""),
                          [g for g in (r.get("gaps") or []) if str(g).strip()]) for r in rows]
             out = {"scored": len(out)}
@@ -245,6 +294,8 @@ def main(argv):
             out = link(ws, args[0], args[1])
         elif cmd == "sync":
             out = sync_folders(ws)
+        elif cmd == "show":
+            out = show(ws, args[0])
         else:
             out = set_state(ws, args[0], args[1])
     except (ValueError, KeyError, IndexError, json.JSONDecodeError, OSError) as e:
