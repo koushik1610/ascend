@@ -22,6 +22,7 @@ written down anywhere.
 | Daily sync (M10) | the real workspace | every stage ran in 21 seconds at zero tokens |
 | From scratch, run 1 (2026-10-17) | a new workspace from the user's intake, master and 15 v1 job folders, engine C | setup checks held. Found: 30 of 127 boards wrong, no link from job folders to the queue (approve never reached a sheet, interview mail matched nothing, v1 roles scored again), hybrid jobs passing remote-only, a token estimate 18 times the measured day. Fixed in the PR that follows |
 | From scratch, run 2 (2026-10-18) | the same inputs on the fixed branch, engine C, no hand edits to tool data | no v1 role re-scored; Grow and Netflix mail matched their folders; a v1 pack reached an apply sheet through the hub; the 30-day first read cost about 92K tokens once. Found: interview mail from a hiring address filed as a cold lead, newsletters filed as assessments, old mail able to land on a job queued later. Fixed before run 3 |
+| From scratch, run 3 (2026-10-19) | the same inputs and run 2's mail replayed, engine C; a second-day read; Phase 5 from the queue on a copy | the hiring-address interview mail filed as an interview for its folder, newsletters as other, nothing pinned by mistake; the second read skipped its overlap with no duplicates; a newly approved job went through `show`, a pack, `link` and a complete apply sheet. Found: mail matched on arrival could still move a job never sent; fixed with one date-and-title rule for every event |
 
 ## Still beta, and why
 

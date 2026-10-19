@@ -447,7 +447,8 @@ class Handler(BaseHTTPRequestHandler):
         if not self._origin_ok():
             return self._send(403, {"error": "bad origin"})
         # The hub's Approve, Reject, Apply and "I submitted it" come from the page in a browser, which always
-        # sends Origin. A local process holding the token but not the page gets no say.
+        # sends Origin. This turns away a bare script; it is not a wall against local processes, which can set
+        # Origin. Claude's own shell is held back by the Bash allow-list and denies instead.
         if urlparse(self.path).path in ("/api/queue", "/api/apply") and not self.headers.get("Origin"):
             return self._send(403, {"error": "bad origin"})
         u = urlparse(self.path)

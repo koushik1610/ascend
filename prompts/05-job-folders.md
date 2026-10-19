@@ -85,7 +85,9 @@ needs a bullet the master lacks is a MASTER GAP note; the answer is to fix + re-
 to write a one-off bullet here (one-off bullets are how derivative résumés drift from the source).
 
 ## Ascend 2.0: a pack for a job approved in the hub
-A job the user approved in the hub has no `job-queue.md` row. Get what the pack needs from the queue instead:
+A job the user approved in the hub has no `job-queue.md` row (a workspace started on v2 has no `job-queue.md`
+at all). Find the jobs waiting for a pack with `python3 tools/jobqueue.py list workspace/<name>`: entries with
+`"state": "approved"` and no `nn`. Get what the pack needs from the queue:
 
 ```
 python3 tools/jobqueue.py show workspace/<name> <posting_id>

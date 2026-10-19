@@ -107,7 +107,8 @@ def evaluate(posting, filters, applied):
     kw = next((k for k in filters.get("exclude_keywords", []) or [] if k.lower() in blob), None)
     if kw:
         fail(f"excluded keyword: {kw}")
-    if company_key(posting.get("company")) in {company_key(b) for b in filters.get("blocklist", []) or []}:
+    if any(pipeline._same_company_key(company_key(posting.get("company")), company_key(b))
+           for b in filters.get("blocklist", []) or []):
         fail("company on your blocklist")
     key, ntitle = company_key(posting.get("company")), pipeline.normalize_title(title)
     if any(t == ntitle and pipeline._same_company_key(key, c) for c, t in applied):

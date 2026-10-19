@@ -183,6 +183,43 @@ class Round2(unittest.TestCase):
         self.ingest()
         self.assertEqual(state(self.ws, "21-nvidia-senior-security").get("status", "queued"), "queued")
 
+    def test_mail_matched_on_arrival_still_needs_a_sent_application_or_the_title(self):
+        # Round 3: an acknowledgement for a role applied to elsewhere matched a scored, never-sent posting when it
+        # was classified, then moved that job's new folder to applied and blocked its sheet.
+        import _v2data as d
+        import jobqueue
+        dd = self.ws / "data"
+        post(self.ws, "ashby:linear:1", "Linear", "Senior / Staff Security Engineer")
+        jobqueue.score(self.ws, "ashby:linear:1", 50, "why", [])
+        d.append_jsonl(dd / "mail.jsonl", {"msg_id": "ln", "from": "no-reply@ashbyhq.com",
+                                           "subject": "Thank you for applying to Linear", "date": "2026-10-10T10:00:00Z",
+                                           "body_excerpt": "Thank you for applying for the Product Designer role."})
+        self.classify()
+        jobqueue.set_state(self.ws, "ashby:linear:1", "approved", via_hub=True)
+        f = self.ws / "jobs" / "16-linear-senior-staff-security-engineer"
+        f.mkdir()
+        (f / "application-log.md").write_text("# Application Log: Linear, Senior / Staff Security Engineer\n")
+        jobqueue.link(self.ws, "ashby:linear:1", "16")
+        self.ingest()
+        self.assertEqual(state(self.ws, "16-linear-senior-staff-security-engineer").get("status", "queued"), "queued")
+
+    def test_mail_naming_the_role_still_moves_a_job_not_yet_sent(self):
+        import _v2data as d
+        import jobqueue
+        dd = self.ws / "data"
+        post(self.ws, "ashby:linear:1", "Linear", "Senior / Staff Security Engineer")
+        jobqueue.score(self.ws, "ashby:linear:1", 50, "why", [])
+        f = self.ws / "jobs" / "16-linear-senior-staff-security-engineer"
+        f.mkdir()
+        (f / "application-log.md").write_text("# Application Log: Linear, Senior / Staff Security Engineer\n")
+        jobqueue.link(self.ws, "ashby:linear:1", "16")
+        d.append_jsonl(dd / "mail.jsonl", {"msg_id": "ln2", "from": "no-reply@ashbyhq.com",
+                                           "subject": "Thank you for applying to Linear", "date": "2026-10-10T10:00:00Z",
+                                           "body_excerpt": "Thank you for applying for the Senior / Staff Security Engineer role."})
+        self.classify()
+        self.ingest()
+        self.assertEqual(state(self.ws, "16-linear-senior-staff-security-engineer").get("status"), "applied")
+
     def test_unmatched_mail_stops_retrying_after_thirty_days(self):
         import _v2data as d
         dd = self.ws / "data"
@@ -290,6 +327,22 @@ class Names(unittest.TestCase):
                                             "Principal Security Engineer", "greenhouse:elastic:1", "v1:04"))
 
 
+class SiblingRoles(unittest.TestCase):
+    def test_link_and_sheet_refuse_a_sibling_requisition(self):
+        import apply
+        import jobqueue
+        with tempfile.TemporaryDirectory() as td:
+            ws = seed(td)
+            post(ws, "greenhouse:elastic:2", "Elastic", "Principal Security Engineer (Go)")
+            jobqueue.score(ws, "greenhouse:elastic:2", 60, "why", [])
+            f = ws / "jobs" / "17-elastic-principal"
+            f.mkdir()
+            (f / "application-log.md").write_text("# Application Log: Elastic, Principal Security Engineer (Java)\n\n"
+                                                  "| JD | https://boards.greenhouse.io/elastic/jobs/1 |\n")
+            with self.assertRaises(ValueError):
+                jobqueue.link(ws, "greenhouse:elastic:2", "17")
+
+
 class ScoreFile(unittest.TestCase):
     def test_score_file_checks_every_row_before_writing_and_caps_text(self):
         import jobqueue
@@ -308,6 +361,16 @@ class ScoreFile(unittest.TestCase):
             e = next(j for j in queue(ws) if j["posting_id"] == "greenhouse:a:1")
             self.assertLessEqual(len(e["why"]), jobqueue.WHY_MAX)
             self.assertLessEqual(len(e["gaps"]), jobqueue.GAPS_MAX)
+            for bad in ({"posting_id": "greenhouse:a:1", "fit": None}, {"posting_id": "greenhouse:a:1", "fit": 5, "gaps": "abc"}):
+                rows.write_text(json.dumps([bad]))
+                r = subprocess.run([sys.executable, str(REPO / "tools" / "jobqueue.py"), "score", str(ws), "--file", str(rows)],
+                                   capture_output=True, text=True)
+                self.assertEqual(r.returncode, 2, r.stderr)
+            rows.write_text(json.dumps([{"posting_id": "greenhouse:a:1", "fit": 5, "why": "$(touch pwned)"}]))
+            subprocess.run([sys.executable, str(REPO / "tools" / "jobqueue.py"), "score", str(ws), "--file", str(rows)],
+                           cwd=td)
+            self.assertFalse((Path(td) / "pwned").exists())
+            self.assertEqual(next(j for j in queue(ws) if j["posting_id"] == "greenhouse:a:1")["why"], "$(touch pwned)")
 
 
 class Privacy(unittest.TestCase):

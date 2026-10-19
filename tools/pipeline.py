@@ -364,7 +364,7 @@ def cmd_ingest(ws, args):
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     import _v2data as d
     data = ws / "data"
-    from classify import latest_events, match_detail
+    from classify import _title_in, latest_events, match_detail
     import jobqueue
     jobqueue.sync_folders(ws)          # job folders from earlier runs are jobs mail can be about
     # Keyed by message AND category: a model's later resolution of an already-ingested message (rule
@@ -398,6 +398,8 @@ def cmd_ingest(ws, args):
             e = dict(e)
             e["match"], e["match_by"] = match_detail(mail[e["msg_id"]], sent)
         job = _job_for_match(ws, e.get("match"), queue)
+        if job and not _sent_by(job, e, queue, mail, when, _title_in):
+            job = None
         if not job or not (job / "application-log.md").is_file():
             out["unmatched"] += 1
             # Retried on later runs while the job may still be queued; after RETRY_DAYS it never will be
@@ -433,6 +435,26 @@ def cmd_ingest(ws, args):
 
 
 RETRY_DAYS = 30
+
+
+def _sent_by(job, e, queue, mail, when, title_in):
+    """One rule for every event, however it was matched: mail moves a job only when that application was sent by
+    the mail's date (a day of slack for UTC), or when the mail names the job's own title. Otherwise mail about an
+    application made elsewhere ("Thank you for applying to Linear" for another role) would mark a later job
+    applied and block its sheet."""
+    nn = job.name.split("-", 1)[0]
+    entry = next((j for j in queue if j.get("nn") == nn), None) or \
+        next((j for j in queue if j.get("posting_id") == e.get("match")), None)
+    if entry is None:
+        return True                     # a folder the queue does not know yet: the folder's own state decides
+    applied_on = entry.get("applied_on")
+    if entry.get("state") in BLOCKING and (not applied_on or not when or
+                                           applied_on <= (date.fromisoformat(when) + timedelta(days=1)).isoformat()):
+        return True
+    msg = mail.get(e.get("msg_id"))
+    if msg is None:
+        return True                     # no stored mail to read (an event written by hand): nothing to check against
+    return title_in(entry, f"{msg.get('subject', '')} {msg.get('body_excerpt', '')}")
 
 
 # ── guard: never apply to the same job twice (Ascend 2.0, M2) ────────────────

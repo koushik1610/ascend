@@ -142,7 +142,9 @@ def link(ws, posting_id, nn):
         entry = next((j for j in q.get("jobs", []) if j.get("posting_id") == posting_id), None)
         if entry is None:
             raise KeyError(posting_id)
-        if not _same_role(entry.get("company"), entry.get("title"), company, title):
+        from finder import ats_id
+        if not _same_role(entry.get("company"), entry.get("title"), company, title, entry.get("posting_id"),
+                          ats_id(pipeline.folder_job(job)[2])):
             raise ValueError(f"{job.name} is for {company}, {title}: a different role from "
                              f"{entry.get('company')}, {entry.get('title')}")
         other = next((j for j in q["jobs"] if j.get("nn") == nn and j is not entry), None)
@@ -163,9 +165,12 @@ def candidates(ws, limit=25):
     import pipeline
     queued_roles = [(j.get("company"), pipeline.normalize_title(j.get("title"))) for j in jobs]
 
+    from finder import board_names, company_of
+    names = board_names(ws)
+
     def already_queued(p):
         t = pipeline.normalize_title(p.get("title"))
-        return any(t == qt and same_company(p.get("company"), qc) for qc, qt in queued_roles)
+        return any(t == qt and same_company(company_of(p, names), qc) for qc, qt in queued_roles)
     latest = {}
     for c in d.read_jsonl(dd / "candidates.jsonl"):
         latest[c.get("posting_id")] = c
@@ -174,8 +179,6 @@ def candidates(ws, limit=25):
     rows = [(c, posts[pid]) for pid, c in latest.items() if c.get("passed") and pid not in queued and pid in posts
             and pid not in closed and not already_queued(posts[pid])]
     rows.sort(key=lambda r: -r[0].get("keyword_overlap", 0))
-    from finder import board_names, company_of
-    names = board_names(ws)
     return [{"posting_id": p["id"], "company": company_of(p, names), "title": p.get("title"), "location": p.get("location"),
              "comp": [p.get("comp_min"), p.get("comp_max")], "keyword_overlap": c.get("keyword_overlap"),
              "url": p.get("url"), "text": budget_text(p.get("text"))} for c, p in rows[:limit]]
@@ -233,8 +236,10 @@ def check_scores(ws, rows):
     for r in rows:
         if not isinstance(r, dict) or r.get("posting_id") not in known:
             raise KeyError(f"{(r or {}).get('posting_id') if isinstance(r, dict) else r!r} is not a known posting")
-        if not 0 <= int(r.get("fit", -1)) <= 100:
-            raise ValueError(f"{r['posting_id']}: fit must be 0 to 100")
+        if not isinstance(r.get("fit"), (int, float)) or isinstance(r.get("fit"), bool) or not 0 <= r["fit"] <= 100:
+            raise ValueError(f"{r['posting_id']}: fit must be a number from 0 to 100")
+        if not isinstance(r.get("gaps", []), list):
+            raise ValueError(f"{r['posting_id']}: gaps must be a list")
 
 
 def set_state(ws, posting_id, state, via_hub=False, **fields):

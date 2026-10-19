@@ -104,8 +104,9 @@ def sheet(ws, posting_id):
     if not job:
         raise Refused("no apply pack linked yet: build it with Phase 5 (prompts/05-job-folders.md), then run "
                       f"python3 tools/jobqueue.py link {ws} {posting_id} <NN>")
-    f_company, f_title, *_ = pipeline.folder_job(job)
-    if not jobqueue._same_role(entry.get("company"), entry.get("title"), f_company, f_title):
+    f_company, f_title, f_url, *_ = pipeline.folder_job(job)
+    from finder import ats_id
+    if not jobqueue._same_role(entry.get("company"), entry.get("title"), f_company, f_title, posting_id, ats_id(f_url)):
         raise Refused(f"{job.name} is for {f_company}, {f_title}: a different role from this job")
     pdfs = sorted(job.glob("*-Resume-*.pdf"))
     if not pdfs or not (job / "resume.md").is_file():
@@ -118,8 +119,13 @@ def sheet(ws, posting_id):
     profile = d.read_json(ws / "data" / "profile.json", {})
     answers = {k: profile[k] for k in PROFILE_FIELDS if profile.get(k) and k not in ALWAYS_ASK}
     ask = ALWAYS_ASK + [k for k in ("name", "email", "phone") if not profile.get(k)]
+    link = entry.get("apply_url") or entry.get("url") or entry.get("posting_id")
+    gh = re.fullmatch(r"greenhouse:([\w-]+):(\d+)", posting_id or "")
+    if gh:                  # Greenhouse's own job page, whatever careers site the company points at
+        link = f"https://job-boards.greenhouse.io/{gh.group(1)}/jobs/{gh.group(2)}"
+    entry = dict(entry, apply_url=link)
     out = {"posting_id": posting_id, "company": entry.get("company"), "title": entry.get("title"),
-           "apply_url": entry.get("apply_url") or entry.get("url") or entry.get("posting_id"),
+           "apply_url": link,
            "link_note": None if _known_link(entry.get("apply_url") or entry.get("url") or "") else
            "This link is not on a known application system. Check the address before you enter anything.",
            "resume_pdf": str(pdfs[0]), "answers": answers, "ask_user": ask, "cover_note": _hook(job),

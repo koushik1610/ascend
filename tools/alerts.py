@@ -92,7 +92,8 @@ def _org(mail):
     return re.sub(r"[-_]+", " ", label).title() or "Unknown"
 
 
-WORK_MODE = re.compile(r"\bremote(-| in | )?(us|usa|united states)?\b|\bhybrid\b|\bon-?site\b", re.I)
+WORK_MODE = re.compile(r"\bremote(?:[- ]in[- ]|[- ])?(?:us|usa|united states|canada|uk|europe|emea|india|latam|"
+                       r"mexico)?\b|\bhybrid\b|\bon-?site\b", re.I)
 PAY = re.compile(r"\$\s?([\d,]{5,})\s*(?:-|–|to)\s*\$\s?([\d,]{5,})\s*(?:a|per) year", re.I)
 
 

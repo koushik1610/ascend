@@ -319,6 +319,7 @@ class Evaluate(unittest.TestCase):
                    title="Staff Security Eng (Remote)")
         # A board slug ("acmeusa") is the same company as the folder's "Acme".
         self.check(False, "already applied", applied=[("acme", "staff security engineer")], company="acmeusa")
+        self.check(False, "blocklist", company="badcousa")
 
 
 class PrefilterRun(Base):
