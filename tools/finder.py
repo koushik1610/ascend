@@ -104,7 +104,8 @@ def normalize(ats, slug, company, j):
     if ats == "greenhouse":
         loc = (j.get("location") or {}).get("name", "")
         p = dict(native=j["id"], title=j.get("title", ""), location=loc, remote=_remote_from_text(loc),
-                 url=j.get("absolute_url"), apply_url=j.get("absolute_url"), text=clean(j.get("content")),
+                 url=j.get("absolute_url"), apply_url=f"https://job-boards.greenhouse.io/{slug}/jobs/{j['id']}",
+                 text=clean(j.get("content")),
                  comp_min=None, comp_max=None)
     elif ats == "ashby":
         comp = next((c for c in (j.get("compensation") or {}).get("summaryComponents", []) or []

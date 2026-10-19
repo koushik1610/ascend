@@ -113,6 +113,16 @@ class Adapters(Base):
         self.assertEqual((p["remote"], p["comp_min"], p["comp_max"], p["apply_url"]),
                          (False, 210000, 260000, "https://jobs.example/u1/apply"))
 
+    def test_greenhouse_apply_link_is_greenhouses_own(self):
+        # Companies with their own careers site give Greenhouse an absolute_url there; the apply sheet then
+        # warns "not a known application system". Greenhouse's own job page works for every board.
+        import finder
+        j = gh_job(7, "Staff Security Engineer")
+        j["absolute_url"] = "https://databricks.com/company/careers/open-positions/job?gh_jid=7"
+        p = finder.normalize("greenhouse", "databricks", "Databricks", j)
+        self.assertEqual(p["apply_url"], "https://job-boards.greenhouse.io/databricks/jobs/7")
+        self.assertEqual(p["url"], j["absolute_url"])
+
     def test_ashby_hybrid_is_not_remote(self):
         # Ashby sets isRemote on hybrid jobs: Harvey's San Francisco hybrid roles came through remote_only.
         import finder
