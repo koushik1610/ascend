@@ -62,7 +62,10 @@ RULES = [
                              r"interview invitation", r"phone screen",
                              r"set up (a|an) (technical |video |phone )?(interview|call)", r"video interview",
                              r"move you forward", r"availability request", r"upcoming interview",
-                             r"interview (details|reminder|confirmation|confirmed)")),
+                             r"interview (details|reminder|confirmation|confirmed)",
+                             r"schedule (a|an) [\w-]+(-minute)? (video |phone )?(conversation|interview|call)",
+                             r"(video|phone) conversation with", r"options for (days|dates|times)",
+                             r"times you('|’)re available")),
     ("info-request", _rx(r"additional information", r"complete your application", r"action required",
                          r"verify your (email|identity)", r"questionnaire", r"remaining questions",
                          r"please (provide|complete|answer|confirm|respond)", r"could you (please )?provide")),
@@ -124,8 +127,15 @@ def classify_message(msg):
                                         and ALERT_SUBJECT.search(msg.get("subject", "") or "")):
         return {"category": "job-alert", "confidence": 0.95, "rule": "sender:alert", "needs_llm": False}
     rules = dict(RULES)
+    domain = sender_domain(msg)
+    hiring_sender = ats or bool(HIRING_SUBDOMAIN.search(domain))
+    bulk = bool(BULK_SENDER.search(domain)) and not hiring_sender
     for category, rx in RULES:
-        if category == "recruiter-inbound" and (ats or NOT_A_JOB.search(text)):
+        # A company's hiring address writes about the user's own application, never cold outreach.
+        if category == "recruiter-inbound" and (hiring_sender or NOT_A_JOB.search(text)):
+            continue
+        # A newsletter's "Coding Challenge #140" is not a take-home.
+        if category == "assessment" and bulk:
             continue
         hit = _interview_hit(text, rx) if category == "interview-invite" else rx.search(text)
         if category == "rejection" and not hit:
@@ -135,9 +145,6 @@ def classify_message(msg):
         if hit:
             return {"category": category, "confidence": 0.95 if ats else 0.85,
                     "rule": f"{category}:{hit.group(0).lower()[:40]}", "needs_llm": False}
-    domain = sender_domain(msg)
-    hiring_sender = ats or bool(HIRING_SUBDOMAIN.search(domain))
-    bulk = bool(BULK_SENDER.search(domain)) and not hiring_sender
     looks_jobby = bool(JOBBY.search(text)) and not NOT_A_JOB.search(text)
     return {"category": "other", "confidence": 0.5, "rule": "none",
             "needs_llm": hiring_sender or (looks_jobby and not bulk)}
@@ -159,25 +166,59 @@ def _alnum(s):
 MATCH_RANK = {"sender": 3, "subject": 2, "body": 1}
 
 
+# A board slug is often the company name plus a region or corporate suffix (doordashusa, acmehq).
+SLUG_SUFFIXES = ("usa", "us", "hq", "inc", "jobs", "careers", "global", "labs", "io", "ai", "co", "corp", "group")
+# Only these may be dropped when looking for the name in a subject or body: dropping "ai" turns "Scale AI" into
+# the word "scale".
+TEXT_SUFFIXES = ("usa", "hq", "inc", "corp", "global", "group")
+
+
+def company_keys(name, suffixes=SLUG_SUFFIXES, shortest=4):
+    """The company's squashed name, plus the name without a board-slug suffix (doordashusa -> doordash)."""
+    key = "".join(company_tokens(name))
+    keys = {key} if key else set()
+    for suf in suffixes:
+        if key.endswith(suf) and len(key) - len(suf) >= shortest:
+            keys.add(key[:-len(suf)])
+    return keys
+
+
+def _name_rx(name):
+    """Whole words, so 'HP' never matches 'Champion'. A name of five or more letters also matches with its
+    words split or joined, because a board slug ("andurilindustries") loses the spaces the mail has."""
+    tokens = company_tokens(name)
+    pats = [r"\b" + r"[\W_]*".join(map(re.escape, tokens)) + r"\b"] if tokens else []
+    pats += [r"\b" + r"[\W_]?".join(map(re.escape, k)) + r"\b" for k in company_keys(name, TEXT_SUFFIXES, 6)
+             if len(k) >= 5]
+    return re.compile("|".join(pats), re.I) if pats else None
+
+
+def _title_in(job, text):
+    from pipeline import normalize_title
+    t = normalize_title(job.get("title"))
+    return bool(t) and f" {t} " in f" {normalize_title(text)} "
+
+
 def match_detail(msg, jobs):
     """(match, how) for the queued job this message is about, or (None, None).
 
     match is the job's `nn` when it has a folder, else its `posting_id`. Signals, strongest first: the
     company in an ATS sender's local part (nvidia@myworkday.com) or as the sender's own domain
-    (x@acme-robotics.example), then the company name as whole words in the subject, then in the body.
-    Whole words, so 'HP' never matches 'Champion'. When two different companies tie at the strongest
-    signal found ("thanks for applying to Acme, we use Scale AI tooling"), the message matches nothing.
+    (x@acme-robotics.example), then the company name in the subject, then in the body. When two
+    different companies tie at the strongest signal found ("thanks for applying to Acme, we use Scale AI
+    tooling"), the message matches nothing. When the user has two roles at one company, the mail must
+    name the role's title, or it matches nothing: guessing would move the wrong application.
     """
     local, _, domain = sender(msg).partition("@")
     first_label = _alnum(domain.split(".")[0]) if domain and not is_ats(msg) else ""
     hits = []
     for job in jobs:
-        tokens = company_tokens(job.get("company"))
-        if not tokens:
+        keys = company_keys(job.get("company"))
+        rx = _name_rx(job.get("company"))
+        if not keys or rx is None:
             continue
-        key = "".join(tokens)
-        rx = re.compile(r"\b" + r"[\W_]*".join(map(re.escape, tokens)) + r"\b", re.I)
-        if (is_ats(msg) and _alnum(local) == key) or (bool(first_label) and first_label == key):
+        key = min(keys, key=len)
+        if (is_ats(msg) and _alnum(local) in keys) or (bool(first_label) and first_label in keys):
             hits.append(("sender", key, job))
         elif rx.search(msg.get("subject", "") or ""):
             hits.append(("subject", key, job))
@@ -189,6 +230,16 @@ def match_detail(msg, jobs):
     best = [h for h in hits if MATCH_RANK[h[0]] == top]
     if len({h[1] for h in best}) > 1:
         return None, None
+    from pipeline import normalize_title
+    roles = {}
+    for h in best:
+        roles.setdefault(normalize_title(h[2].get("title")), []).append(h)
+    if len(roles) > 1:
+        text = f"{msg.get('subject', '')} {msg.get('body_excerpt', '')}"
+        named = [hs for hs in roles.values() if _title_in(hs[0][2], text)]
+        if len(named) != 1:
+            return None, None
+        best = named[0]
     how, _, job = next((h for h in best if h[2].get("nn")), best[0])
     return job.get("nn") or job.get("posting_id"), how
 

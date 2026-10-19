@@ -7,7 +7,7 @@
 first stage of a v2 run that spends tokens, so it reads as little as a good judgement needs.
 
 **Read first:** `master-resume.md` (the evidence), `industry-fit.md` (which keyword clusters the user can
-claim), `intake.md` (targets, floor, walk-away), and the run settings:
+claim; when Phase 26 has not run yet, judge from the master's bullets and their tags alone, and say so), `intake.md` (targets, floor, walk-away), and the run settings:
 `python3 tools/run.py plan workspace/<name> --engine <E>` (shows the token estimate. Stop and
 tell the user if it reports problems).
 
@@ -32,9 +32,17 @@ excitement, 0 to 20 each). The score must be explainable from the master r√©sum√
 - **gaps**: the posting's must-haves the evidence does not cover, plainly.
 - A must-have outside `industry-fit.md`'s supported set is a gap, never a reason to stretch a claim.
 
+Write every score to `workspace/<name>/data/scores.json` as a JSON list of
+`{"posting_id", "fit", "why", "gaps": [...]}`, then:
+
 ```
-python3 tools/jobqueue.py score workspace/<name> <posting_id> --fit <0-100> --why "<sentence>" --gaps "<a>; <b>"
+python3 tools/jobqueue.py score workspace/<name> --file workspace/<name>/data/scores.json
 ```
+
+Never put the why or gaps text on the command line: it paraphrases posting text, and a shell would expand
+anything like `$(...)` inside it. Take posting IDs only from `candidates`; an unknown ID is refused. Roles
+the user already has a job folder for never appear in `candidates`: `jobqueue.py sync` brings those folders
+into the queue first.
 
 ## Step 3. Record what it cost
 

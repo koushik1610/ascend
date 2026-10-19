@@ -68,6 +68,26 @@ def find_job(ws, nn):
     return None
 
 
+def job_folder(ws, nn):
+    """The folder whose name starts with exactly `NN-`, else None. Never a substring: a link that could
+    land on another role's folder would attach that role's résumé to this application."""
+    if not re.fullmatch(r"\d{2,3}", str(nn or "")):
+        return None
+    hits = [p for p in job_dirs(Path(ws)) if p.name.split("-", 1)[0] == str(nn)]
+    return hits[0] if len(hits) == 1 else None
+
+
+def folder_job(job):
+    """(company, title, jd_url, fit, status) read from a v1 job folder's application log."""
+    log = job / "application-log.md"
+    text = log.read_text(encoding="utf-8") if log.is_file() else ""
+    m = LOG_HEADING.search(text)
+    url = re.search(r"^\|\s*JD\s*\|\s*(https://[^\s|]+)", text, re.M)
+    fit = re.search(r"^\|\s*Fit Score\s*\|\s*(\d{1,3})\s*/\s*100", text, re.M)
+    return (m.group(1).strip() if m else None, m.group(2).strip() if m else None, url.group(1) if url else None,
+            int(fit.group(1)) if fit else None, parse_state(log).get("status", "queued"))
+
+
 def parse_state(path):
     """Read the fenced state block, falling back to legacy prose key: value lines."""
     if not path.is_file():
@@ -337,19 +357,22 @@ def _job_for_match(ws, match, queue):
     nn = match
     if not re.fullmatch(r"\d{2,3}", str(match)):
         nn = next((j.get("nn") for j in queue if j.get("posting_id") == match and j.get("nn")), None)
-    return find_job(ws, nn) if nn else None
+    return job_folder(ws, nn) if nn else None
 
 
 def cmd_ingest(ws, args):
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     import _v2data as d
     data = ws / "data"
-    from classify import latest_events
+    from classify import _title_in, latest_events, match_detail
+    import jobqueue
+    jobqueue.sync_folders(ws)          # job folders from earlier runs are jobs mail can be about
     # Keyed by message AND category: a model's later resolution of an already-ingested message (rule
     # said "other", the model says "interview-invite") is a new fact and must be applied.
     rows = d.read_jsonl(data / "ingested.jsonl")
     done = {r["key"] for r in rows if r.get("key")} | {r.get("msg_id") for r in rows if not r.get("key")}
     queue = d.read_json(data / "queue.json", {}).get("jobs", [])
+    mail = {m.get("msg_id"): m for m in d.read_jsonl(data / "mail.jsonl")}
     order = {s: i for i, s in enumerate(STATUSES)}
     out = {"applied": 0, "skipped": 0, "unmatched": 0, "transitions": []}
 
@@ -360,15 +383,31 @@ def cmd_ingest(ws, args):
                      if key(e) not in done and (e.get("rule") == "model" or e.get("msg_id") not in done)),
                     key=lambda e: e.get("date") or "")
     for e in events:
-        d.append_jsonl(data / "ingested.jsonl", {"msg_id": e.get("msg_id"), "key": key(e)})
         target = EVENT_STATUS.get(e.get("category"))
         if not target:
+            d.append_jsonl(data / "ingested.jsonl", {"msg_id": e.get("msg_id"), "key": key(e)})
             out["skipped"] += 1
             continue
+        when = (e.get("date") or "")[:10]
+        if not e.get("match") and e.get("msg_id") in mail:
+            # Mail is classified when it arrives, often before its job is in the queue. Match it again, but
+            # only against applications already sent by the mail's date: mail about an application cannot
+            # predate it, and a job queued later must never inherit an older stranger's reply.
+            sent = [j for j in queue if j.get("state") in BLOCKING and (not j.get("applied_on") or not when
+                                                                         or j["applied_on"] <= when)]
+            e = dict(e)
+            e["match"], e["match_by"] = match_detail(mail[e["msg_id"]], sent)
         job = _job_for_match(ws, e.get("match"), queue)
+        if job and not _sent_by(job, e, queue, mail, when, _title_in):
+            job = None
         if not job or not (job / "application-log.md").is_file():
             out["unmatched"] += 1
+            # Retried on later runs while the job may still be queued; after RETRY_DAYS it never will be
+            # (an application made outside Ascend), so stop.
+            if when and when < (date.today() - timedelta(days=RETRY_DAYS)).isoformat():
+                d.append_jsonl(data / "ingested.jsonl", {"msg_id": e.get("msg_id"), "key": key(e), "unmatched": True})
             continue
+        d.append_jsonl(data / "ingested.jsonl", {"msg_id": e.get("msg_id"), "key": key(e)})
         cur = parse_state(job / "application-log.md").get("status", "queued")
         # A company named only in the body is too weak to close a job: the hub still shows the mail.
         if target in TERMINAL and e.get("match_by") == "body":
@@ -393,6 +432,29 @@ def cmd_ingest(ws, args):
         for t in out["transitions"]:
             print(f"    {t['job']}: {t['from']} → {t['to']}  ({t['on']})")
     return 0
+
+
+RETRY_DAYS = 30
+
+
+def _sent_by(job, e, queue, mail, when, title_in):
+    """One rule for every event, however it was matched: mail moves a job only when that application was sent by
+    the mail's date (a day of slack for UTC), or when the mail names the job's own title. Otherwise mail about an
+    application made elsewhere ("Thank you for applying to Linear" for another role) would mark a later job
+    applied and block its sheet."""
+    nn = job.name.split("-", 1)[0]
+    entry = next((j for j in queue if j.get("nn") == nn), None) or \
+        next((j for j in queue if j.get("posting_id") == e.get("match")), None)
+    if entry is None:
+        return True                     # a folder the queue does not know yet: the folder's own state decides
+    applied_on = entry.get("applied_on")
+    if entry.get("state") in BLOCKING and (not applied_on or not when or
+                                           applied_on <= (date.fromisoformat(when) + timedelta(days=1)).isoformat()):
+        return True
+    msg = mail.get(e.get("msg_id"))
+    if msg is None:
+        return True                     # no stored mail to read (an event written by hand): nothing to check against
+    return title_in(entry, f"{msg.get('subject', '')} {msg.get('body_excerpt', '')}")
 
 
 # ── guard: never apply to the same job twice (Ascend 2.0, M2) ────────────────

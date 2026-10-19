@@ -165,23 +165,48 @@ class Daily(unittest.TestCase):
         self.assertFalse(f["ok"])
         self.assertIn("unreachable", f["detail"])
 
+    def test_retention_only_runs_without_the_other_stages(self):
+        import _v2data as d
+        dd = self.ws / "data"
+        d.write_json_atomic(dd / "sources.json", {"boards": [], "retention_days": 180})
+        d.append_jsonl(dd / "mail.jsonl", {"msg_id": "old", "from": "a@b.example", "subject": "s",
+                                           "date": "2020-01-01T00:00:00+00:00", "body_excerpt": "x"})
+        r = subprocess.run([sys.executable, str(REPO / "tools/daily.py"), str(self.ws), "--retention-only"],
+                           capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stderr + r.stdout)
+        self.assertIn('"dropped": 1', r.stdout)
+        self.assertEqual(d.read_jsonl(dd / "mail.jsonl"), [])
+
     def test_retention_drops_old_mail_and_keeps_only_headers_of_non_job_mail(self):
         import _v2data as d
         import daily
         dd = self.ws / "data"
         d.write_json_atomic(dd / "sources.json", {"boards": [], "retention_days": 180})
-        for mid, when in (("old", "2026-01-01T00:00:00+00:00"), ("job", "2026-10-10T00:00:00+00:00"),
-                          ("news", "2026-10-11T00:00:00+00:00"), ("unsure", "2026-10-12T00:00:00+00:00")):
-            d.append_jsonl(dd / "mail.jsonl", {"msg_id": mid, "from": "a@b.example", "subject": mid, "date": when,
-                                               "body_excerpt": f"body of {mid}"})
-        for mid, cat, llm in (("job", "acknowledgement", False), ("news", "other", False), ("unsure", "other", True)):
+        for mid, when, thread in (("old", "2026-01-01T00:00:00+00:00", "t1"), ("job", "2026-09-10T00:00:00+00:00", "t2"),
+                                  ("news", "2026-09-11T00:00:00+00:00", "t3"), ("unsure", "2026-09-12T00:00:00+00:00", "t4"),
+                                  ("followup", "2026-09-13T00:00:00+00:00", "t2"), ("fresh", "2026-10-15T00:00:00+00:00", "t5")):
+            d.append_jsonl(dd / "mail.jsonl", {"msg_id": mid, "thread_id": thread, "from": "a@b.example", "subject": mid,
+                                               "date": when, "body_excerpt": f"body of {mid}"})
+        for mid, cat, llm in (("job", "acknowledgement", False), ("news", "other", False), ("unsure", "other", True),
+                              ("followup", "other", False), ("fresh", "other", False)):
             d.append_jsonl(dd / "events.jsonl", {"msg_id": mid, "category": cat, "needs_llm": llm})
+        (dd / "connector-rows.json").write_text("[]")
+        d.append_jsonl(dd / "mail.jsonl", {"msg_id": "home", "thread_id": "t9", "from": "do-not-reply@customer.homeservices.example",
+                                           "subject": "Did you hire a pro?", "date": "2026-10-16T00:00:00+00:00",
+                                           "body_excerpt": "body of home"})
+        d.append_jsonl(dd / "events.jsonl", {"msg_id": "home", "category": "other", "needs_llm": False})
         out = daily.prune(self.ws, today="2026-10-17")
-        mail = {m["msg_id"]: m for m in d.read_jsonl(dd / "mail.jsonl")}
-        self.assertEqual(sorted(mail), ["job", "news", "unsure"])
-        self.assertEqual((mail["job"]["body_excerpt"], mail["news"]["body_excerpt"], mail["unsure"]["body_excerpt"]),
-                         ("body of job", "", "body of unsure"))
-        self.assertEqual(out, {"dropped": 1, "trimmed": 1})
+        mail = {m["msg_id"]: m["body_excerpt"] for m in d.read_jsonl(dd / "mail.jsonl")}
+        # Personal mail a broad first read pulled in keeps headers only from day one.
+        self.assertEqual(mail.pop("home"), "")
+        self.assertEqual(sorted(mail), ["followup", "fresh", "job", "news", "unsure"])
+        # Trimmed: non-job mail older than two weeks. Kept: a follow-up in a job thread, mail still fresh enough
+        # for a model pass or a second look, and mail waiting for a model.
+        self.assertEqual(mail, {"job": "body of job", "news": "", "unsure": "body of unsure",
+                                "followup": "body of followup", "fresh": "body of fresh"})
+        self.assertEqual(out["dropped"], 1)
+        self.assertEqual(out["trimmed"], 2)
+        self.assertFalse((dd / "connector-rows.json").exists())     # a staging copy left behind is removed
 
 
 class Registry(unittest.TestCase):
@@ -210,6 +235,34 @@ class Permissions(unittest.TestCase):
             self.assertIn(f"mcp__claude_ai_Gmail__{t}", perms["deny"])
         for t in self.DRIVE_WRITES:
             self.assertIn(f"mcp__claude_ai_Google_Drive__{t}", perms["deny"])
+
+    def test_web_fetch_asks_and_nothing_can_click_for_the_user(self):
+        # Rerun 1 council: mail, postings and an any-domain WebFetch shared one session; approval and sends
+        # were guarded only by the CLI. The user chose: WebFetch asks, Chrome form tools and direct edits of
+        # the queue and logs are denied.
+        perms = json.loads((REPO / ".claude/settings.json").read_text())["permissions"]
+        self.assertNotIn("WebFetch", perms["allow"])
+        self.assertIn("WebFetch", perms.get("ask", []))
+        # browser_batch can run a denied tool inside a batch; upload_image fills a file input; no prompt uses either.
+        for t in ("form_input", "file_upload", "javascript_tool", "browser_batch", "upload_image", "shortcuts_execute"):
+            self.assertIn(f"mcp__claude-in-chrome__{t}", perms["deny"])
+        for f in ("queue.json", "apply-log.jsonl", "events.jsonl", "ingested.jsonl"):
+            for tool in ("Edit", "Write"):
+                self.assertIn(f"{tool}(workspace/*/data/{f})", perms["deny"])
+                self.assertIn(f"{tool}(**/workspace/*/data/{f})", perms["deny"])     # whatever the launch folder
+
+    def test_no_text_claims_more_than_the_settings_hold(self):
+        for f in ("README.md", "prompts/29-run-v2.md", "tools/run.py", "CLAUDE.md"):
+            text = (REPO / f).read_text()
+            self.assertNotIn("never your sent mail", text, f)
+            self.assertNotIn("never for the user's sent mail", text, f)
+            self.assertNotIn("denies Claude in Chrome's form filling, file upload and page scripting,", text, f)
+
+    def test_claude_md_permissions_match_settings(self):
+        text = (REPO / "CLAUDE.md").read_text()
+        self.assertNotIn("domain-allowlist", text)       # a local allow cannot narrow the project's rules
+        self.assertNotIn("a few pinned forms", text)
+        self.assertIn('"ask"', text)
 
     def test_no_agent_submit_tool_is_allowed(self):
         allow = json.loads((REPO / ".claude/settings.json").read_text())["permissions"]["allow"]
