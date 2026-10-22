@@ -650,7 +650,17 @@ def test_bash_allowlist():
                 "pandoc workspace/jane/resume.md --lua-filter=workspace/jane/x.lua",
                 "pandoc workspace/jane/resume.md --filter ./evil",
                 "pandoc workspace/jane/resume.md -L workspace/jane/x.lua",
-                "pandoc /etc/passwd -o workspace/jane/out.docx"]:
+                "pandoc /etc/passwd -o workspace/jane/out.docx",
+                # defaults files and -F load filters too (2026-10-22 council, S2)
+                "pandoc workspace/jane/resume.md -d workspace/jane/defaults.yaml -o workspace/jane/r.docx",
+                "pandoc workspace/jane/resume.md --defaults=workspace/jane/d.yaml",
+                "pandoc workspace/jane/resume.md --data-dir=workspace/jane",
+                "pandoc workspace/jane/resume.md -F ./evil",
+                "pandoc -d workspace/jane/d.yaml workspace/jane/resume.md",
+                # the apply log, queue and settings files are not removable from the shell (S5)
+                "rm -f workspace/jane/data/apply-log.jsonl",
+                "rm -f workspace/jane/data/auto.json",
+                "rm -f workspace/jane/data/queue.json"]:
         check(f"blocked (bypass): {cmd}", not permitted(cmd))
 
 # ── 4f. Honesty gates on the committed sample (P1) ───────────────────────────

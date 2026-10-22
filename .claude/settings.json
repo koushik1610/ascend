@@ -149,7 +149,18 @@
       "Edit(workspace/*/data/answer-bank.json)",
       "Write(workspace/*/data/answer-bank.json)",
       "Edit(**/workspace/*/data/answer-bank.json)",
-      "Write(**/workspace/*/data/answer-bank.json)"
+      "Write(**/workspace/*/data/answer-bank.json)",
+      "Bash(pandoc * -d*)",
+      "Bash(pandoc * --d*)",
+      "Bash(pandoc -d*)",
+      "Bash(pandoc --d*)",
+      "Bash(pandoc * -F*)",
+      "Bash(pandoc -F*)",
+      "Bash(rm * workspace/*/data/*)",
+      "Bash(rm *workspace/*/data/*)",
+      "Read(~/.config/ascend/**)",
+      "Edit(~/.config/ascend/**)",
+      "Write(~/.config/ascend/**)"
     ],
     "ask": [
       "WebFetch"

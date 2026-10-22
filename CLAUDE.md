@@ -85,13 +85,15 @@ own prompts/code), plus `industryresearch/**` for Phase 26's anonymized, shared 
 Claude's own `Edit`/`Write` are denied on each workspace's `data/queue.json`, `apply-log.jsonl`,
 `events.jsonl`, `ingested.jsonl`, `auto.json`, `apply-answers.json` and `answer-bank.json`: approving a job,
 recording a send, turning automatic apply on and the answers sent on the user's behalf are the user's own. The Bash boundary is **allow-list-only**: the repo's own tools (`python3 ui/server.py…` and each
-`python3 tools/<name>.py…` the pipeline calls), `mkdir/rm -f` under `workspace/`, `git check-ignore` and
-`pandoc`; anything else is refused, so an injected page can't write a script under `workspace/` and run
+`python3 tools/<name>.py…` the pipeline calls), `mkdir/rm -f` under `workspace/` (never inside a workspace's
+`data/`, which holds the queue, the apply log and automatic-apply settings), `git check-ignore` and
+`pandoc` (without its filter, `-F`, `-d`/`--defaults` and `--data-dir` options, each of which can run code);
+anything else is refused, so an injected page can't write a script under `workspace/` and run
 it. A **hardened deny-list** backs that up for interactive use: `sudo`,
 network/exfil tools (`curl`/`wget`/`nc`/`ssh`/`scp`), shell-bypass forms (`bash -c`/`sh -c`/`env`/`xargs`/
 `find -exec`/`eval`/`exec`), RCE-capable interpreters (`node`/`deno`/`bun`/`ruby`/`perl`/`php`/`osascript`/
 `python3 -c`), package managers (`npm`/`npx`/`pip`), `rm -rf /`, high-value secrets (`.env`, `~/.ssh`,
-`~/.aws`, `~/.gnupg`, `~/.config/gh`, Keychains, `.netrc`/`.npmrc`/`.git-credentials`/`*.pem`/private
+`~/.aws`, `~/.gnupg`, `~/.config/gh`, `~/.config/ascend` (automatic apply's signing key), Keychains, `.netrc`/`.npmrc`/`.git-credentials`/`*.pem`/private
 keys), the claude.ai Gmail and Drive write tools, and Claude in Chrome's image-upload, scripting, shortcut and batch tools. Its form-input and
 file-upload tools are allowed so Claude can fill a stopped application with the user, who says yes in chat
 before any submit (`prompts/28-apply.md`); its per-action prompts stay on. `Read` stays broad on purpose so the pipeline can read a résumé/LinkedIn export wherever
