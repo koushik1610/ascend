@@ -25,6 +25,13 @@ import usage  # noqa: E402
 ENGINES = ("A", "B", "C")
 MODES = ("assisted", "automatic")
 LATER_MODES = ("agent",)
+APPLY_PERMISSION = {
+    "assisted": "Applications: you open each application and press Submit yourself. Automatic apply stays off.",
+    "automatic": ("Applications: once you turn automatic apply on in the hub (typing \"apply for me\"), the runner on "
+                  "this Mac submits Greenhouse, Ashby and Lever applications in your name, from your own answer files, "
+                  "up to your daily cap, without asking each time. Some job boards' terms forbid automated "
+                  "applications. Until you turn it on, nothing is submitted."),
+}
 MODE_NOTE = {"assisted": "You press Submit on every application.",
              "automatic": ("Submitting costs no tokens: the runner does it on this Mac with Playwright, only after you "
                            "turn it on in the hub's Queue tab by typing \"apply for me\". Jobs it cannot finish wait in "
@@ -45,11 +52,11 @@ PERMISSIONS = {
 }
 PERMISSIONS_ALL = [
     "Job boards: public board APIs, read only, no login.",
-    "Applications: Ascend never submits anything. You open each application and press Submit yourself. This repo "
-    "denies Claude in Chrome's form-input, file-upload, image-upload, scripting, shortcut and batch tools. Claude in "
-    "Chrome can still click and type, so keep its per-action prompts on. Claude's file tools cannot edit your queue "
-    "or logs: approving a job and recording a send through Ascend are your clicks in the hub, each with a confirm "
-    "(pipeline.py log, for a job you applied to elsewhere, also marks it applied).",
+    "Claude in Chrome: this repo denies its scripting, shortcut, image-upload and batch tools. It can fill forms and "
+    "attach files, only to finish a stopped application with you, and submits only after your yes in chat for that "
+    "batch (prompts/28-apply.md). Keep its per-action prompts on. Claude's file tools cannot edit your queue, logs, "
+    "auto.json or answer files: approving a job, recording a send and turning on automatic apply are your clicks in "
+    "the hub, each with a confirm (pipeline.py log, for a job you applied to elsewhere, also marks it applied).",
     "LinkedIn search (only if you ask for it): Claude in Chrome reads job result cards in your own logged-in "
     "browser. Automated browsing can break LinkedIn's terms of use and put the account at risk.",
 ]
@@ -129,7 +136,8 @@ def plan(ws, engine, mode="assisted", jobs=usage.DEFAULT_JOBS):
         notes.append("The first Gmail read covers 30 days, a one-time cost on top of the daily estimate (about 90,000 "
                       "tokens for 90 threads on the first from-scratch run). Record it with --backfill.")
     return {"ok": ok, "problems": problems, "estimate": est, "warning": warning,
-            "permissions": PERMISSIONS[engine] + PERMISSIONS_ALL, "prefill": prefill, "notes": notes}
+            "permissions": PERMISSIONS[engine] + [APPLY_PERMISSION[mode]] + PERMISSIONS_ALL, "prefill": prefill,
+            "notes": notes}
 
 
 def _setup_notes(ws):

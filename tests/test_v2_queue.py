@@ -265,6 +265,19 @@ class Plan(unittest.TestCase):
         self.assertFalse(out["ok"])
         self.assertIn("not in this release", " ".join(out["problems"]))
 
+    def test_permissions_say_who_submits_in_each_mode(self):
+        import json as j
+        import run
+        deny = j.loads((REPO / ".claude/settings.json").read_text())["permissions"]["deny"]
+        for mode in ("assisted", "automatic"):
+            text = " ".join(run.plan(self.ws, "B", mode)["permissions"])
+            self.assertNotIn("never submits anything", text, mode)
+            for tool in ("form-input", "file-upload"):         # allowed since 2026-10-22: never claim a deny
+                if f"mcp__claude-in-chrome__{tool.replace('-', '_')}" not in deny:
+                    self.assertNotIn(f"denies Claude in Chrome's {tool}", text, mode)
+        self.assertIn("apply for me", " ".join(run.plan(self.ws, "B", "automatic")["permissions"]))
+        self.assertIn("press Submit yourself", " ".join(run.plan(self.ws, "B", "assisted")["permissions"]))
+
     def test_automatic_plan_says_the_hub_turns_it_on(self):
         import run
         out = run.plan(self.ws, "B", "automatic")
@@ -298,13 +311,13 @@ class Plan(unittest.TestCase):
         import run
         perms = " ".join(run.plan(self.ws, "C")["permissions"])
         self.assertIn("ask you before every web fetch", perms)
-        self.assertIn("form-input", perms)
+        self.assertIn("scripting", perms)               # the Chrome tools still denied are named
 
     def test_every_engine_states_the_permissions_it_uses(self):
         import run
         for engine in ("A", "B", "C"):
             perms = " ".join(run.plan(self.ws, engine)["permissions"])
-            self.assertIn("never submits", perms)
+            self.assertIn("press Submit yourself", perms)    # assisted, the default mode
             self.assertIn("LinkedIn", perms)
         self.assertIn("gmail.readonly", " ".join(run.plan(self.ws, "A")["permissions"]))
         for engine in ("B", "C"):
