@@ -237,6 +237,11 @@ def _health(ws, data, events):
         out["boards"] = (f"{len(bad)} of {bh.get('boards')} job boards need a look on {bh.get('checked')}: "
                          f"{', '.join(bad)}. Find the right board with python3 tools/finder.py probe \"Company\", "
                          f"then fix workspace/{Path(ws).name}/data/sources.json.")
+    slow = bh.get("throttled") or []
+    if slow:
+        note = (f"{', '.join(slow)} asked Ascend to slow down on {bh.get('checked')}. "
+                "It is tried again on the next run, and nothing on it was closed.")
+        out["boards"] = f"{out['boards']} {note}" if out["boards"] else note
     # Waiting means not yet settled by ingest: matched there on a second look, or given up as an application
     # made outside Ascend, it no longer counts.
     done = {r.get("key") for r in d.read_jsonl(data / "ingested.jsonl")}

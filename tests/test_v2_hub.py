@@ -266,6 +266,17 @@ class Compute(unittest.TestCase):
         self.assertIn("finder.py probe", h["boards"])
         self.assertIn("1 email", h["mail"])
 
+    def test_throttled_board_is_a_note_not_a_failure(self):
+        import _v2data as d
+        import hub
+        ws = seed(self.td.name)
+        d.write_json_atomic(ws / "data" / "board-health.json", {"checked": TODAY, "boards": 3, "failed": [],
+                                                                "empty": [], "throttled": ["eightfold:netflix"]})
+        h = hub.compute(ws, today=TODAY)["health"]
+        self.assertIn("eightfold:netflix", h["boards"])
+        self.assertIn("slow down", h["boards"])
+        self.assertNotIn("need a look", h["boards"])
+
     def test_matched_leaves_out_filtered_recruiter_mail(self):
         import _v2data as d
         import hub

@@ -127,7 +127,8 @@ def run(ws):
         if out["failed"] and len(out["failed"]) == out["boards"]:
             raise RuntimeError(f"every board was unreachable ({', '.join(out['failed'])}): check the slugs in "
                                "data/sources.json")
-        return f"{out['new']} new, {out['closed']} closed" + (f", unreachable: {', '.join(out['failed'])}" if out["failed"] else "")
+        return (f"{out['new']} new, {out['closed']} closed" + (f", unreachable: {', '.join(out['failed'])}" if out["failed"] else "")
+                + (f", throttled: {', '.join(out['throttled'])}" if out.get("throttled") else ""))
 
     def pre():
         import prefilter

@@ -2,7 +2,11 @@
   "_comment": [
     "Copy to workspace/<name>/data/sources.json. prompts/29-run-v2.md Step 0 builds it with you from your intake",
     "and master résumé §4. Every value below is a placeholder: replace all of them.",
-    "boards: the companies to poll every day. ats is greenhouse, ashby, lever, workable or smartrecruiters.",
+    "boards: the companies to poll every day. ats is greenhouse, ashby, lever, workable, smartrecruiters,",
+    "workday or eightfold. Workday needs pod and site from the careers link <slug>.<pod>.myworkdayjobs.com/<site>.",
+    "Eightfold needs host and domain (Netflix: explore.jobs.netflix.net, netflix.com). An optional search sets",
+    "the server-side search for those two (default: your first title_include pattern).",
+    "python3 tools/finder.py probe --careers https://company.com/careers prints the entry for you.",
     "Finding a slug: open the company's careers page and follow any job link. The slug is the name after the",
     "ATS host: boards.greenhouse.io/<slug>/jobs/123, jobs.ashbyhq.com/<slug>/..., jobs.lever.co/<slug>/...,",
     "apply.workable.com/<slug>/..., jobs.smartrecruiters.com/<slug>/... A wrong slug shows up as 'unreachable'.",
@@ -12,7 +16,9 @@
   "boards": [
     {"ats": "greenhouse", "slug": "example-company-one", "company": "Example Company One"},
     {"ats": "lever", "slug": "example-company-two", "company": "Example Company Two"},
-    {"ats": "ashby", "slug": "example-company-three", "company": "Example Company Three"}
+    {"ats": "ashby", "slug": "example-company-three", "company": "Example Company Three"},
+    {"ats": "workday", "slug": "examplefour", "pod": "wd5", "site": "Example_Four_External", "company": "Example Company Four"},
+    {"ats": "eightfold", "slug": "examplefive", "host": "jobs.examplefive.com", "domain": "examplefive.com", "company": "Example Company Five"}
   ],
   "filters": {
     "title_include": ["\\byour target title words\\b"],
