@@ -5,7 +5,8 @@ inside fill() so the rules below stay importable (and tested) without it.
 
   fill(url, answers, resume_pdf, submit, shots_dir) -> {"result", "reason", "unfilled", "shots"}
 
-result is "submitted" (the confirmation was seen), "filled" (a dry run: nothing clicked), "stopped" (nothing
+result is "submitted" (the confirmation was seen), "filled" (a dry run: nothing clicked and the résumé not
+attached, since attaching can upload it), "stopped" (nothing
 was sent: a visible CAPTCHA, a sign-in page, a page off the allowed hosts, a required question the user's
 answers do not cover, or an error shown on submit) or "unclear" (submit was clicked and no confirmation
 appeared).
@@ -238,7 +239,7 @@ def _shot(page, shots, name, out):
 
 
 def _fill(page, url, answers, resume, submit, shots, hosts, timeout):
-    out = {"result": "stopped", "reason": "", "unfilled": [], "shots": []}
+    out = {"result": "stopped", "reason": "", "unfilled": [], "shots": [], "uploaded": False}
     page.goto(url, wait_until="domcontentloaded", timeout=NAV_TIMEOUT_MS)
     page.wait_for_timeout(SETTLE_MS)
     host = urlparse(page.url).hostname or ""
@@ -257,7 +258,9 @@ def _fill(page, url, answers, resume, submit, shots, hosts, timeout):
         label = _label(q.get("label")) or q.get("name") or "an unlabeled field"
         if q["kind"] == "file":
             if re.search(r"resume|\bcv\b", f'{q.get("label")} {q.get("name")} {q.get("elid")}', re.I):
-                page.set_input_files(f'[data-ascend="{q["id"]}"]', resume)
+                if submit:          # attaching can upload the file before any submit: a dry run sends nothing
+                    page.set_input_files(f'[data-ascend="{q["id"]}"]', resume)
+                    out["uploaded"] = True
             elif q["required"]:
                 out["unfilled"].append(label)
             continue

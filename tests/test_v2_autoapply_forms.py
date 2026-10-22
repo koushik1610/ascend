@@ -101,6 +101,13 @@ class Forms(unittest.TestCase):
         self.assertEqual(out["result"], "filled", out)
         self.assertEqual(self.fake.records, [])
 
+    def test_dry_run_never_uploads_the_resume(self):
+        # Attaching a file can send it to the ATS before any submit (Ashby parses uploads for autofill).
+        out = self.fill("ashby.html", submit=False)
+        self.assertEqual(out["result"], "filled", out)
+        self.assertFalse(out["uploaded"])
+        self.assertTrue(self.fill("ashby.html")["uploaded"])
+
     def test_visible_captcha_stops_before_anything_is_typed(self):
         out = self.fill("greenhouse.html?variant=captcha")
         self.assertEqual(out["result"], "stopped")

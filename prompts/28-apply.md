@@ -30,7 +30,9 @@ when the confirmation page appeared; everything else goes to **Needs you** with 
 What Claude does for automatic apply in a session:
 - Score and tailor (Phases 27 and 5): a job without a tailored résumé waits.
 - `python3 tools/autoapply.py run workspace/<name> --dry-run` when the user asks to see what would be
-  filled. It submits nothing and changes no state; the screenshots land in each job's `apply/` folder.
+  filled. It types the user's answers into the real page, never attaches the résumé or presses submit,
+  and changes no state; the screenshots land in each job's `apply/` folder. Run it only when the user asks:
+  their answers do appear on a third-party page.
 - Draft answer-bank entries only into `data/answer-bank.proposed.json`, from the user's own words in the
   session, for the user to copy into `answer-bank.json` themselves. Never write an essay answer the user
   did not give, and never draft acceptance of a legal agreement (arbitration, certification, privacy).
