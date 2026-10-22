@@ -193,6 +193,10 @@ def _name_rx(name):
     return re.compile("|".join(pats), re.I) if pats else None
 
 
+# Job-board mail names one role in its subject: "Senior Manager - Reliability Engineering @ Netflix".
+SUBJECT_ROLE = re.compile(r"^\s*(.+?)\s+@\s+\S")
+
+
 def _title_in(job, text):
     from pipeline import normalize_title
     t = normalize_title(job.get("title"))
@@ -207,7 +211,8 @@ def match_detail(msg, jobs):
     (x@acme-robotics.example), then the company name in the subject, then in the body. When two
     different companies tie at the strongest signal found ("thanks for applying to Acme, we use Scale AI
     tooling"), the message matches nothing. When the user has two roles at one company, the mail must
-    name the role's title, or it matches nothing: guessing would move the wrong application.
+    name the role's title, or it matches nothing: guessing would move the wrong application. A subject that
+    names a role ("Title @ Company") matches only that role.
     """
     local, _, domain = sender(msg).partition("@")
     first_label = _alnum(domain.split(".")[0]) if domain and not is_ats(msg) else ""
@@ -241,6 +246,9 @@ def match_detail(msg, jobs):
             return None, None
         best = named[0]
     how, _, job = next((h for h in best if h[2].get("nn")), best[0])
+    role = SUBJECT_ROLE.match(msg.get("subject", "") or "")
+    if role and not _title_in(job, role.group(1)):     # it names a different role at this company
+        return None, None
     return job.get("nn") or job.get("posting_id"), how
 
 
