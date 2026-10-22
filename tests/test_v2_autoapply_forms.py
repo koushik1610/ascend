@@ -6,6 +6,7 @@ test here is skipped and says why; the runner's own logic is covered by tests/te
 """
 
 import json
+import os
 import sys
 import tempfile
 import threading
@@ -22,6 +23,8 @@ try:
     HAVE_PW = True
 except ImportError:
     HAVE_PW = False
+    if os.environ.get("ASCEND_REQUIRE_PLAYWRIGHT"):        # CI: a skip here would hide a broken filler
+        raise
 
 ANSWERS = {"name": "Jordan Rivera", "email": "jordan@example.com", "phone": "555-0100",
            "linkedin": "https://www.linkedin.com/in/example", "location": "Remote, US",

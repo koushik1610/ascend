@@ -119,6 +119,8 @@ class Daily(unittest.TestCase):
         self.assertFalse(stages["finder"]["ok"])           # its only board is unreachable: say so
         self.assertIn("unreachable", stages["finder"]["detail"])
         self.assertTrue(stages["hub"]["ok"])               # and every later stage still runs
+        self.assertTrue(stages["autoapply"]["ok"])         # off by default: a quiet skip, never an error
+        self.assertIn("off", stages["autoapply"]["detail"])
         self.assertTrue((self.ws / "hub.html").is_file())
         self.assertEqual(len(d.read_jsonl(self.ws / "data" / "run-log.jsonl")), 1)
 

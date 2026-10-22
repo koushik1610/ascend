@@ -5,7 +5,8 @@
   python3 tools/daily.py WS --retention-only      # mail retention alone, for runs without the schedule
 
 Runs every stage that needs no model, in order, each isolated so one failure never stops the rest:
-Gmail sync (engine A), classify, ingest, finder, prefilter, alerts, mail retention, hub build. A stage
+Gmail sync (engine A), classify, ingest, finder, prefilter, alerts, automatic apply (only when turned on
+in the hub), mail retention, hub build. A stage
 that cannot do its job fails with the fix in its message (Gmail signed out, no boards to poll), so the
 day's log never reads "ok" over a sync that did nothing. Stages that
 need Claude (reading Gmail through the connector for engines B and C, scoring, tailoring, agent apply)
@@ -138,12 +139,22 @@ def run(ws):
         import alerts
         return json.dumps(alerts.run(ws))
 
+    def autoapply_():
+        import autoapply
+        out = autoapply.run(ws)
+        if out["error"]:
+            raise RuntimeError(out["error"])
+        if out["skipped"]:
+            return f"skipped: {out['skipped']}"
+        return (f"{out['submitted']} submitted, {out['unclear']} unclear, {out['stopped']} stopped"
+                + (f", {len(out['waiting'])} waiting for a résumé" if out["waiting"] else ""))
+
     def hub_():
         import hub
         return str(hub.build(ws))
 
     for name, fn in [("gmail", gmail), ("classify", classify_), ("ingest", ingest), ("finder", find),
-                     ("prefilter", pre), ("alerts", alerts_), ("retention", lambda: json.dumps(prune(ws))),
+                     ("prefilter", pre), ("alerts", alerts_), ("autoapply", autoapply_), ("retention", lambda: json.dumps(prune(ws))),
                      ("hub", hub_)]:
         stage(name, fn)
     out = {"at": datetime.now().isoformat(timespec="seconds"), "engine": engine, "stages": stages}

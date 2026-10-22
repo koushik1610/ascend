@@ -354,6 +354,23 @@ class Build(unittest.TestCase):
         self.assertIn('confirm(', page)
         self.assertRegex(page, r'CONFIRM\s*=\s*\{[^}]*approved[^}]*applied')
 
+    def test_auto_apply_panel(self):
+        import _v2data as d
+        import hub
+        d.update_json(self.ws / "data" / "queue.json", {"jobs": []}, lambda q: q["jobs"].append(
+            {"posting_id": "greenhouse:z:9", "company": "Zed", "title": "Staff Security Engineer", "state": "needs-you",
+             "fit": 80, "stop_reason": "a CAPTCHA is showing"}))
+        data = hub.compute(self.ws, today=TODAY)
+        self.assertFalse(data["auto"]["enabled"])
+        self.assertIn("playwright", data["auto"])
+        row = next(r for r in data["queue"] if r["posting_id"] == "greenhouse:z:9")
+        self.assertEqual(row["stop_reason"], "a CAPTCHA is showing")
+        page = (REPO / "templates" / "hub.template.html").read_text()
+        self.assertIn('id="auto"', page)
+        self.assertIn("apply for me", page)
+        self.assertIn('"/api/auto"', page)
+        self.assertIn("submitting", page)        # applying is never shown as sent
+
     def test_template_declares_no_browser_global_names(self):
         # `const top = ...` at script top level throws "Identifier 'top' has already been declared"
         # in a browser (window.top), which silently blanks the whole page. Caught on the real hub.

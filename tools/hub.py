@@ -202,7 +202,8 @@ def compute(ws, today=None):
                      "title": q.get("title"), "fit": q.get("fit"), "why": q.get("why"), "gaps": q.get("gaps") or [],
                      "status": _row_status(jobs[slug]["status"] if slug else None, q.get("state")),
                      "url": q.get("url") or q.get("posting_id"), "source": q.get("source"),
-                     "reasons": q.get("reasons") or []})
+                     "reasons": q.get("reasons") or [], "stop_reason": q.get("stop_reason"),
+                     "approved_by": q.get("approved_by")})
     # Open decisions first, best fit first: a job not yet applied to (matched, needs-you, or a v1 folder
     # still `queued`) is waiting on the user. Everything else after, also by fit.
     rows.sort(key=lambda r: (r["status"] not in OPEN_DECISIONS, -(r["fit"] or 0)))
@@ -221,7 +222,9 @@ def compute(ws, today=None):
     if defaults:
         import usage
         run = dict(defaults, estimate=usage.estimate(ws, defaults["engine"], defaults["mode"]))
-    return {"as_of": today.isoformat(), "run": run, "gmail": _gmail_status(ws, data, defaults, today),
+    import autoapply
+    auto = autoapply.status(ws, today)
+    return {"as_of": today.isoformat(), "run": run, "gmail": _gmail_status(ws, data, defaults, today), "auto": auto,
             "health": _health(ws, data, events),
             "callback_gate": callback_gate, "funnel": funnel, "week": week, "rates": rates, "warning": warning,
             "inbox": inbox, "pinned": pinned, "queue": rows, "tokens": tokens}
