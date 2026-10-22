@@ -13,6 +13,8 @@
   "start_date": "Two weeks after an offer",
   "current_company": "Your current employer",
   "country": "United States",
+  "city": "Your city",
+  "postal_code": "Your postal code",
   "how_heard": "Company website",
   "relocation": "No",
   "gender": "Decline To Self Identify",

@@ -38,6 +38,8 @@ RULES = [
     (r"linkedin", "linkedin"),
     (r"github", "github"),
     (r"^(personal |other )?website|portfolio", "website"),
+    (r"\bcity\b", "city"),
+    (r"postal code|zip ?code|\bzip\b", "postal_code"),
     (r"^(current )?location\b|where are you (currently )?(located|based)", "location"),
     (r"current (company|employer)", "current_company"),
     (r"salary|compensation expectation|expected (compensation|pay)|desired pay", "salary_expectation"),

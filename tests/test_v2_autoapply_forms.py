@@ -190,6 +190,11 @@ class Rules(unittest.TestCase):
                  "Why Anthropic?*": None, "Agreement to Arbitrate*": None, "Have you ever interviewed at Acme before?": None}
         for label, want in cases.items():
             self.assertEqual(f.answer_for(label, ANSWERS), want, label)
+        # Toast's live form (run 4): a city field and a postal code, answered from the user's own file.
+        a = dict(ANSWERS, city="Salt Lake City", postal_code="84101")
+        self.assertEqual(f.answer_for("Location (City)*", a), "Salt Lake City")
+        self.assertEqual(f.answer_for("What's your postal code?*", a), "84101")
+        self.assertIsNone(f.answer_for("What's your postal code?*", ANSWERS))
 
     def test_bank_entry_wins_and_must_be_the_users_wording(self):
         import autoapply_forms as f
