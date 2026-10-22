@@ -466,9 +466,17 @@ TITLE_NOISE = {"remote", "hybrid", "onsite", "us", "usa", "the"}
 LOG_HEADING = re.compile(r"^#\s*Application Log:\s*(.+?),\s*(.+?)\s*$", re.M)
 
 
+# A numbered level is how a company writes seniority, not part of the role: Netflix's board says
+# "Security Engineer 5", the user's folder "Security Engineer (L5)".
+LEVEL_MARK = re.compile(r"\b(?:l|ic|e|level\s*)[1-9]\b")
+LEVEL_AFTER = re.compile(r"\b(engineer|developer|architect|scientist)\s+[1-9](?![0-9])\b")
+
+
 def normalize_title(t):
-    """'Sr. Staff Security Eng (Remote)' and 'Senior Staff Security Engineer' compare equal."""
+    """'Sr. Staff Security Eng (Remote)' and 'Senior Staff Security Engineer' compare equal, and so do
+    'Security Engineer 5' and 'Security Engineer (L5)'."""
     t = re.sub(r"\(.*?\)", " ", (t or "").lower())
+    t = LEVEL_AFTER.sub(r"\1", LEVEL_MARK.sub(" ", t))
     words = [TITLE_SYNONYMS.get(w, w) for w in re.findall(r"[a-z0-9]+", t)]
     return " ".join(w for w in words if w not in TITLE_NOISE)
 

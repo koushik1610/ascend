@@ -291,6 +291,16 @@ class Evaluate(unittest.TestCase):
             self.assertTrue(any(reason_part in x for x in r["reasons"]), r["reasons"])
         return r
 
+    def test_numbered_levels_five_and_up_count_as_senior(self):
+        # Run 4 (2026-10-22): Netflix titles its levels "Security Engineer 5" and "(L6)", so the user's seniority
+        # filter rejected every Netflix role, the one they were interviewing for among them.
+        for title in ("Security Engineer 5 - IAM", "Security Software Engineer (L6), Platform Security",
+                      "Security Engineer L5", "Security Engineer, Level 6", "IC6 Security Engineer"):
+            self.check(True, title=title)
+        for title in ("Security Engineer 3", "Security Engineer (L4)", "Security Engineer 2 - AU",
+                      "Security Engineer - Windows 11 hardening"):
+            self.check(False, "seniority", title=title)
+
     def test_passes_and_scores_overlap(self):
         r = self.check(True)
         self.assertEqual(r["keyword_overlap"], 0.75)
