@@ -449,7 +449,7 @@ class Handler(BaseHTTPRequestHandler):
         # The hub's Approve, Reject, Apply and "I submitted it" come from the page in a browser, which always
         # sends Origin. This turns away a bare script; it is not a wall against local processes, which can set
         # Origin. Claude's own shell is held back by the Bash allow-list and denies instead.
-        if urlparse(self.path).path in ("/api/queue", "/api/apply") and not self.headers.get("Origin"):
+        if urlparse(self.path).path in ("/api/queue", "/api/apply", "/api/auto") and not self.headers.get("Origin"):
             return self._send(403, {"error": "bad origin"})
         u = urlparse(self.path)
         if u.path.startswith("/api/") and not self._token_ok():
@@ -487,6 +487,29 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(200, apply.sheet(ws, str(body.get("posting_id", ""))))
             except apply.Refused as e:
                 return self._send(409, {"error": str(e)})
+        if u.path == "/api/auto":     # Ascend 2.0: automatic apply on/off, pause, limits (the hub's switch)
+            body = self._body()
+            ws = WORKSPACE / slugify(body.get("slug", ""))
+            if not (ws / "data").is_dir():
+                return self._send(404, {"error": "no such workspace"})
+            import autoapply
+            action = str(body.get("action", ""))
+            try:
+                if action == "enable":          # the user typed the phrase into the hub
+                    autoapply.enable(ws, body.get("phrase"))
+                elif action == "disable":
+                    autoapply.disable(ws)
+                elif action == "pause":
+                    autoapply.pause(ws, "paused by you in the hub")
+                elif action == "resume":
+                    autoapply.resume(ws)
+                elif action == "settings":
+                    autoapply.settings(ws, body.get("daily_cap"), body.get("fit_threshold"))
+                elif action != "status":
+                    return self._send(400, {"error": "unknown action"})
+            except ValueError as e:
+                return self._send(400, {"error": str(e)})
+            return self._send(200, autoapply.status(ws))
         if u.path == "/api/shutdown":
             threading.Thread(target=self.server.shutdown, daemon=True).start()
             return self._send(200, {"ok": True})

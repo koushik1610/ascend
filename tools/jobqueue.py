@@ -31,6 +31,7 @@ from finder import ROLE_START, role_text  # noqa: E402,F401
 STATES = ["matched", "approved", "rejected", "needs-you", "applying", "applied", "applied?", "inbound-filtered"]
 SENT = {"applying", "applied", "applied?"}       # once sent, a job only moves on to applied
 HUB_ONLY = {"approved", "applied"}               # the user's own click in the hub, never a CLI call
+RUNNER = {"applying", "applied", "needs-you"}     # what tools/autoapply.py may set, after its own gates
 TEXT_BUDGET = 1500
 WHY_MAX, GAPS_MAX, GAP_MAX = 400, 8, 200      # model-written text: a sentence, a short list
 REQ_START = re.compile(r"(requirements|qualifications|what you('|’)ll bring|what you bring|what we('|’)re looking for|"
@@ -242,12 +243,13 @@ def check_scores(ws, rows):
             raise ValueError(f"{r['posting_id']}: gaps must be a list")
 
 
-def set_state(ws, posting_id, state, via_hub=False, **fields):
+def set_state(ws, posting_id, state, via_hub=False, via_runner=False, **fields):
     """The one way a queue entry changes state. Extra fields (stop_reason) are written in the same locked update.
-    Approved and applied are the user's click: only the hub's server passes via_hub."""
+    Approved and applied are the user's click: only the hub's server passes via_hub. The automatic runner
+    passes via_runner, only after its gates, and only for applying, applied and needs-you."""
     if state not in STATES:
         raise ValueError(f"unknown state {state!r}; one of {', '.join(STATES)}")
-    if (state in HUB_ONLY or state in SENT) and not via_hub:
+    if (state in HUB_ONLY or state in SENT) and not (via_hub or (via_runner and state in RUNNER)):
         raise ValueError(f"{state} is set by you in the hub's Queue tab, not from the command line")
     dd = d.data_dir(ws)
 
@@ -255,7 +257,8 @@ def set_state(ws, posting_id, state, via_hub=False, **fields):
         entry = next((j for j in q.get("jobs", []) if j.get("posting_id") == posting_id), None)
         if entry is None:
             raise KeyError(posting_id)
-        if entry.get("state") in SENT and state != "applied":
+        handback = via_runner and entry.get("state") == "applying" and state == "needs-you"
+        if entry.get("state") in SENT and state != "applied" and not handback:
             raise ValueError(f"{entry.get('company')} is {entry.get('state')}: a sent application cannot move back to {state}")
         entry.update(fields, state=state)
         if state == "applied" and not entry.get("applied_on"):

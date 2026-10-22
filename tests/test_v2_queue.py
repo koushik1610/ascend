@@ -341,8 +341,10 @@ class Server(unittest.TestCase):
         (cls.ws / "data").mkdir(parents=True)
         seed_candidates(cls.ws)
         cls.port = free_port()
+        cls.keydir = tempfile.TemporaryDirectory()
+        cls.env = dict(os.environ, ASCEND_AUTO_KEY=str(Path(cls.keydir.name) / "auto.key"))
         cls.proc = subprocess.Popen([sys.executable, str(REPO / "ui/server.py"), "--port", str(cls.port), "--no-browser"],
-                                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=cls.env)
         wait_for(cls.port)
         _, body = cls.req("GET", "/")
         cls.token = re.search(r'const TOKEN = "([^"]+)"', body).group(1)
@@ -353,6 +355,7 @@ class Server(unittest.TestCase):
         cls.proc.wait(timeout=5)
         shutil.rmtree(cls.ws, ignore_errors=True)
         (REPO / "ui/.port").unlink(missing_ok=True)
+        cls.keydir.cleanup()
 
     @classmethod
     def req(cls, method, path, body=None, token=None):
@@ -368,6 +371,33 @@ class Server(unittest.TestCase):
         out = (r.status, r.read().decode("utf-8", "replace"), dict(r.getheaders()))
         c.close()
         return out[:2] if method == "GET" and path == "/" else out
+
+    def test_auto_apply_turns_on_only_with_the_phrase(self):
+        status, body, _ = self.req("POST", "/api/auto", {"slug": self.SLUG, "action": "enable", "phrase": "yes"},
+                                   token=self.token)
+        self.assertEqual(status, 400, body)
+        self.assertIn("apply for me", json.loads(body)["error"])
+        status, body, _ = self.req("POST", "/api/auto", {"slug": self.SLUG, "action": "enable", "phrase": "apply for me"},
+                                   token=self.token)
+        self.assertEqual(status, 200, body)
+        self.assertTrue(json.loads(body)["enabled"])
+        r = subprocess.run([sys.executable, str(REPO / "tools/autoapply.py"), "status", str(self.ws)],
+                           capture_output=True, text=True, env=self.env)
+        self.assertTrue(json.loads(r.stdout)["enabled"])      # signed by the server, read by the runner
+        status, body, _ = self.req("POST", "/api/auto", {"slug": self.SLUG, "action": "settings", "daily_cap": 999},
+                                   token=self.token)
+        self.assertEqual(status, 400, body)
+        status, body, _ = self.req("POST", "/api/auto", {"slug": self.SLUG, "action": "disable"}, token=self.token)
+        self.assertFalse(json.loads(body)["enabled"])
+
+    def test_auto_apply_needs_token_and_origin(self):
+        status, _, _ = self.req("POST", "/api/auto", {"slug": self.SLUG, "action": "enable", "phrase": "apply for me"})
+        self.assertEqual(status, 403)
+        c = http.client.HTTPConnection("127.0.0.1", self.port, timeout=5)
+        c.request("POST", "/api/auto", body=json.dumps({"slug": self.SLUG, "action": "enable", "phrase": "apply for me"}),
+                  headers={"Host": f"127.0.0.1:{self.port}", "X-Ascend-Token": self.token, "Content-Type": "application/json"})
+        self.assertEqual(c.getresponse().status, 403)
+        c.close()
 
     def test_hub_route_injects_token_and_allows_self_only(self):
         status, body, headers = self.req("GET", f"/hub?slug={self.SLUG}")
