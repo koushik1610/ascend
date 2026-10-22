@@ -25,7 +25,9 @@ is on a board in the user's `sources.json`, has a tailored résumé that passes 
 and its company has had fewer than 2 applications in 30 days. The application page is rebuilt from the
 board, never taken from a stored link. Answers come only from `data/profile.json`,
 `data/apply-answers.json` and `data/answer-bank.json`, which the user writes. A job is marked applied only
-when the confirmation page appeared; everything else goes to **Needs you** with the reason.
+when the confirmation page appeared. An attempt that may have gone through is `applied?` (shown as sent?)
+until the user says in the hub whether it went; everything else goes to **Needs you** with the reason. Nothing
+is sent unattended until the user has pressed Send one now, watched it, and pressed It looked right.
 
 What Claude does for automatic apply in a session:
 - Score and tailor (Phases 27 and 5): a job without a tailored résumé waits.

@@ -198,3 +198,9 @@ chose to split the PR. These amendments override the sections above.
   engine A to C, and launchd. The scheduler uses cron, which skips a run while the Mac sleeps.
   `docs/V2-READINESS.md` keeps this list current.
 
+## 12. Amendment (2026-10-22): automatic apply
+
+The user chose to ship fully automatic apply before criterion 6's benchmark. It is specified in
+`2026-10-22-ascend-v2-auto-apply-design.md`, which overrides §11's "one apply mode" and "nothing transmits an
+application" for applications sent by the local runner (or by Claude after the user's yes per batch) to the
+job's own allowed job-board page. Agent-submit by Claude on its own stays out of the release.

@@ -1,7 +1,15 @@
 # Ascend 2.0 readiness
 
-**As of:** 2026-10-22. **Status:** beta. Built module by module on branch `ascend-v2` (spec
-`docs/superpowers/specs/2026-10-16-ascend-v2-design.md`, plan `docs/superpowers/plans/2026-10-16-ascend-v2.md`).
+**As of:** 2026-10-22. **Version:** 2.0.0-beta. Specs: `docs/superpowers/specs/2026-10-16-ascend-v2-design.md`
+and `docs/superpowers/specs/2026-10-22-ascend-v2-auto-apply-design.md` (automatic apply, Workday, Eightfold).
+Branches: `fix/v2-rerun-council` (PR #17), then `feat/v2-auto-apply` (PR #18).
+
+**What 2.0.0-beta means.** Finding, filtering, scoring, tailoring, mail tracking and the hub have run on real
+data for a week of reruns. Automatic apply is built and checked in dry runs on live forms, but has not yet
+submitted a real application. The code enforces that: nothing is sent unattended until the user has
+pressed Send one now in the hub, watched one send in a visible browser, and confirmed it looked right.
+Automatic apply leaves beta after that first supervised send and a week of daily sends without an unclear
+result.
 
 Each module was checked twice: unit tests on synthetic fixtures (no real data in the repo), and a run
 against one real user's workspace, kept in gitignored `workspace/`. Only counts from those runs are
@@ -23,7 +31,6 @@ written down anywhere.
 | From scratch, run 1 (2026-10-17) | a new workspace from the user's intake, master and 15 v1 job folders, engine C | setup checks held. Found: 30 of 127 boards wrong, no link from job folders to the queue (approve never reached a sheet, interview mail matched nothing, v1 roles scored again), hybrid jobs passing remote-only, a token estimate 18 times the measured day. Fixed in the PR that follows |
 | From scratch, run 2 (2026-10-18) | the same inputs on the fixed branch, engine C, no hand edits to tool data | no v1 role re-scored; Grow and Netflix mail matched their folders; a v1 pack reached an apply sheet through the hub; the 30-day first read cost about 92K tokens once. Found: interview mail from a hiring address filed as a cold lead, newsletters filed as assessments, old mail able to land on a job queued later. Fixed before run 3 |
 | From scratch, run 3 (2026-10-19) | the same inputs and run 2's mail replayed, engine C; a second-day read; Phase 5 from the queue on a copy | the hiring-address interview mail filed as an interview for its folder, newsletters as other, nothing pinned by mistake; the second read skipped its overlap with no duplicates; a newly approved job went through `show`, a pack, `link` and a complete apply sheet. Found: mail matched on arrival could still move a job never sent; fixed with one date-and-title rule for every event |
-
 | From scratch, run 4 (2026-10-22) | the same inputs, engine C in automatic mode, a fresh 30-day Gmail read, 110 boards including Zillow and Arctic Wolf (Workday) and Netflix (Eightfold); a pack for the one new job above the threshold; the runner in dry-run on the live queue with test persona data | 19,075 postings in 40 seconds; Netflix's interview mail and Grow's matched their folders; the runner's gates passed only the new Toast role and opened its Greenhouse form, filled it and stopped on city, postal code and a privacy agreement. Found and fixed with tests: Netflix's numbered levels failed every seniority filter and then brought back the role the user was interviewing for; an Indeed alert for another Netflix role matched the user's Netflix folder; the user's unsent v1 folders would have been sent automatically; the plan still said Ascend never submits |
 | Workday and Eightfold sources (2026-10-21) | Zillow's Workday board and Netflix's Eightfold board, live | 25 Zillow and 32 Netflix security postings at zero tokens (Netflix in 25 seconds, polled slowly after a 429). The careers-page probe found Arctic Wolf's Workday site and a second Greenhouse slug for Cerebral |
 | Automatic apply form filler (2026-10-22) | dry runs, nothing submitted, test persona data, on live Anthropic, Datadog (Greenhouse), Snyk (Ashby) and Lyra Health (Lever) forms | contact fields, résumé upload, yes/no buttons, dropdowns and multi-selects filled; every form stopped on a question only the user can answer (an essay, an office-attendance or legal question). Found and fixed with tests: required questions whose asterisk is drawn by CSS were skipped, dropdowns a few pixels wide were missed, a browser-blocked submit read as unclear |
@@ -49,7 +56,9 @@ written down anywhere.
 
 Spec §11 has the reasons. In short: no Sources & settings tab (edit `data/sources.json`), no 48-hour
 "applied?" follow-up, no per-run token cap, no board backoff and retry, no automatic fallback from engine
-A to C, and cron instead of launchd (a sleeping Mac skips that day's sync).
+A to C, and cron instead of launchd (a sleeping Mac skips that day's sync). From the automatic-apply spec,
+the scheduled headless Claude session (`run.py schedule --claude`, §5) is not built: scoring and tailoring
+happen only in a session the user starts, so the daily sync sends only jobs already tailored.
 
 ## Risks you accept by turning things on
 
@@ -58,7 +67,8 @@ A to C, and cron instead of launchd (a sleeping Mac skips that day's sync).
   rejected and land in Needs you. A wrong answer in `apply-answers.json` or `answer-bank.json` is repeated on
   every form until you fix it.
 
-- **LinkedIn search** drives your own logged-in LinkedIn session. Automated browsing can break LinkedIn's
+- **LinkedIn search** drives your own logged-in LinkedIn session. "Never use Easy Apply" is an instruction to
+  Claude, not a setting, so keep Claude in Chrome's per-action prompts on. Automated browsing can break LinkedIn's
   terms of use and put the account at risk. Claude asks before every search.
 - **Engines B and C** let Claude read your Gmail through the claude.ai connector, limited to job senders
   and job subjects. Its write tools are denied in this repo's `.claude/settings.json`. Mail is untrusted and
@@ -67,8 +77,6 @@ A to C, and cron instead of launchd (a sleeping Mac skips that day's sync).
   rules fetches out. The search also misses a recruiter writing from a personal
   address with no job word in the subject, and a thread whose subject names only the company ("Acme:
   Thursday?"). Engine A reads all mail and has neither gap.
-- **LinkedIn search** runs in your logged-in browser. "Never use Easy Apply" is an instruction to Claude,
-  not a setting. Claude in Chrome's per-action permission prompts are the guard, so keep them on.
 - **Engine A in Google's Testing mode** signs you out after about seven days. The daily sync then fails
   its Gmail stage and the hub shows a reconnect banner.
 

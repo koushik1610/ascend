@@ -194,3 +194,18 @@ Easy Apply, and any submission to a host outside §5's allow-list.
 - A wrong stored answer is repeated on every form until the user fixes `apply-answers.json`.
 - Sending before the callback benchmark exists means volume can outrun quality. The caps and the
   auto-pause are the guard.
+
+## 13. Amendments after the release review (council round 1, 2026-10-22)
+
+- **Supervised first send.** Nothing is sent unattended until the user presses Send one now in the hub,
+  watches one send in a visible browser, and presses It looked right (`auto.json` `first_send_ok`).
+- **applied?** An unclear or interrupted attempt is held as `applied?`, which blocks a second application,
+  until the user says in the hub whether it went. A stopped job can be put back for the runner with Try
+  again automatically.
+- **Answers.** A question asking authorization and sponsorship together is answered from both. Agreements,
+  certifications, consents and privacy notices are answered only from the user's answer bank. Someone else's
+  contact fields are never filled from the user's. Template values are placeholders and never sent.
+- **Dry run** attaches no résumé and types nothing into search boxes.
+- **Not built in this release:** the scheduled headless Claude session of §5.
+- **Version:** 2.0.0-beta; automatic apply leaves beta after the first supervised send and a week of
+  daily sends without an unclear result.

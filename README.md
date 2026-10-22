@@ -192,7 +192,13 @@ your own files.
 
 **Automatic apply (opt-in, beta).** Turn it on in the hub's Queue tab by typing "apply for me". From then
 on the daily sync runs `tools/autoapply.py`, which opens each ready job's application page in a headless
-browser (Playwright: `pip install playwright && playwright install chromium`), fills it and submits it.
+browser, fills it and submits it. Install Playwright into the same Python that runs Ascend:
+`python3 -m pip install playwright && python3 -m playwright install chromium` (`autoapply.py status` prints
+which Python that is).
+- **First send, supervised.** Nothing goes out on its own until you press **Send one now** in the hub, watch
+  one application go through in a visible browser window, and press **It looked right**. Do a dry run first
+  (`python3 tools/autoapply.py run workspace/<you> --dry-run`) and look at the screenshots in each job's
+  `apply/` folder.
 - **Ready** means: on a Greenhouse, Ashby or Lever board in your `sources.json`, fit at or above your
   threshold (default 75), passed your rule filter, a tailored résumé that passes the linter, not a
   duplicate, and fewer than 2 applications to that company in 30 days. A job folder from an earlier run that
@@ -204,7 +210,8 @@ browser (Playwright: `pip install playwright && playwright install chromium`), f
   legal agreements and company-specific questions are never answered from anything else, so a form that
   requires one stops.
 - **Stops go to Needs you** with the reason: a visible CAPTCHA, a sign-in page, a question your answers do
-  not cover, no confirmation page. A job is marked applied only when the confirmation page appeared, with
+  not cover. After you add the missing answer, **Try again automatically** puts the job back. An attempt
+  with no confirmation page shows as **sent?** until you say whether it went; it blocks a second application. A job is marked applied only when the confirmation page appeared, with
   screenshots in the job folder. Claude can fill stopped jobs with you in a session and submits only after
   your yes for that batch.
 - **Limits:** 5 a day for the first week, then your cap (default 25); pause and resume in the hub; it
