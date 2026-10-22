@@ -4,13 +4,13 @@
   python3 tools/apply.py sheet  WS POSTING_ID                                   # the apply sheet, gated
   python3 tools/apply.py status WS
 
-Recording a send is the hub's "I submitted it" button (ui/server.py calls record()); it is not a command,
-so nothing but the user's click marks a job applied.
+Recording a send the user made is the hub's "I submitted it" button (ui/server.py calls record()); it is not
+a command. The only other way a job becomes applied is the automatic runner seeing an ATS confirmation page.
 
-The user submits every application in their own browser. The sheet is built only when the job is
-approved, it is not a duplicate, its résumé passes lint_artifacts.py, and every answer comes from the
+The sheet is for applying by hand. It is built only when the job is approved (or handed back by the runner),
+it is not a duplicate, its résumé passes lint_artifacts.py, and every answer comes from the
 user's own profile. Work authorization, sponsorship, salary and start date are always listed under
-ask_user and never pre-filled, even when the profile records them.
+ask_user unless the user saved them in data/apply-answers.json.
 
 The automatic runner (tools/autoapply.py) uses the same pack checks plus ready(): the job is on a
 Greenhouse, Ashby or Lever board in the user's sources.json, its link is rebuilt from that board (never
@@ -94,6 +94,11 @@ def apply_url_for(ws, posting_id):
     return url if allowed(url) else None
 
 
+def _placeholder(v):
+    """A template value copied without being filled in ("your number"): never sent to an employer."""
+    return isinstance(v, str) and v.strip().lower().startswith(("your ", "placeholder"))
+
+
 def answers(ws):
     """What a form may be filled with: the profile's contact fields, then the user's own apply-answers.json
     (work authorization, sponsorship, salary, start date, demographic choices), then the answer bank."""
@@ -102,10 +107,10 @@ def answers(ws):
     out = {k: profile[k] for k in PROFILE_FIELDS if profile.get(k) and k not in ALWAYS_ASK}
     own = d.read_json(ws / "data" / "apply-answers.json", {})
     out.update({k: v for k, v in (own if isinstance(own, dict) else {}).items()
-                if not k.startswith("_") and v not in (None, "")})
+                if not k.startswith("_") and v not in (None, "") and not _placeholder(v)})
     bank = d.read_json(ws / "data" / "answer-bank.json", [])
     out["_bank"] = [b for b in (bank if isinstance(bank, list) else [])
-                    if isinstance(b, dict) and b.get("question") and b.get("answer")]
+                    if isinstance(b, dict) and b.get("question") and b.get("answer") and not _placeholder(b["answer"])]
     return out
 
 

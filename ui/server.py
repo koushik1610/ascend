@@ -479,7 +479,7 @@ class Handler(BaseHTTPRequestHandler):
             except KeyError:
                 return self._send(404, {"error": "no such job in the queue"})
             return self._send(200, {"ok": True, "state": entry["state"]})
-        if u.path == "/api/apply":    # Ascend 2.0: the gated apply sheet for one job (assisted mode)
+        if u.path == "/api/apply":    # Ascend 2.0: the gated apply sheet for one job (applying by hand)
             body = self._body()
             ws = WORKSPACE / slugify(body.get("slug", ""))
             import apply

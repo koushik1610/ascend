@@ -27,6 +27,7 @@
       "Bash(python3 tools/jobqueue.py*)",
       "Bash(python3 tools/usage.py*)",
       "Bash(python3 tools/finder.py*)",
+      "Bash(python3 tools/autoapply.py*)",
       "Bash(mkdir -p workspace/*)",
       "Bash(mkdir workspace/*)",
       "Bash(rm -f workspace/*)",
@@ -117,8 +118,6 @@
       "mcp__claude_ai_Google_Drive__update_file",
       "mcp__claude_ai_Google_Drive__copy_file",
       "mcp__claude_ai_Google_Drive__trash_file",
-      "mcp__claude-in-chrome__form_input",
-      "mcp__claude-in-chrome__file_upload",
       "mcp__claude-in-chrome__javascript_tool",
       "Edit(workspace/*/data/queue.json)",
       "Write(workspace/*/data/queue.json)",
@@ -138,7 +137,19 @@
       "Edit(**/workspace/*/data/events.jsonl)",
       "Write(**/workspace/*/data/events.jsonl)",
       "Edit(**/workspace/*/data/ingested.jsonl)",
-      "Write(**/workspace/*/data/ingested.jsonl)"
+      "Write(**/workspace/*/data/ingested.jsonl)",
+      "Edit(workspace/*/data/auto.json)",
+      "Write(workspace/*/data/auto.json)",
+      "Edit(**/workspace/*/data/auto.json)",
+      "Write(**/workspace/*/data/auto.json)",
+      "Edit(workspace/*/data/apply-answers.json)",
+      "Write(workspace/*/data/apply-answers.json)",
+      "Edit(**/workspace/*/data/apply-answers.json)",
+      "Write(**/workspace/*/data/apply-answers.json)",
+      "Edit(workspace/*/data/answer-bank.json)",
+      "Write(workspace/*/data/answer-bank.json)",
+      "Edit(**/workspace/*/data/answer-bank.json)",
+      "Write(**/workspace/*/data/answer-bank.json)"
     ],
     "ask": [
       "WebFetch"

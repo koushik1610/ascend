@@ -246,9 +246,14 @@ class Permissions(unittest.TestCase):
         self.assertNotIn("WebFetch", perms["allow"])
         self.assertIn("WebFetch", perms.get("ask", []))
         # browser_batch can run a denied tool inside a batch; upload_image fills a file input; no prompt uses either.
-        for t in ("form_input", "file_upload", "javascript_tool", "browser_batch", "upload_image", "shortcuts_execute"):
+        for t in ("javascript_tool", "browser_batch", "upload_image", "shortcuts_execute"):
             self.assertIn(f"mcp__claude-in-chrome__{t}", perms["deny"])
-        for f in ("queue.json", "apply-log.jsonl", "events.jsonl", "ingested.jsonl"):
+        # 2026-10-22, the user's decision: form filling and file upload are allowed so Claude can finish a
+        # stopped application with the user, who says yes in chat before any submit (prompts/28-apply.md).
+        for t in ("form_input", "file_upload"):
+            self.assertNotIn(f"mcp__claude-in-chrome__{t}", perms["deny"])
+        for f in ("queue.json", "apply-log.jsonl", "events.jsonl", "ingested.jsonl", "auto.json",
+                  "apply-answers.json", "answer-bank.json"):
             for tool in ("Edit", "Write"):
                 self.assertIn(f"{tool}(workspace/*/data/{f})", perms["deny"])
                 self.assertIn(f"{tool}(**/workspace/*/data/{f})", perms["deny"])     # whatever the launch folder

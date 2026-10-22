@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """run.py: choose an engine and an apply mode for a run, see what it will cost, check it can run (M7).
 
-  python3 tools/run.py plan WS --engine A|B|C [--mode assisted] [--jobs N]
+  python3 tools/run.py plan WS --engine A|B|C [--mode assisted|automatic] [--jobs N]
   python3 tools/run.py steps --engine A|B|C
 
 Engines (spec §4): A is the deterministic core with your own Gmail sign-in, B has Claude do every stage,
-C is the core with Gmail read through the claude.ai connector. This release has one apply mode,
-assisted: Ascend prepares each application and you submit it yourself. Agent-submit and fully automatic
-are developed on the ascend-v2-agent-modes branch and are refused here.
+C is the core with Gmail read through the claude.ai connector. Apply modes: assisted (Ascend prepares each
+application and you submit it) and automatic (tools/autoapply.py submits Greenhouse, Ashby and Lever jobs
+once you turn it on in the hub). Claude submitting on its own ("agent") is not offered.
 
 `plan` refuses a combination that cannot run and says why, and always states the token estimate. A plan
 that passes is saved as the default for scheduled runs.
@@ -23,9 +23,12 @@ import _v2data as d  # noqa: E402
 import usage  # noqa: E402
 
 ENGINES = ("A", "B", "C")
-MODES = ("assisted",)
-LATER_MODES = ("agent", "automatic")
-MODE_NOTE = {"assisted": "You press Submit on every application."}
+MODES = ("assisted", "automatic")
+LATER_MODES = ("agent",)
+MODE_NOTE = {"assisted": "You press Submit on every application.",
+             "automatic": ("Submitting costs no tokens: the runner does it on this Mac with Playwright, only after you "
+                           "turn it on in the hub's Queue tab by typing \"apply for me\". Jobs it cannot finish wait in "
+                           "Needs you.")}
 CONNECTOR = ("Gmail: Claude reads your mail through the claude.ai Gmail connector, inside your Claude session, "
              "using a search limited to job senders and job subjects (tools/gmail_sync.py query). "
              "This repo's .claude/settings.json denies the connector's send, reply, forward, draft, label, spam and "
@@ -88,7 +91,7 @@ def plan(ws, engine, mode="assisted", jobs=usage.DEFAULT_JOBS):
     if engine not in ENGINES:
         problems.append(f"unknown engine {engine!r}")
     if mode in LATER_MODES:
-        problems.append(f"{mode} mode is not in this release: Ascend 2.0 ships assisted mode only")
+        problems.append(f"{mode} mode is not in this release: use automatic (the runner) or assisted")
     elif mode not in MODES:
         problems.append(f"unknown mode {mode!r}")
     if problems:
@@ -114,6 +117,13 @@ def plan(ws, engine, mode="assisted", jobs=usage.DEFAULT_JOBS):
     # Every answer an apply sheet pre-fills, by name: Step 1 shows the values to the user to confirm.
     prefill = [k for k in apply.PROFILE_FIELDS if profile.get(k) and k not in apply.ALWAYS_ASK]
     notes = _setup_notes(ws)
+    if mode == "automatic":
+        import autoapply
+        if autoapply._filler() is None:
+            notes.append(autoapply.INSTALL)
+        if not (Path(ws) / "data" / "apply-answers.json").is_file():
+            notes.append("no data/apply-answers.json: forms asking work authorization, sponsorship, salary or start "
+                         "date stop in Needs you. Copy templates/apply-answers.example.json and fill it yourself.")
     sync = d.read_json(Path(ws) / "data" / "sync-state.json", {})
     if engine in ("B", "C") and not (sync.get("connector_last_read") or sync.get("connector_first_partial")):
         notes.append("The first Gmail read covers 30 days, a one-time cost on top of the daily estimate (about 90,000 "

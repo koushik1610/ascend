@@ -11,6 +11,22 @@ _Working toward v1.0. Real-run gate: **1 of 2–3 runs signed off** (2026-07-01,
 see `docs/ROADMAP.md` → sign-off log); cases (b) no-résumé/non-tech and (c) resume-after-interruption
 remain, plus a green CI run on the remote + a demo GIF._
 
+### Added: automatic apply, Workday and Eightfold (branch `feat/v2-auto-apply`)
+- **Automatic apply** (`tools/autoapply.py`, `tools/autoapply_forms.py`, opt-in, beta). Turned on only in
+  the hub by typing "apply for me"; `auto.json` is signed with a key outside the workspace. The runner
+  fills Greenhouse, Ashby and Lever forms with Playwright from the user's own files and submits. Applied
+  only on a seen confirmation; anything else goes to Needs you with the reason. Caps (5 a day the first
+  week, then 25), 2 per company per 30 days, pauses on unclear results and a low reply rate.
+- **Shared send gates** in `apply.py` (`ready`, `pack`, `apply_url_for`, `allowed`): the link is rebuilt
+  from the board onto an exact allowed host, and a model's fit score alone can never send.
+- **User-written answers:** `templates/apply-answers.example.json` and `answer-bank.example.json`. Claude
+  cannot edit them; template placeholders are never sent.
+- **Claude in Chrome** form filling and file upload are allowed again, for finishing stopped jobs with the
+  user's yes per batch (`prompts/28-apply.md`).
+- **Workday and Eightfold sources** in the finder, a throttled board state that closes nothing, and
+  `finder.py probe --careers URL`.
+- **`run.py plan --mode automatic`**; CI installs a pinned Playwright so the form-filler tests run.
+
 ### Fixed: Ascend 2.0 from scratch (branch `fix/v2-rerun-council`)
 A from-scratch run on a real user's profile, reviewed by the ten-persona council, found that the merged
 release only worked on a workspace seeded by hand:

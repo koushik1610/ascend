@@ -258,12 +258,19 @@ class Plan(unittest.TestCase):
         self.assertFalse(p["ok"])
         self.assertTrue(any("gmail-client.json" in x for x in p["problems"]))
 
-    def test_agent_and_automatic_are_not_in_this_release(self):
+    def test_agent_mode_is_not_in_this_release(self):
+        # Claude submitting on its own is not offered: the runner submits, Claude only after the user's yes.
         import run
-        for mode in ("agent", "automatic"):
-            out = run.plan(self.ws, "B", mode)
-            self.assertFalse(out["ok"])
-            self.assertIn("not in this release", " ".join(out["problems"]))
+        out = run.plan(self.ws, "B", "agent")
+        self.assertFalse(out["ok"])
+        self.assertIn("not in this release", " ".join(out["problems"]))
+
+    def test_automatic_plan_says_the_hub_turns_it_on(self):
+        import run
+        out = run.plan(self.ws, "B", "automatic")
+        self.assertTrue(out["ok"], out)
+        self.assertIn("apply for me", out["warning"])
+        self.assertIn("Playwright", " ".join(out["notes"] + [out["warning"]]))
 
     def test_assisted_warns_about_tokens_and_ok_saves_defaults(self):
         import _v2data as d

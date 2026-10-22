@@ -230,6 +230,28 @@ def stub(result="submitted", reason=None, unfilled=()):
     return fill
 
 
+class Placeholders(KeyEnv):
+    def test_template_placeholders_are_never_sent(self):
+        import _v2data as d
+        import apply
+        ws = self.ws(answers={"salary_expectation": "your number", "current_company": "Your current employer",
+                              "sponsorship": "No"})
+        d.write_json_atomic(ws / "data" / "answer-bank.json", [
+            {"question": "Why are you interested in this role", "answer": "Your own two or three sentences."},
+            {"question": "Have you ever worked here", "answer": "No"}])
+        a = apply.answers(ws)
+        self.assertNotIn("salary_expectation", a)
+        self.assertNotIn("current_company", a)
+        self.assertEqual(a["sponsorship"], "No")
+        self.assertEqual([b["question"] for b in a["_bank"]], ["Have you ever worked here"])
+
+    def test_shipped_templates_are_all_placeholders_or_safe_defaults(self):
+        import json as j
+        bank = j.loads((REPO / "templates/answer-bank.example.json").read_text())
+        own = [b for b in bank if b.get("question") and not str(b.get("answer")).lower().startswith(("yes", "no"))]
+        self.assertTrue(all(str(b["answer"]).lower().startswith("your ") for b in own), own)
+
+
 class Runner(KeyEnv):
     def test_off_does_nothing(self):
         import autoapply
