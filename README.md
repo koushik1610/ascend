@@ -195,8 +195,9 @@ on the daily sync runs `tools/autoapply.py`, which opens each ready job's applic
 browser (Playwright: `pip install playwright && playwright install chromium`), fills it and submits it.
 - **Ready** means: on a Greenhouse, Ashby or Lever board in your `sources.json`, fit at or above your
   threshold (default 75), passed your rule filter, a tailored résumé that passes the linter, not a
-  duplicate, and fewer than 2 applications to that company in 30 days. The page is rebuilt from the board,
-  never taken from a link in a posting or an email.
+  duplicate, and fewer than 2 applications to that company in 30 days. A job folder from an earlier run that
+  you left unsent goes only after you approve it. The page is rebuilt from the board, never taken from a link
+  in a posting or an email.
 - **Answers** come only from files you write: `data/profile.json`, `data/apply-answers.json` (work
   authorization, sponsorship, salary, start date, demographic choices) and `data/answer-bank.json` (your
   own answers to recurring questions, matched by their wording). Claude cannot write the last two. Essays,

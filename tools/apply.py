@@ -135,6 +135,8 @@ def ready(ws, entry, cfg, today=None):
     pid, why = entry.get("posting_id") or "", []
     if entry.get("state") not in ("matched", "approved"):
         why.append(f"it is {entry.get('state')}, not matched or approved")
+    elif entry.get("source") == "v1" and entry.get("state") != "approved":
+        why.append("a job folder from an earlier run: you left it unsent, so it goes only after you approve it")
     if pid.split(":", 1)[0] not in AUTO_ATS:
         why.append("only Greenhouse, Ashby and Lever are applied to automatically")
     elif not any(pid.startswith(f"{b.get('ats')}:{b.get('slug')}:") for b in _boards(ws)):

@@ -199,6 +199,19 @@ class Gates(KeyEnv):
                 reasons = apply.ready(ws, self.entry(ws, kw.get("pid", "greenhouse:acme:1")), autoapply.load_config(ws))
                 self.assertTrue(any(why in r for r in reasons), reasons)
 
+    def test_a_folder_from_an_earlier_run_needs_the_users_approval(self):
+        # Run 4 (2026-10-22): the user's v1 folders sit in the queue as matched with fits up to 86 and tailored
+        # résumés. Turning automatic apply on must not send the jobs they chose not to send.
+        import _v2data as d
+        import apply
+        import autoapply
+        ws = self.ws()
+        d.update_json(ws / "data" / "queue.json", {}, lambda q: q["jobs"][0].update(source="v1"))
+        reasons = apply.ready(ws, self.entry(ws), autoapply.load_config(ws))
+        self.assertTrue(any("earlier run" in r for r in reasons), reasons)
+        d.update_json(ws / "data" / "queue.json", {}, lambda q: q["jobs"][0].update(state="approved"))
+        self.assertEqual(apply.ready(ws, self.entry(ws), autoapply.load_config(ws)), [])
+
     def test_company_cap(self):
         import _v2data as d
         import apply
