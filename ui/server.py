@@ -46,7 +46,10 @@ FRAME_HEADERS_SAMEORIGIN = {"X-Frame-Options": "SAMEORIGIN", "Content-Security-P
 # Files under a workspace the browser may load. data/ holds mail, the queue and the profile; dotfiles hold run
 # state; gmail-client.json is engine A's OAuth client secret. None of those is ever served.
 SERVED_SUFFIXES = {".html", ".pdf", ".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg", ".css"}
-PRIVATE_NAMES = {"data", "gmail-client.json"}
+PRIVATE_NAMES = {"data", "gmail-client.json", "apply"}     # apply/: application screenshots hold the user's answers
+# Pages the agent writes and the markdown reader run in an opaque-origin sandbox: framed in the console,
+# whose page holds the session token, they still cannot call parent.fetch or read it (2026-10-22 council).
+SANDBOX = "sandbox allow-scripts allow-popups allow-popups-to-escape-sandbox"
 
 
 def _private(rel_parts):
@@ -469,11 +472,21 @@ class Handler(BaseHTTPRequestHandler):
             import apply
             import jobqueue
             pid, action = str(body.get("posting_id", "")), str(body.get("action", ""))
-            if action not in ("approved", "rejected", "applied"):
-                return self._send(400, {"error": "the hub can approve, reject or mark a job applied"})
+            if action not in ("approved", "rejected", "applied", "retry", "not-sent"):
+                return self._send(400, {"error": "the hub can approve, reject, retry or mark a job sent or not sent"})
             try:
-                # "I submitted it" goes through the apply log, so the day's count and reply rates see it.
-                entry = apply.record(ws, pid, "submitted") if action == "applied" else jobqueue.set_state(ws, pid, action, via_hub=True)
+                current = next((j for j in jobqueue._queue(ws).get("jobs", []) if j.get("posting_id") == pid), {})
+                if action == "retry":           # the user fixed what stopped it: back to the runner
+                    if current.get("state") != "needs-you":
+                        raise ValueError("only a job in needs you can be tried again")
+                    entry = jobqueue.set_state(ws, pid, "matched", via_hub=True, stop_reason=None)
+                elif action == "not-sent":      # an unclear attempt the user checked: it did not go
+                    entry = jobqueue.set_state(ws, pid, "needs-you", via_hub=True, not_sent=True,
+                                               stop_reason="you checked: the earlier attempt was not sent")
+                elif action == "applied":       # "I submitted it" goes through the apply log, so caps and rates see it
+                    entry = apply.record(ws, pid, "submitted")
+                else:
+                    entry = jobqueue.set_state(ws, pid, action, via_hub=True)
             except (ValueError, apply.Refused) as e:
                 return self._send(400, {"error": str(e)})
             except KeyError:
@@ -505,6 +518,14 @@ class Handler(BaseHTTPRequestHandler):
                     autoapply.resume(ws)
                 elif action == "settings":
                     autoapply.settings(ws, body.get("daily_cap"), body.get("fit_threshold"))
+                elif action == "confirm_first":   # the user watched the supervised send and it looked right
+                    autoapply.confirm_first(ws)
+                elif action == "send_one":        # one job now, in a visible browser the user watches
+                    st = autoapply.status(ws)
+                    if not st["enabled"] or st["paused"]:
+                        raise ValueError("turn automatic apply on (and resume it) first")
+                    threading.Thread(target=autoapply.run, args=(ws,), kwargs={"supervised": True}, daemon=True).start()
+                    return self._send(200, dict(st, started=True))
                 elif action != "status":
                     return self._send(400, {"error": "unknown action"})
             except ValueError as e:
@@ -544,7 +565,7 @@ class Handler(BaseHTTPRequestHandler):
             headers["Content-Security-Policy"] = (
                 "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; "
                 "img-src data:; connect-src 'none'; form-action 'none'; base-uri 'none'; "
-                "frame-ancestors 'self'")
+                "frame-ancestors 'self'; " + SANDBOX)
             headers["X-Content-Type-Options"] = "nosniff"
             headers["Referrer-Policy"] = "no-referrer"
         return self._send(200, target.read_bytes(), ctype, headers)
@@ -572,7 +593,7 @@ class Handler(BaseHTTPRequestHandler):
         # <iframe> from the same server (see FRAME_HEADERS_SAMEORIGIN note up top).
         csp = ("default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; "
                f"script-src 'nonce-{nonce}'; connect-src 'none'; base-uri 'none'; form-action 'none'; "
-               "frame-ancestors 'self'")
+               "frame-ancestors 'self'; " + SANDBOX)
         return self._send(200, html, "text/html; charset=utf-8",
                           {"Content-Security-Policy": csp, "X-Content-Type-Options": "nosniff",
                            "Referrer-Policy": "no-referrer", "X-Frame-Options": "SAMEORIGIN"})

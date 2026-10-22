@@ -224,6 +224,10 @@ def compute(ws, today=None):
         run = dict(defaults, estimate=usage.estimate(ws, defaults["engine"], defaults["mode"]))
     import autoapply
     auto = autoapply.status(ws, today)
+    last_run = (d.read_jsonl(data / "run-log.jsonl") or [{}])[-1]
+    stage = next((st for st in last_run.get("stages") or [] if st.get("stage") == "autoapply"), None)
+    auto["stage_error"] = None if stage is None or stage.get("ok") else str(stage.get("detail"))[:300]
+    auto["last_supervised"] = next((r for r in reversed(d.read_jsonl(data / "apply-log.jsonl")) if r.get("supervised")), None)
     return {"as_of": today.isoformat(), "run": run, "gmail": _gmail_status(ws, data, defaults, today), "auto": auto,
             "health": _health(ws, data, events),
             "callback_gate": callback_gate, "funnel": funnel, "week": week, "rates": rates, "warning": warning,

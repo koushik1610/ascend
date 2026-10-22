@@ -419,6 +419,36 @@ class Server(unittest.TestCase):
         self.assertEqual(c.getresponse().status, 403)
         c.close()
 
+    def test_workspace_pages_run_sandboxed_so_they_cannot_reach_the_api(self):    # release round 1, S1
+        (self.ws / "page.html").write_text("<script>parent.fetch('/api/auto')</script>")
+        (self.ws / "note.md").write_text("# hi")
+        for path in (f"/workspace/{self.SLUG}/page.html", f"/view/{self.SLUG}/note.md"):
+            status, _, headers = self.req("GET", path)
+            self.assertEqual(status, 200, path)
+            csp = {k.lower(): v for k, v in headers.items()}["content-security-policy"]
+            self.assertIn("sandbox allow-scripts", csp, path)
+            self.assertNotIn("allow-same-origin", csp, path)
+        page = (REPO / "ui" / "index.html").read_text()
+        self.assertRegex(page, r'<iframe[^>]*id="rframe"[^>]*sandbox="allow-scripts[^"]*"')
+
+    def test_application_screenshots_are_never_served(self):                     # S10
+        shot = self.ws / "jobs" / "01-acme" / "apply"
+        shot.mkdir(parents=True, exist_ok=True)
+        (shot / "filled.png").write_bytes(b"\x89PNG")
+        status, _, _ = self.req("GET", f"/workspace/{self.SLUG}/jobs/01-acme/apply/filled.png")
+        self.assertEqual(status, 404)
+
+    def test_first_send_needs_a_supervised_send_to_confirm(self):
+        status, body, _ = self.req("POST", "/api/auto", {"slug": self.SLUG, "action": "confirm_first"}, token=self.token)
+        self.assertEqual(status, 400, body)
+        self.assertIn("supervised", json.loads(body)["error"])
+
+    def test_queue_retry_and_not_sent_are_hub_actions(self):
+        status, body, _ = self.req("POST", "/api/queue", {"slug": self.SLUG, "posting_id": "greenhouse:d:4",
+                                                          "action": "retry"}, token=self.token)
+        self.assertEqual(status, 400, body)            # only a stopped (needs-you) job can be retried
+        self.assertIn("needs you", json.loads(body)["error"])
+
     def test_hub_route_injects_token_and_allows_self_only(self):
         status, body, headers = self.req("GET", f"/hub?slug={self.SLUG}")
         self.assertEqual(status, 200)

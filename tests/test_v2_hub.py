@@ -371,6 +371,21 @@ class Build(unittest.TestCase):
         self.assertIn('"/api/auto"', page)
         self.assertIn("submitting", page)        # applying is never shown as sent
 
+    def test_release1_hub_actions(self):
+        page = (REPO / "templates" / "hub.template.html").read_text()
+        for needle in ('data-a="retry"', 'data-a="not-sent"', 'data-auto="send_one"', 'data-auto="confirm_first"',
+                       "terms of service", "attempts"):
+            self.assertIn(needle, page)
+        # B5: a recruiter lead waiting on the user (needs-you, no stop reason) keeps Approve.
+        self.assertRegex(page, r"q\.status === \"needs-you\" && q\.stop_reason")
+
+    def test_a_failed_apply_stage_is_on_the_page(self):                          # D11
+        import _v2data as d
+        import hub
+        d.append_jsonl(self.ws / "data" / "run-log.jsonl", {"at": "2026-10-20T06:30:00", "stages": [
+            {"stage": "autoapply", "ok": False, "detail": "RuntimeError: auto-apply needs Playwright"}]})
+        self.assertIn("Playwright", hub.compute(self.ws, today=TODAY)["auto"]["stage_error"])
+
     def test_template_declares_no_browser_global_names(self):
         # `const top = ...` at script top level throws "Identifier 'top' has already been declared"
         # in a browser (window.top), which silently blanks the whole page. Caught on the real hub.

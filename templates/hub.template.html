@@ -135,13 +135,19 @@ if (D.run) {
   $("runLine").textContent = `Engine ${D.run.engine} · ${D.run.mode} · about ${e.daily.toLocaleString()} tokens a day at ${e.jobs} applications (${e.basis === "measured" ? "estimated from your runs" : e.basis === "partly measured" ? "partly from your runs" : "default estimate"})`;
 }
 const ACTIONABLE = new Set(["matched", "needs-you", "queued"]);
-const SHOWN = {"applying": "submitting", "needs-you": "needs you"};
+const SHOWN = {"applying": "submitting", "needs-you": "needs you", "applied?": "sent?"};
 function renderAuto() {
   const a = D.auto || {};
   let h = `<b>Automatic apply</b> `;
   if (!a.enabled) h += `<span class="sub">Off. When on, Ascend submits Greenhouse, Ashby and Lever jobs at fit ${esc(a.fit_threshold)} or above, up to ${esc(a.cap_today)} today, from your own saved answers. It stops and puts a job in Needs you when a form asks something your answers do not cover, shows a CAPTCHA or wants a sign-in.</span>`;
   else if (a.paused) h += `<span class="tag t-assessment">paused</span> <span class="sub">${esc(a.paused_reason)}</span>`;
-  else h += `<span class="tag t-approved">on</span> <span class="sub">${esc(a.sent_today)} of ${esc(a.cap_today)} sent today · fit ${esc(a.fit_threshold)} or above</span>`;
+  else h += `<span class="tag t-approved">on</span> <span class="sub">${esc(a.attempts_today)} of ${esc(a.cap_today)} attempts today · fit ${esc(a.fit_threshold)} or above</span>`;
+  if (a.stage_error) h += `<div class="banner">The last daily run could not apply: ${esc(a.stage_error)}</div>`;
+  if (a.enabled && !a.first_send_ok) {
+    const ls = a.last_supervised;
+    h += `<div class="banner">Nothing is sent on its own yet. Press <b>Send one now</b>: a browser window opens on this Mac and sends your best ready job while you watch.${ls ? ` Last supervised attempt: ${esc(ls.company)}, ${esc(ls.result)}${ls.reason ? " (" + esc(ls.reason) + ")" : ""}.` : ""} When one went through and looked right, press <b>It looked right</b> to allow daily sends.</div>`;
+    if (S) h += `<div style="margin-top:8px"><button class="act" data-auto="send_one">Send one now</button> <button class="act" data-auto="confirm_first">It looked right</button></div>`;
+  }
   if (a.tampered) h += `<div class="banner">data/auto.json was changed outside the hub, so automatic apply is off. Turn it on here again if you want it.</div>`;
   if (!a.playwright) h += `<div class="banner">Automatic apply needs Playwright on this Mac: pip install playwright && playwright install chromium</div>`;
   if (S) {
@@ -157,7 +163,10 @@ $("auto").addEventListener("click", ev => {
   const action = b.dataset.auto, body = {action};
   if (action === "enable") {
     body.phrase = ($("autoPhrase") || {}).value || "";
-    if (!confirm("Turn on automatic apply? Ascend will submit applications for you without asking first, within your limits.")) return;
+    if (!confirm("Turn on automatic apply? Ascend will submit Greenhouse, Ashby and Lever applications in your name without asking each time, within your limits. Each one sends your résumé and your saved answers to that company's job board. Some job boards' terms of service forbid automated applications, and a company may reject or flag them.")) return;
+  }
+  if (action === "send_one") {
+    if (!confirm("Send one application now? A browser window opens and submits your best ready job while you watch.")) return;
   }
   if (action === "settings") { body.daily_cap = Number($("autoCap").value); body.fit_threshold = Number($("autoFit").value); }
   b.disabled = true;
@@ -167,8 +176,10 @@ function queueRow(q) {
   const role = /^https:\/\//i.test(q.url || "") ? `<a href="${safeUrl(q.url)}" target="_blank" rel="noopener noreferrer">${esc(q.title)}</a>` : esc(q.title);
   const detail = [q.stop_reason ? "Stopped: " + q.stop_reason : "", q.why, (q.gaps || []).length ? "Gaps: " + q.gaps.join("; ") : "", (q.reasons || []).join("; ")].filter(Boolean).join(" · ");
   let acts = "";
-  if (S && q.posting_id && q.status === "needs-you")      // the runner handed it back: finish it with the sheet
-    acts = `<button class="act" data-id="${esc(q.posting_id)}" data-a="sheet">Apply</button> <button class="act" data-id="${esc(q.posting_id)}" data-a="rejected">Reject</button>`;
+  if (S && q.posting_id && q.status === "needs-you" && q.stop_reason)      // the runner handed it back
+    acts = `<button class="act" data-id="${esc(q.posting_id)}" data-a="sheet">Apply</button> <button class="act" data-id="${esc(q.posting_id)}" data-a="retry">Try again automatically</button> <button class="act" data-id="${esc(q.posting_id)}" data-a="rejected">Reject</button>`;
+  else if (S && q.posting_id && q.status === "applied?")      // an attempt that may have gone: the user checks
+    acts = `<button class="act" data-id="${esc(q.posting_id)}" data-a="applied">It was sent</button> <button class="act" data-id="${esc(q.posting_id)}" data-a="not-sent">It was not sent</button>`;
   else if (S && q.posting_id && ACTIONABLE.has(q.status))
     acts = `<button class="act" data-id="${esc(q.posting_id)}" data-a="approved">Approve</button> <button class="act" data-id="${esc(q.posting_id)}" data-a="rejected">Reject</button>`;
   else if (S && q.posting_id && q.status === "approved")
@@ -190,8 +201,10 @@ function showSheet(s, id) {
   $("copyAns").onclick = () => navigator.clipboard && navigator.clipboard.writeText(ans);
   $("sheet").scrollIntoView({behavior: "smooth"});
 }
-const CONFIRM = {approved: "Approve this job? Ascend then builds its apply sheet. You still submit it yourself.",
-                 applied: "Record that you submitted this application yourself?"};
+const CONFIRM = {approved: "Approve this job? Ascend then builds its apply sheet, or sends it if automatic apply is on.",
+                 applied: "Record that this application was sent?",
+                 retry: "Try this job again automatically? Do this after adding the missing answer to your files.",
+                 "not-sent": "You checked and this application did not go through?"};
 document.querySelector("#queue").addEventListener("click", ev => {
   const b = ev.target.closest("button.act[data-a]"); if (!b || !S) return;
   if (b.dataset.a === "sheet") {
