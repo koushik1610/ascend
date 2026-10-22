@@ -63,6 +63,16 @@ CHALLENGE = re.compile(r"recaptcha.*bframe|hcaptcha.*challenge|challenges\.cloud
                        r"challenge expires|captcha challenge", re.I)
 
 
+AUTH_WITHOUT_SPONSOR = re.compile(r"(authori[sz]ed|eligible|legally (able|permitted)) to work.*without .*sponsor", re.I)
+
+
+def _yes_no(v):
+    if isinstance(v, bool):
+        return v
+    w = norm(v).split()
+    return {"yes": True, "no": False}.get(w[0]) if w else None
+
+
 def norm(s):
     return re.sub(r"\s+", " ", re.sub(r"[^a-z0-9]+", " ", str(s or "").lower())).strip()
 
@@ -80,6 +90,13 @@ def answer_for(label, answers):
         q = norm(b.get("question"))
         if q and (q == text or (len(q) >= 12 and q in text)):
             return str(b.get("answer"))
+    # "Authorized to work ... without sponsorship" asks both at once: Yes only when the user is authorized
+    # and needs no sponsorship. The sponsorship rule alone would answer it backwards.
+    if AUTH_WITHOUT_SPONSOR.search(text):
+        auth, spon = _yes_no(answers.get("work_authorization")), _yes_no(answers.get("sponsorship"))
+        if auth is False or spon is True:
+            return "No"
+        return "Yes" if auth is True and spon is False else None
     name = str(answers.get("name") or "").split()
     derived = {"first_name": name[0] if name else None, "last_name": name[-1] if len(name) > 1 else None}
     for rx, key in RULES:

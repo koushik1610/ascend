@@ -196,6 +196,18 @@ class Rules(unittest.TestCase):
         self.assertEqual(f.answer_for("What's your postal code?*", a), "84101")
         self.assertIsNone(f.answer_for("What's your postal code?*", ANSWERS))
 
+    def test_authorized_without_sponsorship_combines_both_answers(self):
+        # Council release round 1 (B1): this question got the sponsorship answer ("No") and would have
+        # knocked out a candidate who needs no sponsorship.
+        import autoapply_forms as f
+        q = "Are you legally authorized to work in the United States without the need for employer sponsorship?*"
+        self.assertEqual(f.answer_for(q, dict(ANSWERS, work_authorization="Yes", sponsorship="No")), "Yes")
+        self.assertEqual(f.answer_for(q, dict(ANSWERS, work_authorization="Yes", sponsorship="Yes")), "No")
+        self.assertEqual(f.answer_for(q, dict(ANSWERS, work_authorization="No", sponsorship="Yes")), "No")
+        self.assertIsNone(f.answer_for(q, {k: v for k, v in ANSWERS.items() if k != "sponsorship"}))
+        self.assertIsNone(f.answer_for(q, dict(ANSWERS, sponsorship="Maybe later")))
+        self.assertEqual(f.answer_for("Will you now or in the future require sponsorship?*", ANSWERS), "No")
+
     def test_bank_entry_wins_and_must_be_the_users_wording(self):
         import autoapply_forms as f
         a = dict(ANSWERS, _bank=[{"question": "Have you ever interviewed at Acme before?", "answer": "No"}])
