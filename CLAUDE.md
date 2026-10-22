@@ -83,7 +83,8 @@ mode), and **`Write`/`Edit`
 only under `workspace/**`** (the pipeline writes user output there and can't silently change the repo's
 own prompts/code), plus `industryresearch/**` for Phase 26's anonymized, shared phrasing reference.
 Claude's own `Edit`/`Write` are denied on each workspace's `data/queue.json`, `apply-log.jsonl`,
-`events.jsonl`, `ingested.jsonl`, `auto.json`, `apply-answers.json` and `answer-bank.json`: approving a job,
+`events.jsonl`, `ingested.jsonl`, `auto.json`, `apply-answers.json`, `answer-bank.json` and the tool-written
+`candidates.jsonl`, `postings.jsonl` and `postings-state.json` that automatic apply's gates read: approving a job,
 recording a send, turning automatic apply on and the answers sent on the user's behalf are the user's own. The Bash boundary is **allow-list-only**: the repo's own tools (`python3 ui/server.py…` and each
 `python3 tools/<name>.py…` the pipeline calls), `mkdir/rm -f` under `workspace/` (never inside a workspace's
 `data/`, which holds the queue, the apply log and automatic-apply settings), `git check-ignore` and

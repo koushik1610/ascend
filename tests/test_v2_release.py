@@ -253,7 +253,9 @@ class Permissions(unittest.TestCase):
         for t in ("form_input", "file_upload"):
             self.assertNotIn(f"mcp__claude-in-chrome__{t}", perms["deny"])
         for f in ("queue.json", "apply-log.jsonl", "events.jsonl", "ingested.jsonl", "auto.json",
-                  "apply-answers.json", "answer-bank.json"):
+                  "apply-answers.json", "answer-bank.json",
+                  # the gates read these: only the finder and prefilter write them (release round 1, S6)
+                  "candidates.jsonl", "postings.jsonl", "postings-state.json"):
             for tool in ("Edit", "Write"):
                 self.assertIn(f"{tool}(workspace/*/data/{f})", perms["deny"])
                 self.assertIn(f"{tool}(**/workspace/*/data/{f})", perms["deny"])     # whatever the launch folder

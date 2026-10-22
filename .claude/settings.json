@@ -160,7 +160,19 @@
       "Bash(rm *workspace/*/data/*)",
       "Read(~/.config/ascend/**)",
       "Edit(~/.config/ascend/**)",
-      "Write(~/.config/ascend/**)"
+      "Write(~/.config/ascend/**)",
+      "Edit(workspace/*/data/candidates.jsonl)",
+      "Write(workspace/*/data/candidates.jsonl)",
+      "Edit(**/workspace/*/data/candidates.jsonl)",
+      "Write(**/workspace/*/data/candidates.jsonl)",
+      "Edit(workspace/*/data/postings.jsonl)",
+      "Write(workspace/*/data/postings.jsonl)",
+      "Edit(**/workspace/*/data/postings.jsonl)",
+      "Write(**/workspace/*/data/postings.jsonl)",
+      "Edit(workspace/*/data/postings-state.json)",
+      "Write(workspace/*/data/postings-state.json)",
+      "Edit(**/workspace/*/data/postings-state.json)",
+      "Write(**/workspace/*/data/postings-state.json)"
     ],
     "ask": [
       "WebFetch"
