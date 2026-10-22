@@ -5,8 +5,12 @@
   python3 tools/finder.py add WS --source web|linkedin --file workspace/<name>/data/<rows>.json   # rows Claude found
   python3 tools/finder.py probe "Company Name" [...]     # which boards answer for a company (setup)
 
+  python3 tools/finder.py probe --careers URL ["Company"]   # board entries linked from a careers page
+
 Reads the board list from workspace/<name>/data/sources.json and calls each board's public JSON API:
-Greenhouse, Ashby, Lever, Workable and SmartRecruiters. No login, no scraping, no model.
+Greenhouse, Ashby, Lever, Workable, SmartRecruiters, Workday and Eightfold. No login, no scraping, no model.
+Workday and Eightfold boards need more than a slug (see templates/sources.example.json); Eightfold is
+polled slowly, and a board that answers 429 is "throttled" for the day, never closed.
 
 New postings append to data/postings.jsonl. data/postings-state.json keeps first and last seen dates and
 whether a posting has closed. A posting is closed only when its board answered successfully without it:
@@ -22,10 +26,12 @@ import json
 import os
 import re
 import sys
+import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.error import HTTPError
+from urllib.parse import quote, urlparse
 from urllib.request import Request, urlopen
 
 TOOLS = Path(__file__).resolve().parent
@@ -44,16 +50,148 @@ TEXT_LIMIT = 8000
 UA = {"User-Agent": "Ascend/2.0 (job search; public board API)"}
 
 
+WD_MAX = 200            # Workday rows read per board per day
+EF_MAX = 100
+EF_SPACING = 2.0        # seconds between Eightfold requests: Netflix's answers 429 to a burst
+SAFE = re.compile(r"[A-Za-z0-9_-]+")
+HOST = re.compile(r"[a-z0-9-]+(\.[a-z0-9-]+)+")
+WD_PATH = re.compile(r"/job/[A-Za-z0-9_\-.%~/]+")
+
+
+THROTTLED = object()
+
+
+class Partial(list):
+    """A board list cut off at its cap: what is missing from it may still be open, so nothing is closed."""
+
+
+class Throttled(Exception):
+    """The board asked us to slow down (HTTP 429). Not a failure: nothing on it is closed."""
+
+
+def _base(default):
+    override = os.environ.get("ASCEND_ATS_BASE", "")      # tests only, and only on this machine
+    return override.rstrip("/") if urlparse(override).hostname in ("127.0.0.1", "localhost") else default
+
+
 def _url(ats, slug):
     host, path = ENDPOINTS[ats]
-    override = os.environ.get("ASCEND_ATS_BASE", "")      # tests only, and only on this machine
-    if urlparse(override).hostname in ("127.0.0.1", "localhost"):
-        host = override.rstrip("/")
-    return host + path.format(slug=slug)
+    return _base(host) + path.format(slug=slug)
 
 
-def fetch_board(ats, slug):
-    """The board's raw job list, or None when the board could not be read."""
+def _get_json(url, body=None):
+    headers = dict(UA, Accept="application/json")
+    if body is not None:
+        headers["Content-Type"] = "application/json"
+    req = Request(url, data=None if body is None else json.dumps(body).encode(), headers=headers)
+    try:
+        with urlopen(req, timeout=20) as r:
+            return json.loads(r.read().decode("utf-8", "replace"))
+    except HTTPError as e:
+        if e.code == 429:
+            raise Throttled(url) from None
+        raise
+
+
+def _search_text(filters):
+    """Workday and Eightfold search on the server: the first target-title pattern, regex syntax removed."""
+    first = next(iter((filters or {}).get("title_include") or []), "")
+    return re.sub(r"\s+", " ", re.sub(r"\\[bBwWsSdD]|[\\^$()\[\]{}?*+|.]", " ", first)).strip()
+
+
+def _title_ok(title, filters):
+    f = filters or {}
+    inc, exc = f.get("title_include") or [], f.get("title_exclude") or []
+    return ((not inc or any(re.search(p, title or "", re.I) for p in inc))
+            and not any(re.search(p, title or "", re.I) for p in exc))
+
+
+def workday_site(board):
+    """https://{slug}.{pod}.myworkdayjobs.com/{site}, or ValueError when the entry could point anywhere else."""
+    slug, pod, site = board.get("slug") or "", board.get("pod") or "", board.get("site") or ""
+    if not (SAFE.fullmatch(slug) and re.fullmatch(r"wd\d{1,3}", pod) and SAFE.fullmatch(site)):
+        raise ValueError(f"workday board {slug!r} needs slug, pod (wd1, wd5...) and site")
+    return f"https://{slug}.{pod}.myworkdayjobs.com/{site}"
+
+
+def eightfold_host(board):
+    host, domain = (board.get("host") or "").lower(), (board.get("domain") or "").lower()
+    if not (HOST.fullmatch(host) and HOST.fullmatch(domain)):
+        raise ValueError(f"eightfold board {board.get('slug')!r} needs host and domain")
+    return host, domain
+
+
+def _workday(board, filters):
+    site = workday_site(board)
+    api = _base(site.rsplit("/", 1)[0]) + f"/wday/cxs/{board['slug']}/{board['site']}"
+    search, rows, total = board.get("search") or _search_text(filters), [], None
+    while len(rows) < WD_MAX:
+        page = _get_json(api + "/jobs", {"appliedFacets": {}, "limit": 20, "offset": len(rows), "searchText": search})
+        got = page.get("jobPostings") if isinstance(page, dict) else None
+        if not isinstance(got, list):
+            return None
+        total = page.get("total") if total is None else total     # later pages answer total 0
+        rows += got
+        if len(got) < 20 or len(rows) >= (total or 0):
+            break
+    out = Partial() if len(rows) >= WD_MAX or (total or 0) > len(rows) else []
+    for r in rows:
+        path = r.get("externalPath") or ""
+        if not WD_PATH.fullmatch(path) or ".." in path or "//" in path:
+            continue
+        r = dict(r)
+        if _title_ok(r.get("title"), filters):
+            try:
+                r["_info"] = _get_json(api + path).get("jobPostingInfo") or {}
+            except Throttled:
+                raise
+            except Exception:
+                r["_info"] = {}
+        out.append(r)
+    return out
+
+
+def _eightfold(board, filters):
+    host, domain = eightfold_host(board)
+    api = _base(f"https://{host}") + "/api/apply/v2/jobs"
+    search, rows, count = quote(board.get("search") or _search_text(filters)), [], None
+    while len(rows) < EF_MAX:
+        if rows:
+            time.sleep(EF_SPACING)
+        page = _get_json(f"{api}?domain={quote(domain)}&query={search}&start={len(rows)}&num=10")
+        got = page.get("positions") if isinstance(page, dict) else None
+        if not isinstance(got, list):
+            return None
+        count = page.get("count") if count is None else count
+        rows += got
+        if len(got) < 10 or len(rows) >= (count or 0):
+            break
+    out = Partial() if len(rows) >= EF_MAX or (count or 0) > len(rows) else []
+    for r in rows:
+        if not isinstance(r.get("id"), int):
+            continue
+        r = dict(r)
+        if _title_ok(r.get("name"), filters):
+            time.sleep(EF_SPACING)
+            try:
+                r["_desc"] = _get_json(f"{api}/{r['id']}?domain={quote(domain)}").get("job_description") or ""
+            except Throttled:
+                raise
+            except Exception:
+                r["_desc"] = ""
+        out.append(r)
+    return out
+
+
+def fetch_board(ats, slug, board=None, filters=None):
+    """The board's raw job list, or None when the board could not be read. Raises Throttled on HTTP 429."""
+    if ats in ("workday", "eightfold"):
+        try:
+            return (_workday if ats == "workday" else _eightfold)(dict(board or {}, slug=slug), filters)
+        except Throttled:
+            raise
+        except Exception:
+            return None
     try:
         with urlopen(Request(_url(ats, slug), headers=UA), timeout=20) as r:
             data = json.loads(r.read().decode("utf-8", "replace"))
@@ -100,8 +238,27 @@ def _remote_from_text(loc):
     return True if "remote" in (loc or "").lower() else None
 
 
-def normalize(ats, slug, company, j):
-    if ats == "greenhouse":
+def normalize(ats, slug, company, j, board=None):
+    if ats == "workday":
+        info = j.get("_info") or {}
+        loc = info.get("location") or j.get("locationsText") or ""
+        rt = (info.get("remoteType") or "").lower()
+        url = workday_site(dict(board or {}, slug=slug)) + j["externalPath"]
+        native = info.get("jobReqId") or next(iter(j.get("bulletFields") or []), None) or j["externalPath"].rsplit("_", 1)[-1]
+        p = dict(native=native, title=info.get("title") or j.get("title", ""), location=loc,
+                 remote=True if rt == "remote" else False if rt in ("hybrid", "on-site", "onsite", "on site") else
+                 _remote_from_text(loc), url=url, apply_url=url + "/apply",
+                 text=clean(info.get("jobDescription")), comp_min=None, comp_max=None)
+    elif ats == "eightfold":
+        host, _ = eightfold_host(dict(board or {}, slug=slug))
+        loc = j.get("location") or ", ".join(j.get("locations") or [])
+        wlo = (j.get("work_location_option") or "").lower()
+        # Netflix lists "Remote, United States" jobs as work_location_option "onsite": the location wins.
+        url = f"https://{host}/careers/job/{j['id']}"
+        p = dict(native=j["id"], title=j.get("name") or j.get("posting_name") or "", location=loc,
+                 remote=True if "remote" in loc.lower() or wlo == "remote" else False if wlo in ("hybrid", "onsite") else None,
+                 url=url, apply_url=url, text=clean(j.get("_desc") or j.get("job_description")), comp_min=None, comp_max=None)
+    elif ats == "greenhouse":
         loc = (j.get("location") or {}).get("name", "")
         p = dict(native=j["id"], title=j.get("title", ""), location=loc, remote=_remote_from_text(loc),
                  url=j.get("absolute_url"), apply_url=f"https://job-boards.greenhouse.io/{slug}/jobs/{j['id']}",
@@ -151,14 +308,22 @@ def normalize(ats, slug, company, j):
 def run(ws, today=None):
     today = today or date.today().isoformat()
     dd = d.data_dir(ws)
-    boards = d.read_json(dd / "sources.json", {}).get("boards", [])
+    src = d.read_json(dd / "sources.json", {})
+    boards, filters = src.get("boards", []), src.get("filters") or {}
+
+    def one(b):
+        try:
+            return b, fetch_board(b["ats"], b["slug"], b, filters)
+        except Throttled:
+            return b, THROTTLED
     with ThreadPoolExecutor(16) as ex:
-        results = list(ex.map(lambda b: (b, fetch_board(b["ats"], b["slug"])), boards))
-    out = {"boards": len(boards), "failed": [], "empty": [], "new": 0, "seen": 0, "closed": 0}
+        results = list(ex.map(one, boards))
+    out = {"boards": len(boards), "failed": [], "empty": [], "throttled": [], "new": 0, "seen": 0, "closed": 0}
     d.update_json(dd / "postings-state.json", {}, lambda state: _merge(dd, results, state, out, today))
     # The hub shows these: a wrong slug otherwise fails quietly every day.
     d.write_json_atomic(dd / "board-health.json", {"checked": today, "boards": len(boards),
-                                                   "failed": out["failed"], "empty": out["empty"]})
+                                                   "failed": out["failed"], "empty": out["empty"],
+                                                   "throttled": out["throttled"]})
     return out
 
 
@@ -189,10 +354,54 @@ def probe(company):
     return hits
 
 
+PAGE_LINKS = [
+    ("workday", re.compile(r"https?://([a-z0-9-]+)\.(wd\d{1,3})\.myworkdayjobs\.com/(?:[a-z]{2}-[A-Z]{2}/)?([A-Za-z0-9_-]+)")),
+    ("greenhouse", re.compile(r"https?://(?:job-)?boards(?:-api)?\.greenhouse\.io/(?:embed/job_board\?for=|v1/boards/)?([a-z0-9_-]+)")),
+    ("lever", re.compile(r"https?://jobs\.lever\.co/([a-z0-9_-]+)")),
+    ("ashby", re.compile(r"https?://jobs\.ashbyhq\.com/([A-Za-z0-9_.-]+)")),
+]
+NOT_SLUGS = {"wday", "embed", "v1", "api", "static", "assets", "jobs"}
+
+
+def boards_from_page(html_text, page_url, company):
+    """Board entries for every job system a careers page links to (setup). Eightfold needs its own marker on
+    the page, because a bare "domain" key appears on many sites."""
+    out = []
+
+    def keep(entry):
+        if entry not in out:
+            out.append(entry)
+    for ats, rx in PAGE_LINKS:
+        for m in rx.finditer(html_text or ""):
+            if ats == "workday":
+                if m.group(3).lower() not in NOT_SLUGS:
+                    keep({"company": company, "ats": "workday", "slug": m.group(1), "pod": m.group(2), "site": m.group(3)})
+            elif m.group(1).lower() not in NOT_SLUGS:
+                keep({"company": company, "ats": ats, "slug": m.group(1)})
+    host = (urlparse(page_url or "").hostname or "").lower()
+    dom = re.search(r'"domain"\s*:\s*"([a-z0-9.-]+\.[a-z]{2,})"', html_text or "")
+    if dom and re.search(r"eightfold", html_text or "", re.I) and HOST.fullmatch(host):
+        keep({"company": company, "ats": "eightfold", "slug": re.sub(r"\W", "", dom.group(1).split(".")[0]),
+              "host": host, "domain": dom.group(1)})
+    return out
+
+
+def probe_careers(url, company):
+    if not (url or "").startswith("https://"):
+        raise ValueError("the careers page must be an https URL")
+    with urlopen(Request(url, headers={"User-Agent": "Mozilla/5.0 (Ascend setup probe)"}), timeout=20) as r:
+        text = r.read(3_000_000).decode("utf-8", "replace")
+        final = r.geturl()
+    return boards_from_page(text, final, company)
+
+
 def _merge(dd, results, state, out, today):
     """Fold the fetched boards into postings-state, under its lock (finder.add may run at the same time)."""
     for board, raw in results:
         where = f"{board['ats']}:{board['slug']}"
+        if raw is THROTTLED:
+            out["throttled"].append(where)
+            continue
         if raw is None:
             out["failed"].append(where)
             continue
@@ -201,7 +410,7 @@ def _merge(dd, results, state, out, today):
         current = set()
         for j in raw:
             try:
-                p = normalize(board["ats"], board["slug"], board.get("company"), j)
+                p = normalize(board["ats"], board["slug"], board.get("company"), j, board)
             except (KeyError, TypeError, ValueError):
                 continue
             current.add(p["id"])
@@ -214,6 +423,8 @@ def _merge(dd, results, state, out, today):
                 out["new"] += 1
         if raw and not current:         # every job failed to read: the ATS changed its format, not the board
             out["failed"].append(where)
+            continue
+        if isinstance(raw, Partial):
             continue
         prefix = f"{board['ats']}:{board['slug']}:"
         for pid, st in state.items():
@@ -301,6 +512,18 @@ def main(argv):
         except (ValueError, PathOutsideWorkspace) as e:
             print(f"finder: {e}", file=sys.stderr)
             return 2
+        return 0
+    if len(argv) >= 4 and argv[1] == "probe" and argv[2] == "--careers":
+        company = argv[4] if len(argv) > 4 else (urlparse(argv[3]).hostname or "").split(".")[-2:][0]
+        try:
+            found = probe_careers(argv[3], company)
+        except (ValueError, OSError) as e:
+            print(f"finder: {e}", file=sys.stderr)
+            return 2
+        for b in found:
+            print(json.dumps(b))
+        if not found:
+            print("no supported job system linked from that page (Phenom, iCIMS and own-site boards are not supported)")
         return 0
     if len(argv) >= 3 and argv[1] == "probe":
         for name in argv[2:]:

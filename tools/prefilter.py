@@ -28,7 +28,7 @@ from classify import company_tokens  # noqa: E402
 
 
 # Bump when the rules themselves change, so postings judged by older rules are judged again.
-RULES_VERSION = 2
+RULES_VERSION = 4
 
 
 def _any(patterns, text):
@@ -52,6 +52,12 @@ US_PLACES = ["u s", "u s a", "united states of america", "north america", "nyc",
 US_ALIASES = {"united states", "us", "usa", "u.s.", "u.s.a."}
 REMOTE_IN_TEXT = re.compile(r"\b(this (role|position) is (fully )?remote|remote[- ](first|eligible|friendly)|"
                             r"work (fully )?remote(ly)?|remote within|100% remote|fully remote)\b", re.I)
+
+
+# Some companies number their levels instead of naming them (Netflix: "Security Engineer 5", "(L6)").
+# Level 5 and up is senior at the companies that do this, so it counts as meeting a seniority filter.
+SENIOR_LEVEL = re.compile(r"\((?:L|IC|E)[5-9]\)|\b(?:L|IC|E)[5-9]\b|\blevel\s*[5-9]\b|"
+                          r"\b(?:engineer|developer|architect|scientist)\s+[5-9](?!\d)\b", re.I)
 
 
 def location_ok(loc, allowed):
@@ -86,7 +92,7 @@ def evaluate(posting, filters, applied):
     hit = _any(filters.get("title_exclude"), title)
     if hit:
         fail(f"excluded title ({hit})")
-    if filters.get("seniority") and not _any(filters["seniority"], title):
+    if filters.get("seniority") and not _any(filters["seniority"], title) and not SENIOR_LEVEL.search(title):
         fail("seniority not in your targets")
     if filters.get("remote_only"):
         remote = posting.get("remote")

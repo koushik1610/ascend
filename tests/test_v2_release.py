@@ -119,6 +119,8 @@ class Daily(unittest.TestCase):
         self.assertFalse(stages["finder"]["ok"])           # its only board is unreachable: say so
         self.assertIn("unreachable", stages["finder"]["detail"])
         self.assertTrue(stages["hub"]["ok"])               # and every later stage still runs
+        self.assertTrue(stages["autoapply"]["ok"])         # off by default: a quiet skip, never an error
+        self.assertIn("off", stages["autoapply"]["detail"])
         self.assertTrue((self.ws / "hub.html").is_file())
         self.assertEqual(len(d.read_jsonl(self.ws / "data" / "run-log.jsonl")), 1)
 
@@ -244,9 +246,16 @@ class Permissions(unittest.TestCase):
         self.assertNotIn("WebFetch", perms["allow"])
         self.assertIn("WebFetch", perms.get("ask", []))
         # browser_batch can run a denied tool inside a batch; upload_image fills a file input; no prompt uses either.
-        for t in ("form_input", "file_upload", "javascript_tool", "browser_batch", "upload_image", "shortcuts_execute"):
+        for t in ("javascript_tool", "browser_batch", "upload_image", "shortcuts_execute"):
             self.assertIn(f"mcp__claude-in-chrome__{t}", perms["deny"])
-        for f in ("queue.json", "apply-log.jsonl", "events.jsonl", "ingested.jsonl"):
+        # 2026-10-22, the user's decision: form filling and file upload are allowed so Claude can finish a
+        # stopped application with the user, who says yes in chat before any submit (prompts/28-apply.md).
+        for t in ("form_input", "file_upload"):
+            self.assertNotIn(f"mcp__claude-in-chrome__{t}", perms["deny"])
+        for f in ("queue.json", "apply-log.jsonl", "events.jsonl", "ingested.jsonl", "auto.json",
+                  "apply-answers.json", "answer-bank.json",
+                  # the gates read these: only the finder and prefilter write them (release round 1, S6)
+                  "candidates.jsonl", "postings.jsonl", "postings-state.json"):
             for tool in ("Edit", "Write"):
                 self.assertIn(f"{tool}(workspace/*/data/{f})", perms["deny"])
                 self.assertIn(f"{tool}(**/workspace/*/data/{f})", perms["deny"])     # whatever the launch folder

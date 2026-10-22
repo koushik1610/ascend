@@ -246,6 +246,25 @@ class Round2(unittest.TestCase):
                                "at least three options for days and times you're available. This opportunity"}
         self.assertEqual(classify.classify_message(msg)["category"], "interview-invite")
 
+    def test_mail_naming_another_role_at_the_company_matches_nothing(self):
+        # Run 4 (2026-10-22): Indeed's "Senior Manager - Reliability Engineering @ Netflix" was linked to the user's
+        # Netflix security folder on the company name alone.
+        import classify
+        jobs = [{"nn": "01", "company": "Netflix", "title": "Security Engineer 5 - Cloud Architecture, Tooling and Security"},
+                {"nn": "03", "company": "OpenAI", "title": "Principal Security Engineer, Infrastructure Security"}]
+        other = {"from": "donotreply@match.indeed.com", "subject": "Senior Manager - Reliability Engineering @ Netflix",
+                 "body_excerpt": "Your background could be a strong match for this Senior Manager role at Netflix."}
+        self.assertEqual(classify.match_detail(other, jobs), (None, None))
+        same = {"from": "donotreply@match.indeed.com", "subject": "Principal Security Engineer, Infrastructure Security @ OpenAI",
+                "body_excerpt": "Your background could be a strong match for this role at OpenAI."}
+        self.assertEqual(classify.match_detail(same, jobs)[0], "03")
+        plain = {"from": "paixc@jobs.netflix.com", "subject": "Next steps w/ Netflix", "body_excerpt": "Thanks for the chat."}
+        self.assertEqual(classify.match_detail(plain, jobs)[0], "01")      # no role named: the company is enough
+        invite = {"from": "paixc@netflix.com", "body_excerpt": "Netflix Recruiter Phone Screen",
+                  "subject": "Invitation from an unknown sender: Koushik - Netflix Recruiter Phone Screen @ Fri Oct 16, "
+                             "2026 14:30 - 15:00 (GMT-6) (k@example.com)"}
+        self.assertEqual(classify.match_detail(invite, jobs)[0], "01")     # a calendar invite's "@" is a time
+
     def test_a_newsletter_is_never_an_assessment(self):
         import classify
         msg = {"from": "no-reply@substack.com", "subject": "Coding Challenge #140 - Bluetooth Proximity Finder",

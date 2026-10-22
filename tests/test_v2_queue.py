@@ -258,12 +258,32 @@ class Plan(unittest.TestCase):
         self.assertFalse(p["ok"])
         self.assertTrue(any("gmail-client.json" in x for x in p["problems"]))
 
-    def test_agent_and_automatic_are_not_in_this_release(self):
+    def test_agent_mode_is_not_in_this_release(self):
+        # Claude submitting on its own is not offered: the runner submits, Claude only after the user's yes.
         import run
-        for mode in ("agent", "automatic"):
-            out = run.plan(self.ws, "B", mode)
-            self.assertFalse(out["ok"])
-            self.assertIn("not in this release", " ".join(out["problems"]))
+        out = run.plan(self.ws, "B", "agent")
+        self.assertFalse(out["ok"])
+        self.assertIn("not in this release", " ".join(out["problems"]))
+
+    def test_permissions_say_who_submits_in_each_mode(self):
+        import json as j
+        import run
+        deny = j.loads((REPO / ".claude/settings.json").read_text())["permissions"]["deny"]
+        for mode in ("assisted", "automatic"):
+            text = " ".join(run.plan(self.ws, "B", mode)["permissions"])
+            self.assertNotIn("never submits anything", text, mode)
+            for tool in ("form-input", "file-upload"):         # allowed since 2026-10-22: never claim a deny
+                if f"mcp__claude-in-chrome__{tool.replace('-', '_')}" not in deny:
+                    self.assertNotIn(f"denies Claude in Chrome's {tool}", text, mode)
+        self.assertIn("apply for me", " ".join(run.plan(self.ws, "B", "automatic")["permissions"]))
+        self.assertIn("press Submit yourself", " ".join(run.plan(self.ws, "B", "assisted")["permissions"]))
+
+    def test_automatic_plan_says_the_hub_turns_it_on(self):
+        import run
+        out = run.plan(self.ws, "B", "automatic")
+        self.assertTrue(out["ok"], out)
+        self.assertIn("apply for me", out["warning"])
+        self.assertIn("Playwright", " ".join(out["notes"] + [out["warning"]]))
 
     def test_assisted_warns_about_tokens_and_ok_saves_defaults(self):
         import _v2data as d
@@ -291,13 +311,13 @@ class Plan(unittest.TestCase):
         import run
         perms = " ".join(run.plan(self.ws, "C")["permissions"])
         self.assertIn("ask you before every web fetch", perms)
-        self.assertIn("form-input", perms)
+        self.assertIn("scripting", perms)               # the Chrome tools still denied are named
 
     def test_every_engine_states_the_permissions_it_uses(self):
         import run
         for engine in ("A", "B", "C"):
             perms = " ".join(run.plan(self.ws, engine)["permissions"])
-            self.assertIn("never submits", perms)
+            self.assertIn("press Submit yourself", perms)    # assisted, the default mode
             self.assertIn("LinkedIn", perms)
         self.assertIn("gmail.readonly", " ".join(run.plan(self.ws, "A")["permissions"]))
         for engine in ("B", "C"):
@@ -341,8 +361,10 @@ class Server(unittest.TestCase):
         (cls.ws / "data").mkdir(parents=True)
         seed_candidates(cls.ws)
         cls.port = free_port()
+        cls.keydir = tempfile.TemporaryDirectory()
+        cls.env = dict(os.environ, ASCEND_AUTO_KEY=str(Path(cls.keydir.name) / "auto.key"))
         cls.proc = subprocess.Popen([sys.executable, str(REPO / "ui/server.py"), "--port", str(cls.port), "--no-browser"],
-                                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=cls.env)
         wait_for(cls.port)
         _, body = cls.req("GET", "/")
         cls.token = re.search(r'const TOKEN = "([^"]+)"', body).group(1)
@@ -353,6 +375,7 @@ class Server(unittest.TestCase):
         cls.proc.wait(timeout=5)
         shutil.rmtree(cls.ws, ignore_errors=True)
         (REPO / "ui/.port").unlink(missing_ok=True)
+        cls.keydir.cleanup()
 
     @classmethod
     def req(cls, method, path, body=None, token=None):
@@ -368,6 +391,63 @@ class Server(unittest.TestCase):
         out = (r.status, r.read().decode("utf-8", "replace"), dict(r.getheaders()))
         c.close()
         return out[:2] if method == "GET" and path == "/" else out
+
+    def test_auto_apply_turns_on_only_with_the_phrase(self):
+        status, body, _ = self.req("POST", "/api/auto", {"slug": self.SLUG, "action": "enable", "phrase": "yes"},
+                                   token=self.token)
+        self.assertEqual(status, 400, body)
+        self.assertIn("apply for me", json.loads(body)["error"])
+        status, body, _ = self.req("POST", "/api/auto", {"slug": self.SLUG, "action": "enable", "phrase": "apply for me"},
+                                   token=self.token)
+        self.assertEqual(status, 200, body)
+        self.assertTrue(json.loads(body)["enabled"])
+        r = subprocess.run([sys.executable, str(REPO / "tools/autoapply.py"), "status", str(self.ws)],
+                           capture_output=True, text=True, env=self.env)
+        self.assertTrue(json.loads(r.stdout)["enabled"])      # signed by the server, read by the runner
+        status, body, _ = self.req("POST", "/api/auto", {"slug": self.SLUG, "action": "settings", "daily_cap": 999},
+                                   token=self.token)
+        self.assertEqual(status, 400, body)
+        status, body, _ = self.req("POST", "/api/auto", {"slug": self.SLUG, "action": "disable"}, token=self.token)
+        self.assertFalse(json.loads(body)["enabled"])
+
+    def test_auto_apply_needs_token_and_origin(self):
+        status, _, _ = self.req("POST", "/api/auto", {"slug": self.SLUG, "action": "enable", "phrase": "apply for me"})
+        self.assertEqual(status, 403)
+        c = http.client.HTTPConnection("127.0.0.1", self.port, timeout=5)
+        c.request("POST", "/api/auto", body=json.dumps({"slug": self.SLUG, "action": "enable", "phrase": "apply for me"}),
+                  headers={"Host": f"127.0.0.1:{self.port}", "X-Ascend-Token": self.token, "Content-Type": "application/json"})
+        self.assertEqual(c.getresponse().status, 403)
+        c.close()
+
+    def test_workspace_pages_run_sandboxed_so_they_cannot_reach_the_api(self):    # release round 1, S1
+        (self.ws / "page.html").write_text("<script>parent.fetch('/api/auto')</script>")
+        (self.ws / "note.md").write_text("# hi")
+        for path in (f"/workspace/{self.SLUG}/page.html", f"/view/{self.SLUG}/note.md"):
+            status, _, headers = self.req("GET", path)
+            self.assertEqual(status, 200, path)
+            csp = {k.lower(): v for k, v in headers.items()}["content-security-policy"]
+            self.assertIn("sandbox allow-scripts", csp, path)
+            self.assertNotIn("allow-same-origin", csp, path)
+        page = (REPO / "ui" / "index.html").read_text()
+        self.assertRegex(page, r'<iframe[^>]*id="rframe"[^>]*sandbox="allow-scripts[^"]*"')
+
+    def test_application_screenshots_are_never_served(self):                     # S10
+        shot = self.ws / "jobs" / "01-acme" / "apply"
+        shot.mkdir(parents=True, exist_ok=True)
+        (shot / "filled.png").write_bytes(b"\x89PNG")
+        status, _, _ = self.req("GET", f"/workspace/{self.SLUG}/jobs/01-acme/apply/filled.png")
+        self.assertEqual(status, 404)
+
+    def test_first_send_needs_a_supervised_send_to_confirm(self):
+        status, body, _ = self.req("POST", "/api/auto", {"slug": self.SLUG, "action": "confirm_first"}, token=self.token)
+        self.assertEqual(status, 400, body)
+        self.assertIn("supervised", json.loads(body)["error"])
+
+    def test_queue_retry_and_not_sent_are_hub_actions(self):
+        status, body, _ = self.req("POST", "/api/queue", {"slug": self.SLUG, "posting_id": "greenhouse:d:4",
+                                                          "action": "retry"}, token=self.token)
+        self.assertEqual(status, 400, body)            # only a stopped (needs-you) job can be retried
+        self.assertIn("needs you", json.loads(body)["error"])
 
     def test_hub_route_injects_token_and_allows_self_only(self):
         status, body, headers = self.req("GET", f"/hub?slug={self.SLUG}")

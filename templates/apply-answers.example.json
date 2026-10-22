@@ -1,0 +1,25 @@
+{
+  "_comment": [
+    "Copy to workspace/<name>/data/apply-answers.json and fill it in YOURSELF. Claude cannot write this file",
+    "(.claude/settings.json denies it), and Ascend never infers these answers. Automatic apply and apply sheets",
+    "copy each value exactly as written onto every form that asks. Delete a line to have forms asking it stop",
+    "in Needs you instead. Every value below starts with \"your\" and is never sent until you replace it.",
+    "Yes/no questions: write Yes or No. Choices (gender, veteran...): write the option as forms show it, for",
+    "example Decline To Self Identify. A form whose options do not include your answer stops; nothing is guessed."
+  ],
+  "work_authorization": "your answer: Yes or No",
+  "sponsorship": "your answer: Yes or No",
+  "salary_expectation": "your salary expectation",
+  "start_date": "your start date",
+  "current_company": "your current company",
+  "country": "your country",
+  "city": "your city",
+  "postal_code": "your postal code",
+  "how_heard": "your answer, for example Company website",
+  "relocation": "your answer: Yes or No",
+  "gender": "your choice as forms show it",
+  "hispanic": "your choice as forms show it",
+  "race": "your choice as forms show it",
+  "veteran": "your choice as forms show it",
+  "disability": "your choice as forms show it"
+}

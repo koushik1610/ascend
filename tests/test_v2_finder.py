@@ -39,7 +39,8 @@ class Override(unittest.TestCase):
 
 class FakeATS:
     def __init__(self):
-        self.boards = {}     # path -> payload, or None for a 500
+        self.boards = {}     # path -> payload, None for a 500, an int status, or a callable(query, body)
+        self.calls = []
         fake = self
 
         class H(BaseHTTPRequestHandler):
@@ -47,12 +48,23 @@ class FakeATS:
                 pass
 
             def do_GET(self):
-                path = urlparse(self.path).path
+                u = urlparse(self.path)
+                path = u.path
+                n = int(self.headers.get("Content-Length") or 0)
+                body = json.loads(self.rfile.read(n) or b"{}") if n else None
+                fake.calls.append((self.command, self.path, body))
                 if path not in fake.boards:
                     self.send_response(404)
                     self.end_headers()
                     return
                 payload = fake.boards[path]
+                if callable(payload):       # (query, body) -> payload, or an int status
+                    payload = payload(u.query, body)
+                if isinstance(payload, int):
+                    self.send_response(payload)
+                    self.send_header("Retry-After", "3600")
+                    self.end_headers()
+                    return
                 if payload is None:
                     self.send_response(500)
                     self.end_headers()
@@ -63,6 +75,8 @@ class FakeATS:
                 self.send_header("Content-Length", str(len(b)))
                 self.end_headers()
                 self.wfile.write(b)
+
+            do_POST = do_GET
 
         self.server = ThreadingHTTPServer(("127.0.0.1", 0), H)
         self.base = f"http://127.0.0.1:{self.server.server_address[1]}"
@@ -277,6 +291,16 @@ class Evaluate(unittest.TestCase):
             self.assertTrue(any(reason_part in x for x in r["reasons"]), r["reasons"])
         return r
 
+    def test_numbered_levels_five_and_up_count_as_senior(self):
+        # Run 4 (2026-10-22): Netflix titles its levels "Security Engineer 5" and "(L6)", so the user's seniority
+        # filter rejected every Netflix role, the one they were interviewing for among them.
+        for title in ("Security Engineer 5 - IAM", "Security Software Engineer (L6), Platform Security",
+                      "Security Engineer L5", "Security Engineer, Level 6", "IC6 Security Engineer"):
+            self.check(True, title=title)
+        for title in ("Security Engineer 3", "Security Engineer (L4)", "Security Engineer 2 - AU",
+                      "Security Engineer - Windows 11 hardening"):
+            self.check(False, "seniority", title=title)
+
     def test_passes_and_scores_overlap(self):
         r = self.check(True)
         self.assertEqual(r["keyword_overlap"], 0.75)
@@ -370,6 +394,162 @@ class PrefilterRun(Base):
         rows = {r["posting_id"]: r for r in d.read_jsonl(self.ws / "data" / "candidates.jsonl")}
         self.assertFalse(rows["greenhouse:acme:1"]["passed"])
         self.assertIn("closed", rows["greenhouse:acme:1"]["reasons"][0])
+
+
+WD = {"company": "Zillow", "ats": "workday", "slug": "zillow", "pod": "wd5", "site": "Zillow_Group_External"}
+EF = {"company": "Netflix", "ats": "eightfold", "slug": "netflix", "host": "explore.jobs.netflix.net",
+      "domain": "netflix.com"}
+
+
+def wd_row(i, title, loc="Remote-USA"):
+    return {"title": title, "externalPath": f"/job/{loc}/Role_P{i}", "locationsText": loc,
+            "postedOn": "Posted Today", "bulletFields": [f"P{i}"]}
+
+
+def wd_detail(i, title, remote="Remote", loc="Remote-USA"):
+    return {"jobPostingInfo": {"title": title, "jobDescription": "<p>About the role: own <b>cloud</b> guardrails</p>",
+                               "location": loc, "jobReqId": f"P{i}", "remoteType": remote}}
+
+
+def ef_pos(i, title, loc="Remote, United States", wlo="onsite"):
+    return {"id": i, "name": title, "location": loc, "locations": [loc], "work_location_option": wlo,
+            "canonicalPositionUrl": f"https://evil.example/{i}", "job_description": ""}
+
+
+class NewSources(Base):
+    WD_BASE = "/wday/cxs/zillow/Zillow_Group_External"
+
+    def setUp(self):
+        super().setUp()
+        import finder
+        self._spacing, finder.EF_SPACING = finder.EF_SPACING, 0
+
+    def tearDown(self):
+        import finder
+        finder.EF_SPACING = self._spacing
+        super().tearDown()
+
+    def wd_board(self, rows, details):
+        def jobs(query, body):
+            off = body["offset"]
+            return {"total": len(rows) if off == 0 else 0, "jobPostings": rows[off:off + 20]}
+        self.fake.boards[self.WD_BASE + "/jobs"] = jobs
+        for r in rows:
+            i = r["bulletFields"][0][1:]
+            self.fake.boards[self.WD_BASE + r["externalPath"]] = details.get(i, 404)
+
+    def test_workday_pages_and_reads_detail_only_for_wanted_titles(self):
+        import finder
+        rows = [wd_row(i, "Staff Security Engineer" if i < 3 else "Account Executive") for i in range(25)]
+        self.wd_board(rows, {str(i): wd_detail(i, "Staff Security Engineer") for i in range(3)})
+        self.sources([WD], title_include=[r"\bsecurity\b"])
+        out = finder.run(self.ws)
+        self.assertEqual(out["new"], 25)
+        posts = {p["id"]: p for p in self.postings()}
+        p = posts["workday:zillow:P1"]
+        self.assertEqual((p["company"], p["remote"], p["ats"]), ("Zillow", True, "workday"))
+        self.assertIn("cloud guardrails", p["text"])
+        self.assertEqual(p["url"], "https://zillow.wd5.myworkdayjobs.com/Zillow_Group_External/job/Remote-USA/Role_P1")
+        self.assertEqual(p["apply_url"], p["url"] + "/apply")
+        self.assertEqual(posts["workday:zillow:P10"]["text"], "")
+        details = [c for c in self.fake.calls if c[0] == "GET"]
+        self.assertEqual(len(details), 3)       # only the three security titles were opened
+        posted = [c[2] for c in self.fake.calls if c[0] == "POST"]
+        self.assertEqual([b["offset"] for b in posted], [0, 20])
+        self.assertEqual(posted[0]["searchText"], "security")
+
+    def test_workday_hybrid_is_not_remote(self):
+        import finder
+        self.wd_board([wd_row(1, "Security Engineer", "Seattle")], {"1": wd_detail(1, "Security Engineer", "Hybrid", "Seattle")})
+        self.sources([WD], title_include=["security"])
+        finder.run(self.ws)
+        self.assertIs(self.postings()[0]["remote"], False)
+
+    def test_workday_path_that_leaves_the_site_is_dropped(self):
+        import finder
+        rows = [wd_row(1, "Security Engineer"), dict(wd_row(2, "Security Engineer"), externalPath="//evil.example/job/x"),
+                dict(wd_row(3, "Security Engineer"), externalPath="/job/../../x")]
+        self.wd_board(rows, {"1": wd_detail(1, "Security Engineer")})
+        self.sources([WD], title_include=["security"])
+        finder.run(self.ws)
+        self.assertEqual([p["id"] for p in self.postings()], ["workday:zillow:P1"])
+
+    def test_workday_bad_board_settings_fail_the_board(self):
+        import finder
+        self.sources([dict(WD, pod="wd5.evil.example/")], title_include=["security"])
+        out = finder.run(self.ws)
+        self.assertEqual(out["failed"], ["workday:zillow"])
+
+    def test_eightfold_lists_reads_detail_and_builds_its_own_link(self):
+        import finder
+        pos = [ef_pos(100 + i, "Security Engineer 5" if i < 2 else "Content Producer") for i in range(12)]
+
+        def jobs(query, body):
+            from urllib.parse import parse_qs
+            q = parse_qs(query)
+            assert q["domain"] == ["netflix.com"]
+            st = int(q["start"][0])
+            return {"count": len(pos), "positions": pos[st:st + 10]}
+        self.fake.boards["/api/apply/v2/jobs"] = jobs
+        for i in range(2):
+            self.fake.boards[f"/api/apply/v2/jobs/{100 + i}"] = dict(pos[i], job_description="<p>The role: detection</p>")
+        self.sources([EF], title_include=["security"])
+        out = finder.run(self.ws)
+        self.assertEqual(out["new"], 12)
+        p = {x["id"]: x for x in self.postings()}["eightfold:netflix:100"]
+        self.assertEqual((p["remote"], p["company"]), (True, "Netflix"))
+        self.assertIn("detection", p["text"])
+        self.assertEqual(p["url"], "https://explore.jobs.netflix.net/careers/job/100")
+        self.assertEqual(p["apply_url"], p["url"])
+
+    def test_a_capped_list_closes_nothing(self):                         # release round 1, B10
+        import finder
+        import _v2data as d
+        rows = [wd_row(i, "Staff Security Engineer") for i in range(30)]
+        self.wd_board(rows, {})
+        self.sources([WD], title_include=["security"])
+        finder.run(self.ws, today="2026-10-20")
+        saved, finder.WD_MAX = finder.WD_MAX, 20
+        try:
+            self.wd_board(rows[10:], {})        # the first 10 are past the cap now, not gone
+            out = finder.run(self.ws, today="2026-10-21")
+        finally:
+            finder.WD_MAX = saved
+        self.assertEqual(out["closed"], 0)
+        state = d.read_json(self.ws / "data" / "postings-state.json", {})
+        self.assertFalse(any(v["closed"] for v in state.values()))
+
+    def test_throttled_board_closes_nothing_and_is_reported(self):
+        import finder
+        import _v2data as d
+        self.fake.boards["/api/apply/v2/jobs"] = {"count": 1, "positions": [ef_pos(1, "Security Engineer")]}
+        self.fake.boards["/api/apply/v2/jobs/1"] = dict(ef_pos(1, "Security Engineer"), job_description="x")
+        self.sources([EF], title_include=["security"])
+        finder.run(self.ws, today="2026-10-20")
+        self.fake.boards["/api/apply/v2/jobs"] = 429
+        out = finder.run(self.ws, today="2026-10-21")
+        self.assertEqual((out["throttled"], out["failed"], out["closed"]), (["eightfold:netflix"], [], 0))
+        self.assertFalse(d.read_json(self.ws / "data" / "postings-state.json", {})["eightfold:netflix:1"]["closed"])
+        self.assertEqual(d.read_json(self.ws / "data" / "board-health.json", {})["throttled"], ["eightfold:netflix"])
+
+
+class ProbeCareers(unittest.TestCase):
+    def test_reads_workday_eightfold_and_greenhouse_links(self):
+        import finder
+        html = ('<a href="https://zillow.wd5.myworkdayjobs.com/en-US/Zillow_Group_External/job/x">x</a>'
+                '<a href="https://arcticwolf.wd1.myworkdayjobs.com/External">y</a>'
+                '<script src="https://static.eightfold.ai/x.js"></script><script>{"domain": "netflix.com"}</script>'
+                '<a href="https://boards.greenhouse.io/cerebral/jobs/1">z</a>')
+        got = finder.boards_from_page(html, "https://explore.jobs.netflix.net/careers", "Acme")
+        self.assertIn({"company": "Acme", "ats": "workday", "slug": "zillow", "pod": "wd5", "site": "Zillow_Group_External"}, got)
+        self.assertIn({"company": "Acme", "ats": "workday", "slug": "arcticwolf", "pod": "wd1", "site": "External"}, got)
+        self.assertIn({"company": "Acme", "ats": "greenhouse", "slug": "cerebral"}, got)
+        self.assertIn({"company": "Acme", "ats": "eightfold", "slug": "netflix", "host": "explore.jobs.netflix.net",
+                       "domain": "netflix.com"}, got)
+
+    def test_eightfold_needs_the_eightfold_api_shape(self):
+        import finder
+        self.assertEqual(finder.boards_from_page('{"domain": "x.com"}', "https://www.example.com/careers", "X"), [])
 
 
 if __name__ == "__main__":

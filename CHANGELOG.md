@@ -6,12 +6,28 @@ versioning is [SemVer](https://semver.org/).
 > **Renamed.** This project was previously called **S.P.I.D.E.R.** (and the `/spider` command). It is
 > now **Ascend**, with `/ascend` and `/ascendui` commands; earlier entries below use the old name.
 
-## [Unreleased]
-_Working toward v1.0. Real-run gate: **1 of 2–3 runs signed off** (2026-07-01, with-résumé/tech,
-see `docs/ROADMAP.md` → sign-off log); cases (b) no-résumé/non-tech and (c) resume-after-interruption
-remain, plus a green CI run on the remote + a demo GIF._
+## [2.0.0-beta] - 2026-10-22
+Ascend 2.0 as a release candidate: finding, filtering, scoring, tailoring, mail tracking and the hub have run
+on real data; automatic apply is built, dry-run checked on live forms, and cannot send unattended until the
+user has watched and confirmed one supervised send. What has run for real: `docs/V2-READINESS.md`.
 
-### Fixed: Ascend 2.0 from scratch (branch `fix/v2-rerun-council`)
+### Added: automatic apply, Workday and Eightfold (PR #18)
+- **Automatic apply** (`tools/autoapply.py`, `tools/autoapply_forms.py`, opt-in, beta). Turned on only in
+  the hub by typing "apply for me"; `auto.json` is signed with a key outside the workspace. The runner
+  fills Greenhouse, Ashby and Lever forms with Playwright from the user's own files and submits. Applied
+  only on a seen confirmation; anything else goes to Needs you with the reason. Caps (5 a day the first
+  week, then 25), 2 per company per 30 days, pauses on unclear results and a low reply rate.
+- **Shared send gates** in `apply.py` (`ready`, `pack`, `apply_url_for`, `allowed`): the link is rebuilt
+  from the board onto an exact allowed host, and a model's fit score alone can never send.
+- **User-written answers:** `templates/apply-answers.example.json` and `answer-bank.example.json`. Claude
+  cannot edit them; template placeholders are never sent.
+- **Claude in Chrome** form filling and file upload are allowed again, for finishing stopped jobs with the
+  user's yes per batch (`prompts/28-apply.md`).
+- **Workday and Eightfold sources** in the finder, a throttled board state that closes nothing, and
+  `finder.py probe --careers URL`.
+- **`run.py plan --mode automatic`**; CI installs a pinned Playwright so the form-filler tests run.
+
+### Fixed: Ascend 2.0 from scratch (PR #17)
 A from-scratch run on a real user's profile, reviewed by the ten-persona council, found that the merged
 release only worked on a workspace seeded by hand:
 - **Job folders from a v1 run join the queue** (`jobqueue.py sync`, run by candidates, ingest and the apply
@@ -42,6 +58,15 @@ release only worked on a workspace seeded by hand:
   about a known job adds no queue row, and repeated job-board mail adds one; `jobqueue.py show` gives Phase 5
   an approved job's posting; postings take the board's current name; the first Gmail read is recorded as a
   one-time backfill.
+- **Release review fixes (council round 1 on PR #18):** combined authorization-and-sponsorship questions
+  answered from both answers; legal agreements only from the user's banked wording; unclear sends held as
+  applied? so they block a second application; runner guards re-checked during a run; supervised first
+  send; sandboxed workspace pages; pandoc and data/ closed to the shell.
+
+## [Unreleased]
+_Working toward v1.0. Real-run gate: **1 of 2–3 runs signed off** (2026-07-01, with-résumé/tech,
+see `docs/ROADMAP.md` → sign-off log); cases (b) no-résumé/non-tech and (c) resume-after-interruption
+remain, plus a green CI run on the remote + a demo GIF._
 
 ### Changed: Ascend 2.0 after the council review (branch `ascend-v2`, PR #15)
 A ten-persona council reviewed the branch twice. Its first round returned nine conditional verdicts and

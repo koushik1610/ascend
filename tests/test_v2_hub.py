@@ -266,6 +266,17 @@ class Compute(unittest.TestCase):
         self.assertIn("finder.py probe", h["boards"])
         self.assertIn("1 email", h["mail"])
 
+    def test_throttled_board_is_a_note_not_a_failure(self):
+        import _v2data as d
+        import hub
+        ws = seed(self.td.name)
+        d.write_json_atomic(ws / "data" / "board-health.json", {"checked": TODAY, "boards": 3, "failed": [],
+                                                                "empty": [], "throttled": ["eightfold:netflix"]})
+        h = hub.compute(ws, today=TODAY)["health"]
+        self.assertIn("eightfold:netflix", h["boards"])
+        self.assertIn("slow down", h["boards"])
+        self.assertNotIn("need a look", h["boards"])
+
     def test_matched_leaves_out_filtered_recruiter_mail(self):
         import _v2data as d
         import hub
@@ -342,6 +353,38 @@ class Build(unittest.TestCase):
         page = (REPO / "templates" / "hub.template.html").read_text()
         self.assertIn('confirm(', page)
         self.assertRegex(page, r'CONFIRM\s*=\s*\{[^}]*approved[^}]*applied')
+
+    def test_auto_apply_panel(self):
+        import _v2data as d
+        import hub
+        d.update_json(self.ws / "data" / "queue.json", {"jobs": []}, lambda q: q["jobs"].append(
+            {"posting_id": "greenhouse:z:9", "company": "Zed", "title": "Staff Security Engineer", "state": "needs-you",
+             "fit": 80, "stop_reason": "a CAPTCHA is showing"}))
+        data = hub.compute(self.ws, today=TODAY)
+        self.assertFalse(data["auto"]["enabled"])
+        self.assertIn("playwright", data["auto"])
+        row = next(r for r in data["queue"] if r["posting_id"] == "greenhouse:z:9")
+        self.assertEqual(row["stop_reason"], "a CAPTCHA is showing")
+        page = (REPO / "templates" / "hub.template.html").read_text()
+        self.assertIn('id="auto"', page)
+        self.assertIn("apply for me", page)
+        self.assertIn('"/api/auto"', page)
+        self.assertIn("submitting", page)        # applying is never shown as sent
+
+    def test_release1_hub_actions(self):
+        page = (REPO / "templates" / "hub.template.html").read_text()
+        for needle in ('data-a="retry"', 'data-a="not-sent"', 'data-auto="send_one"', 'data-auto="confirm_first"',
+                       "terms of service", "attempts"):
+            self.assertIn(needle, page)
+        # B5: a recruiter lead waiting on the user (needs-you, no stop reason) keeps Approve.
+        self.assertRegex(page, r"q\.status === \"needs-you\" && q\.stop_reason")
+
+    def test_a_failed_apply_stage_is_on_the_page(self):                          # D11
+        import _v2data as d
+        import hub
+        d.append_jsonl(self.ws / "data" / "run-log.jsonl", {"at": "2026-10-20T06:30:00", "stages": [
+            {"stage": "autoapply", "ok": False, "detail": "RuntimeError: auto-apply needs Playwright"}]})
+        self.assertIn("Playwright", hub.compute(self.ws, today=TODAY)["auto"]["stage_error"])
 
     def test_template_declares_no_browser_global_names(self):
         # `const top = ...` at script top level throws "Identifier 'top' has already been declared"
