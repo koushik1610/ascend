@@ -1,0 +1,26 @@
+<!doctype html><html><head><meta charset="utf-8"><title>greenhouse</title><style>.select__control{display:inline-block;width:240px;height:30px;border:1px solid #888}.select__control input[role=combobox]{width:2px;border:0;padding:0;margin:0;box-sizing:border-box}</style></head><body>
+<h1>Apply for Staff Security Engineer</h1>
+<form id="f">
+  <div class="field"><label for="first_name">First Name<span>*</span></label><input id="first_name" type="text" required aria-required="true"></div>
+  <div class="field"><label for="last_name">Last Name<span>*</span></label><input id="last_name" type="text" required aria-required="true"></div>
+  <div class="field"><label for="email">Email<span>*</span></label><input id="email" type="text" required aria-required="true"></div>
+  <div class="field"><label for="phone">Phone</label><input id="phone" type="tel"></div>
+  <div class="field"><label>Resume/CV<span>*</span></label><button type="button">Attach</button><input id="resume" type="file" style="display:none"></div>
+  <div class="field"><label for="question_1">LinkedIn Profile</label><input id="question_1" type="text"></div>
+  <div class="field"><label for="question_2">Do you require visa sponsorship?<span>*</span></label><span class="select__control"><input id="question_2" role="combobox" type="text" required aria-required="true"></span><input tabindex="-1" required data-skip="1" style="opacity:0;width:1px;height:1px;position:absolute"></div>
+  <div class="field"><label for="question_3">Are you legally authorized to work in the United States?<span>*</span></label><span class="select__control"><input id="question_3" role="combobox" type="text" required aria-required="true"></span></div>
+  <div class="field"><label for="question_4">How did you hear about this opportunity?</label><input id="question_4" type="text"></div>
+  <div id="essay"></div>
+  <div class="field"><label for="gender">Gender</label><span class="select__control"><input id="gender" role="combobox" type="text"></span></div>
+  <div id="err"></div>
+  <button type="submit">Submit application</button>
+</form>
+<script src="common.js"></script>
+<script>
+combobox(document.getElementById("question_2"), ["Yes", "No"]);
+combobox(document.getElementById("question_3"), ["Yes", "No"]);
+combobox(document.getElementById("gender"), ["Male", "Female", "Decline To Self Identify"]);
+if (V === "essay") document.getElementById("essay").innerHTML = '<div class="field"><label for="question_9">Why Acme?<span>*</span></label><textarea id="question_9" required aria-required="true"></textarea></div>';
+document.getElementById("resume").required = true;
+submitTo(document.getElementById("f"), () => { location.href = "/greenhouse-confirmation.html"; });
+</script></body></html>

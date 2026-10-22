@@ -153,7 +153,8 @@ class Gates(KeyEnv):
         d.write_json_atomic(ws / "data" / "sources.json", {"boards": [
             BOARD, {"ats": "ashby", "slug": "north"}, {"ats": "lever", "slug": "lev"}, {"ats": "workday", "slug": "z",
                                                                                   "pod": "wd5", "site": "S"}]})
-        self.assertEqual(apply.apply_url_for(ws, "greenhouse:acme:1"), "https://job-boards.greenhouse.io/acme/jobs/1")
+        self.assertEqual(apply.apply_url_for(ws, "greenhouse:acme:1"),
+                         "https://job-boards.greenhouse.io/embed/job_app?for=acme&token=1")
         self.assertEqual(apply.apply_url_for(ws, "ashby:north:3f2a1b4c-0000-4000-8000-000000000001"),
                          "https://jobs.ashbyhq.com/north/3f2a1b4c-0000-4000-8000-000000000001/application")
         self.assertEqual(apply.apply_url_for(ws, "lever:lev:3f2a1b4c-0000-4000-8000-000000000001"),
@@ -245,7 +246,7 @@ class Runner(KeyEnv):
         f = stub()
         out = autoapply.run(ws, filler=f)
         self.assertEqual(out["submitted"], 1)
-        self.assertEqual(f.calls[0]["url"], "https://job-boards.greenhouse.io/acme/jobs/1")   # not the stored link
+        self.assertEqual(f.calls[0]["url"], "https://job-boards.greenhouse.io/embed/job_app?for=acme&token=1")   # not the stored link
         self.assertTrue(f.calls[0]["submit"])
         self.assertTrue(f.calls[0]["resume"].endswith(".pdf"))
         e = self.entry(ws)

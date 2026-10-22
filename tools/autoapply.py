@@ -209,6 +209,7 @@ def _record(ws, entry, result, reason, res, dry_run):
 
 def _filler():
     try:
+        import playwright.sync_api  # noqa: F401
         from autoapply_forms import fill
     except ImportError:
         return None

@@ -57,7 +57,8 @@ class NotYet(Refused):
 AUTO_ATS = ("greenhouse", "ashby", "lever")
 ALLOWED_HOSTS = {"job-boards.greenhouse.io", "boards.greenhouse.io", "jobs.ashbyhq.com", "jobs.lever.co"}
 UUID = r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
-AUTO_URL = {"greenhouse": (r"\d{1,15}", "https://job-boards.greenhouse.io/{slug}/jobs/{id}"),
+# Greenhouse's embedded form stays on Greenhouse; /<slug>/jobs/<id> redirects to a company's own careers site.
+AUTO_URL = {"greenhouse": (r"\d{1,15}", "https://job-boards.greenhouse.io/embed/job_app?for={slug}&token={id}"),
             "ashby": (UUID, "https://jobs.ashbyhq.com/{slug}/{id}/application"),
             "lever": (UUID, "https://jobs.lever.co/{slug}/{id}/apply")}
 COMPANY_DAYS = 30
