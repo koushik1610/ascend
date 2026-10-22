@@ -502,6 +502,23 @@ class NewSources(Base):
         self.assertEqual(p["url"], "https://explore.jobs.netflix.net/careers/job/100")
         self.assertEqual(p["apply_url"], p["url"])
 
+    def test_a_capped_list_closes_nothing(self):                         # release round 1, B10
+        import finder
+        import _v2data as d
+        rows = [wd_row(i, "Staff Security Engineer") for i in range(30)]
+        self.wd_board(rows, {})
+        self.sources([WD], title_include=["security"])
+        finder.run(self.ws, today="2026-10-20")
+        saved, finder.WD_MAX = finder.WD_MAX, 20
+        try:
+            self.wd_board(rows[10:], {})        # the first 10 are past the cap now, not gone
+            out = finder.run(self.ws, today="2026-10-21")
+        finally:
+            finder.WD_MAX = saved
+        self.assertEqual(out["closed"], 0)
+        state = d.read_json(self.ws / "data" / "postings-state.json", {})
+        self.assertFalse(any(v["closed"] for v in state.values()))
+
     def test_throttled_board_closes_nothing_and_is_reported(self):
         import finder
         import _v2data as d

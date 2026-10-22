@@ -26,6 +26,7 @@ import _v2data as d  # noqa: E402
 
 RETENTION_DAYS = 180
 TRIM_AFTER_DAYS = 14
+SHOT_DAYS = 30
 
 
 def _engine(ws):
@@ -74,6 +75,13 @@ def prune(ws, today=None):
         return kept
     if (dd / "mail.jsonl").exists():
         d.rewrite_jsonl(dd / "mail.jsonl", keep)
+    # Application screenshots show the user's answers: kept SHOT_DAYS, long enough to check a send.
+    shot_cutoff = datetime.combine(date.fromisoformat(today) if today else date.today(), datetime.min.time()) \
+        - timedelta(days=SHOT_DAYS)
+    for shot in Path(ws).glob("jobs/*/apply/*.png"):
+        if datetime.fromtimestamp(shot.stat().st_mtime) < shot_cutoff:
+            shot.unlink()
+            out["shots"] = out.get("shots", 0) + 1
     import gmail_sync
     for name in gmail_sync.STAGING:
         if (dd / name).is_file():

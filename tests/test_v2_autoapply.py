@@ -260,11 +260,38 @@ class Placeholders(KeyEnv):
         self.assertEqual(a["sponsorship"], "No")
         self.assertEqual([b["question"] for b in a["_bank"]], ["Have you ever worked here"])
 
-    def test_shipped_templates_are_all_placeholders_or_safe_defaults(self):
+    def test_shipped_templates_are_all_placeholders(self):
+        # Release round 1 (S4): an unedited copy must never attest anything on the user's behalf.
         import json as j
+        import apply
         bank = j.loads((REPO / "templates/answer-bank.example.json").read_text())
-        own = [b for b in bank if b.get("question") and not str(b.get("answer")).lower().startswith(("yes", "no"))]
-        self.assertTrue(all(str(b["answer"]).lower().startswith("your ") for b in own), own)
+        self.assertTrue(all(apply._placeholder(b["answer"]) for b in bank if b.get("question")), bank)
+        own = j.loads((REPO / "templates/apply-answers.example.json").read_text())
+        self.assertTrue(all(apply._placeholder(v) for k, v in own.items() if not k.startswith("_")), own)
+
+    def test_the_sheet_leaves_demographic_answers_out(self):          # S10
+        import _v2data as d
+        import apply
+        ws = self.ws(state="approved", answers=dict(ANSWERS, gender="Decline To Self Identify", veteran="No"))
+        out = apply.sheet(ws, "greenhouse:acme:1")
+        self.assertNotIn("gender", out["answers"])
+        self.assertNotIn("veteran", out["answers"])
+        self.assertEqual(out["answers"]["sponsorship"], "No")
+
+    def test_old_application_screenshots_expire(self):                 # S10
+        import os as o
+        import time
+        import daily
+        ws = self.ws()
+        shots = ws / "jobs" / "05-acme-staff" / "apply"
+        shots.mkdir()
+        old, new = shots / "filled.png", shots / "confirmation.png"
+        old.write_bytes(b"x")
+        new.write_bytes(b"x")
+        o.utime(old, (time.time() - 40 * 86400,) * 2)
+        daily.prune(ws)
+        self.assertFalse(old.exists())
+        self.assertTrue(new.exists())
 
 
 class Runner(KeyEnv):

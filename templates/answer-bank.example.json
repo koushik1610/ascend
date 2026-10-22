@@ -4,14 +4,14 @@
   },
   {
     "question": "I certify that the information provided in this application is true",
-    "answer": "Yes"
+    "answer": "your answer: Yes or No"
   },
   {
     "question": "Have you ever worked for this company before",
-    "answer": "No"
+    "answer": "your answer: Yes or No"
   },
   {
     "question": "Why are you interested in this role",
-    "answer": "Your own two or three sentences."
+    "answer": "your own answer, in your words"
   }
 ]

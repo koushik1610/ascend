@@ -62,6 +62,7 @@ AUTO_URL = {"greenhouse": (r"\d{1,15}", "https://job-boards.greenhouse.io/embed/
             "ashby": (UUID, "https://jobs.ashbyhq.com/{slug}/{id}/application"),
             "lever": (UUID, "https://jobs.lever.co/{slug}/{id}/apply")}
 COMPANY_DAYS = 30
+DEMOGRAPHIC = {"gender", "hispanic", "race", "veteran", "disability", "pronouns"}
 
 
 def allowed(url):
@@ -241,7 +242,8 @@ def sheet(ws, posting_id):
         raise Refused(f"{entry.get('company')} is {entry.get('state')}, not approved")
     job, pdf = pack(ws, entry)
     pdfs = [pdf]
-    known = {k: v for k, v in answers(ws).items() if not k.startswith("_")}
+    # Demographic answers go only into forms, never into a sheet Claude prints.
+    known = {k: v for k, v in answers(ws).items() if not k.startswith("_") and k not in DEMOGRAPHIC}
     ask = [k for k in ALWAYS_ASK if k not in known] + [k for k in ("name", "email", "phone") if not known.get(k)]
     link = entry.get("apply_url") or entry.get("url") or entry.get("posting_id")
     gh = re.fullmatch(r"greenhouse:([\w-]+):(\d+)", posting_id or "")

@@ -61,6 +61,10 @@ WD_PATH = re.compile(r"/job/[A-Za-z0-9_\-.%~/]+")
 THROTTLED = object()
 
 
+class Partial(list):
+    """A board list cut off at its cap: what is missing from it may still be open, so nothing is closed."""
+
+
 class Throttled(Exception):
     """The board asked us to slow down (HTTP 429). Not a failure: nothing on it is closed."""
 
@@ -130,7 +134,7 @@ def _workday(board, filters):
         rows += got
         if len(got) < 20 or len(rows) >= (total or 0):
             break
-    out = []
+    out = Partial() if len(rows) >= WD_MAX or (total or 0) > len(rows) else []
     for r in rows:
         path = r.get("externalPath") or ""
         if not WD_PATH.fullmatch(path) or ".." in path or "//" in path:
@@ -162,7 +166,7 @@ def _eightfold(board, filters):
         rows += got
         if len(got) < 10 or len(rows) >= (count or 0):
             break
-    out = []
+    out = Partial() if len(rows) >= EF_MAX or (count or 0) > len(rows) else []
     for r in rows:
         if not isinstance(r.get("id"), int):
             continue
@@ -419,6 +423,8 @@ def _merge(dd, results, state, out, today):
                 out["new"] += 1
         if raw and not current:         # every job failed to read: the ATS changed its format, not the board
             out["failed"].append(where)
+            continue
+        if isinstance(raw, Partial):
             continue
         prefix = f"{board['ats']}:{board['slug']}:"
         for pid, st in state.items():
