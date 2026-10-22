@@ -63,6 +63,14 @@ CHALLENGE = re.compile(r"recaptcha.*bframe|hcaptcha.*challenge|challenges\.cloud
                        r"challenge expires|captcha challenge", re.I)
 
 
+# A legal agreement or attestation is answered only from the user's own banked wording, never from a keyword
+# that happens to sit inside it ("I agree to arbitration and confirm I am eligible to work").
+LEGAL = re.compile(r"\b(agree|certify|certification|consent|arbitrat\w*|acknowledge|attest|declare|accept the|"
+                   r"terms|privacy (policy|notice|statement))\b", re.I)
+# Someone else's details: a referrer's email or an emergency contact's phone is not the user's.
+OTHER_PERSON = re.compile(r"referr|referee|emergency|reference|manager'? ?s\b|supervisor|recruiter'? ?s\b|spouse", re.I)
+# A yes/no question about a number ("Is the salary range acceptable?") is not asking for the number.
+YES_NO_QUESTION = re.compile(r"^(is|are|do|does|did|would|will|can|have|has)\b", re.I)
 AUTH_WITHOUT_SPONSOR = re.compile(r"(authori[sz]ed|eligible|legally (able|permitted)) to work.*without .*sponsor", re.I)
 
 
@@ -90,6 +98,8 @@ def answer_for(label, answers):
         q = norm(b.get("question"))
         if q and (q == text or (len(q) >= 12 and q in text)):
             return str(b.get("answer"))
+    if LEGAL.search(text) or OTHER_PERSON.search(text):
+        return None
     # "Authorized to work ... without sponsorship" asks both at once: Yes only when the user is authorized
     # and needs no sponsorship. The sponsorship rule alone would answer it backwards.
     if AUTH_WITHOUT_SPONSOR.search(text):
@@ -101,6 +111,8 @@ def answer_for(label, answers):
     derived = {"first_name": name[0] if name else None, "last_name": name[-1] if len(name) > 1 else None}
     for rx, key in RULES:
         if re.search(rx, text):
+            if key in ("salary_expectation", "start_date", "city", "postal_code", "location") and YES_NO_QUESTION.search(text):
+                return None
             v = answers.get(key, derived.get(key))
             if isinstance(v, bool):
                 v = "Yes" if v else "No"
@@ -200,7 +212,7 @@ STATE = r"""
 """.replace("CH.test", "new RegExp(" + repr(CHALLENGE.pattern) + ", 'i').test")
 
 
-def _act(page, q, ans):
+def _act(page, q, ans, typing=True):
     sel = f'[data-ascend="{q["id"]}"]'
     kind = q["kind"]
     if kind == "text":
@@ -231,7 +243,10 @@ def _act(page, q, ans):
         box = page.locator(sel)
         box.click()
         page.wait_for_timeout(400)
-        for typed in ("", ans.split()[0] if ans.split() else ans):
+        # A dry run picks only from the list as it opens: typing into a search box sends the text to the ATS.
+        for typed in ("", ans.split()[0] if ans.split() and typing else None):
+            if typed is None:
+                continue
             if typed:
                 box.fill(typed)
                 page.wait_for_timeout(500)
@@ -273,10 +288,12 @@ def _fill(page, url, answers, resume, submit, shots, hosts, timeout):
         out["reason"] = "a CAPTCHA is showing"
         return out
     before = bool(CONFIRM.search(st["text"]))
+    found_resume = False
     for q in page.evaluate(COLLECT):
         label = _label(q.get("label")) or q.get("name") or "an unlabeled field"
         if q["kind"] == "file":
             if re.search(r"resume|\bcv\b", f'{q.get("label")} {q.get("name")} {q.get("elid")}', re.I):
+                found_resume = True
                 if submit:          # attaching can upload the file before any submit: a dry run sends nothing
                     page.set_input_files(f'[data-ascend="{q["id"]}"]', resume)
                     out["uploaded"] = True
@@ -289,14 +306,17 @@ def _fill(page, url, answers, resume, submit, shots, hosts, timeout):
                 out["unfilled"].append(label)
             continue
         try:
-            done = _act(page, q, ans)
+            done = _act(page, q, ans, typing=submit)
         except Exception:
             done = False
         if not done and q["required"]:
             out["unfilled"].append(label)
     _shot(page, shots, "filled.png", out)
     if out["unfilled"]:
-        out["reason"] = "questions your saved answers do not cover: " + "; ".join(out["unfilled"][:8])
+        out["reason"] = "questions your saved answers do not cover: " + "; ".join(u[:120] for u in out["unfilled"][:8])
+        return out
+    if not found_resume:
+        out["reason"] = "no résumé upload field found on the form: apply by hand"
         return out
     if not submit:
         out["result"] = "filled"
@@ -309,6 +329,10 @@ def _fill(page, url, answers, resume, submit, shots, hosts, timeout):
         out["reason"] = "no submit button found"
         return out
     start = page.url
+    if (urlparse(page.url).hostname or "") not in hosts:     # the page moved since it was checked
+        out["reason"] = f"the page moved to {urlparse(page.url).hostname} before submit"
+        return out
+    out["clicked"] = True
     button.first.click()
     for _ in range(int(timeout * 2)):
         page.wait_for_timeout(500)

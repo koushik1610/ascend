@@ -54,9 +54,11 @@ class KeyEnv(unittest.TestCase):
         d.append_jsonl(ws / "data" / "candidates.jsonl", {"posting_id": pid, "passed": passed})
         return ws
 
-    def enable(self, ws, **settings):
+    def enable(self, ws, supervised_ok=True, **settings):
         import autoapply
         autoapply.enable(ws, "apply for me")
+        if supervised_ok:          # most tests run past the first supervised send
+            autoapply._change(ws, lambda cfg: cfg.update(first_send_ok=True))
         if settings:
             autoapply.settings(ws, **settings)
 
@@ -295,7 +297,7 @@ class Runner(KeyEnv):
         self.enable(ws)
         autoapply.run(ws, filler=stub("unclear", "no confirmation within 30 seconds"))
         e = self.entry(ws)
-        self.assertEqual(e["state"], "needs-you")
+        self.assertEqual(e["state"], "applied?")
         self.assertIn("no confirmation", e["stop_reason"])
         self.assertIn("check", e["stop_reason"])
 
@@ -373,7 +375,7 @@ class Runner(KeyEnv):
         f = stub()
         autoapply.run(ws, filler=f)
         e = self.entry(ws)
-        self.assertEqual(e["state"], "needs-you")
+        self.assertEqual(e["state"], "applied?")
         self.assertIn("interrupted", e["stop_reason"])
         self.assertEqual(f.calls, [])             # never retried on its own
 
@@ -424,6 +426,196 @@ class Runner(KeyEnv):
         for state in ("applying", "applied"):
             with self.assertRaises(ValueError):
                 jobqueue.set_state(ws, "greenhouse:acme:1", state)
+
+
+def add_job(ws, n, fit=82, state="matched", company=None):
+    """A second ready job: its own board posting, folder and résumé."""
+    import shutil
+    import _v2data as d
+    pid = f"greenhouse:acme:{100 + n}"
+    word = ["Alpha", "Bravo", "Charlie", "Delta", "Echo"][n]
+    company = company or ["Globex", "Initech", "Umbrella", "Hooli", "Vandelay"][n]
+    src = ws / "jobs" / "05-acme-staff"
+    dst = ws / "jobs" / f"{20 + n:02d}-acme-staff-{n}"
+    shutil.copytree(src, dst)
+    log = (dst / "application-log.md").read_text().replace("Acme Robotics, Staff Security Engineer", f"{company}, Staff Security Engineer {word}")
+    (dst / "application-log.md").write_text(log)
+    d.update_json(ws / "data" / "queue.json", {}, lambda q: q["jobs"].append({
+        "posting_id": pid, "company": company, "title": f"Staff Security Engineer {word}",
+        "nn": f"{20 + n:02d}", "fit": fit, "state": state}))
+    d.append_jsonl(ws / "data" / "candidates.jsonl", {"posting_id": pid, "passed": True})
+    return pid
+
+
+class Release1(KeyEnv):
+    """Council release round 1: the runner's guards had to hold inside a run, not only before it."""
+
+    def ws(self, **kw):
+        ws = super().ws(**kw)
+        import _v2data as d
+        d.write_json_atomic(ws / "data" / "sources.json", {"boards": [BOARD], "filters": {}})
+        return ws
+
+    def state(self, ws, pid):
+        return self.entry(ws, pid)["state"]
+
+    def test_three_unclear_in_one_run_pause_it_mid_run(self):          # B2
+        import autoapply
+        ws = self.ws()
+        for n in range(4):
+            add_job(ws, n)
+        self.enable(ws, daily_cap=10)
+        autoapply._change(ws, lambda c: c.update(enabled_at="2026-01-01"))
+        f = stub("unclear", "no confirmation within 30 seconds")
+        autoapply.run(ws, filler=f)
+        self.assertEqual(len(f.calls), 3)
+        self.assertTrue(autoapply.load_config(ws)["paused"])
+
+    def test_a_job_rejected_during_the_run_is_not_sent(self):           # B3
+        import jobqueue
+        import autoapply
+        ws = self.ws()
+        pid = add_job(ws, 1, fit=70)
+        self.enable(ws)
+        calls = []
+
+        def fill(url, answers, resume, submit, shots):
+            calls.append(url)
+            jobqueue.set_state(ws, pid, "rejected", via_hub=True)      # the user clicks Reject meanwhile
+            return {"result": "submitted", "shots": []}
+        autoapply.settings(ws, fit_threshold=60)
+        autoapply.run(ws, filler=fill)
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(self.state(ws, pid), "rejected")
+
+    def test_resume_after_a_low_reply_pause_holds(self):                # B4
+        import _v2data as d
+        import autoapply
+        ws = self.ws()
+        self.enable(ws)
+        for i in range(50):
+            d.append_jsonl(ws / "data" / "apply-log.jsonl", {"posting_id": f"greenhouse:zz:{i}", "result": "submitted",
+                                                             "mode": "auto", "company": f"Z{i}", "at": "2026-08-01T08:00:00"})
+        out = autoapply.run(ws, filler=stub())
+        self.assertIn("paused", out["skipped"])
+        autoapply.resume(ws)
+        f = stub()
+        autoapply.run(ws, filler=f)
+        self.assertEqual(len(f.calls), 1)          # the user's resume holds until 10 more sends mature
+
+    def test_recent_sends_do_not_count_as_unanswered(self):              # B4
+        import _v2data as d
+        import autoapply
+        ws = self.ws()
+        self.enable(ws)
+        for i in range(50):
+            d.append_jsonl(ws / "data" / "apply-log.jsonl", {"posting_id": f"greenhouse:zz:{i}", "result": "submitted",
+                                                             "mode": "auto", "company": f"Z{i}",
+                                                             "at": datetime.now().isoformat(timespec="seconds")})
+        self.assertIsNone(autoapply.pause_reason(ws))
+
+    def test_unclear_is_applied_maybe_and_blocks_a_second_send(self):    # D2
+        import autoapply
+        import pipeline
+        ws = self.ws()
+        self.enable(ws)
+        autoapply.run(ws, filler=stub("unclear", "no confirmation within 30 seconds"))
+        e = self.entry(ws)
+        self.assertEqual(e["state"], "applied?")
+        self.assertTrue(pipeline.check_duplicate(ws, e["company"], e["title"], e["posting_id"]))
+
+    def test_user_settles_an_unclear_send_in_the_hub(self):              # D2
+        import apply
+        import autoapply
+        import jobqueue
+        ws = self.ws()
+        self.enable(ws)
+        autoapply.run(ws, filler=stub("unclear", "x"))
+        jobqueue.set_state(ws, "greenhouse:acme:1", "needs-you", via_hub=True, not_sent=True, stop_reason="not sent")
+        self.assertEqual(self.entry(ws)["state"], "needs-you")
+        jobqueue.set_state(ws, "greenhouse:acme:1", "applied?", via_runner=True)
+        apply.record(ws, "greenhouse:acme:1")
+        self.assertEqual(self.entry(ws)["state"], "applied")
+
+    def test_retry_puts_a_stopped_job_back_for_the_runner(self):         # D5
+        import autoapply
+        import jobqueue
+        ws = self.ws()
+        self.enable(ws)
+        autoapply.run(ws, filler=stub("stopped", "questions your saved answers do not cover: City"))
+        jobqueue.set_state(ws, "greenhouse:acme:1", "matched", via_hub=True, stop_reason=None)
+        f = stub()
+        autoapply.run(ws, filler=f)
+        self.assertEqual(self.entry(ws)["state"], "applied")
+
+    def test_a_click_on_submitted_mid_run_does_not_abort_the_rest(self):  # B6
+        import apply
+        import jobqueue
+        import autoapply
+        ws = self.ws()
+        pid = add_job(ws, 1)
+        self.enable(ws)
+        seen = []
+
+        def fill(url, answers, resume, submit, shots):
+            seen.append(url)
+            if len(seen) == 1:
+                jobqueue.set_state(ws, pid, "approved", via_hub=True)
+                apply.record(ws, pid)                                    # the user sent the other one by hand
+            return {"result": "submitted", "shots": []}
+        autoapply.run(ws, filler=fill)
+        self.assertEqual(len(seen), 1)
+        self.assertEqual(self.state(ws, "greenhouse:acme:1"), "applied")
+
+    def test_dry_run_changes_no_state_even_for_an_old_attempt(self):     # B13
+        import _v2data as d
+        import autoapply
+        ws = self.ws()
+        old = (datetime.now() - timedelta(hours=2)).isoformat(timespec="seconds")
+        d.update_json(ws / "data" / "queue.json", {}, lambda q: q["jobs"][0].update(state="applying", attempt_at=old))
+        autoapply.run(ws, dry_run=True, filler=stub())
+        self.assertEqual(self.entry(ws)["state"], "applying")
+
+    def test_nothing_goes_unattended_before_the_first_supervised_send(self):
+        import autoapply
+        ws = self.ws()
+        self.enable(ws, supervised_ok=False)
+        f = stub()
+        out = autoapply.run(ws, filler=f)
+        self.assertEqual(f.calls, [])
+        self.assertIn("supervised", out["skipped"])
+        out = autoapply.run(ws, filler=f, supervised=True)
+        self.assertEqual(out["submitted"], 1)
+        self.assertEqual(self.log(ws)[-1]["supervised"], True)
+        autoapply.confirm_first(ws)
+        self.assertTrue(autoapply.load_config(ws)["first_send_ok"])
+
+    def test_first_send_cannot_be_confirmed_without_one(self):
+        import autoapply
+        ws = self.ws()
+        self.enable(ws, supervised_ok=False)
+        with self.assertRaises(ValueError):
+            autoapply.confirm_first(ws)
+
+    def test_a_supervised_send_is_one_job(self):
+        import autoapply
+        ws = self.ws()
+        add_job(ws, 1)
+        self.enable(ws, supervised_ok=False)
+        f = stub()
+        autoapply.run(ws, filler=f, supervised=True)
+        self.assertEqual(len(f.calls), 1)
+
+    def test_an_old_signed_auto_json_cannot_be_restored(self):           # S9
+        import autoapply
+        ws = self.ws()
+        autoapply.enable(ws, "apply for me")
+        saved = (ws / "data" / "auto.json").read_text()
+        autoapply.disable(ws)
+        (ws / "data" / "auto.json").write_text(saved)
+        cfg = autoapply.load_config(ws)
+        self.assertFalse(cfg["enabled"])
+        self.assertTrue(cfg["tampered"])
 
 
 if __name__ == "__main__":

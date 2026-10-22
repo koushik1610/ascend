@@ -143,6 +143,34 @@ class Forms(unittest.TestCase):
         self.assertIn("required", out["reason"])
         self.assertEqual(self.fake.records, [])
 
+    def test_a_legal_checkbox_is_never_ticked_from_a_keyword(self):       # S3
+        out = self.fill("greenhouse.html?variant=legal")
+        self.assertEqual(out["result"], "stopped", out)
+        self.assertTrue(any("arbitration" in u for u in out["unfilled"]), out["unfilled"])
+        self.assertEqual(self.fake.records, [])
+
+    def test_the_users_banked_agreement_ticks_it(self):                    # S3
+        bank = dict(ANSWERS, _bank=[{"question": "I agree to binding arbitration and confirm I am eligible to work in "
+                                                 "the United States", "answer": "Yes"}])
+        out = self.fill("greenhouse.html?variant=legal", answers=bank)
+        self.assertEqual(out["result"], "submitted", out)
+
+    def test_no_resume_field_means_no_submit(self):                       # B8
+        out = self.fill("greenhouse.html?variant=noresume")
+        self.assertEqual(out["result"], "stopped", out)
+        self.assertIn("résumé", out["reason"])
+        self.assertEqual(self.fake.records, [])
+
+    def test_a_failure_before_submit_is_a_stop(self):                     # B7
+        import autoapply_forms
+        saved = autoapply_forms._act
+        autoapply_forms._act = lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom"))
+        try:
+            out = self.fill("ashby.html")
+        finally:
+            autoapply_forms._act = saved
+        self.assertEqual(out["result"], "stopped", out)
+
     def test_page_off_the_allowed_hosts_is_never_filled(self):
         out = self.fill("greenhouse.html", hosts=("job-boards.greenhouse.io",))
         self.assertEqual(out["result"], "stopped")
@@ -207,6 +235,19 @@ class Rules(unittest.TestCase):
         self.assertIsNone(f.answer_for(q, {k: v for k, v in ANSWERS.items() if k != "sponsorship"}))
         self.assertIsNone(f.answer_for(q, dict(ANSWERS, sponsorship="Maybe later")))
         self.assertEqual(f.answer_for("Will you now or in the future require sponsorship?*", ANSWERS), "No")
+
+    def test_someone_elses_contact_fields_are_not_the_users(self):        # B14 / D9
+        import autoapply_forms as f
+        for label in ("Referrer's email", "Emergency contact phone", "Reference phone number",
+                      "Is the salary range listed acceptable to you?*", "Hiring manager's email"):
+            self.assertIsNone(f.answer_for(label, dict(ANSWERS, salary_expectation="240000")), label)
+        self.assertEqual(f.answer_for("Desired salary", dict(ANSWERS, salary_expectation="240000")), "240000")
+
+    def test_an_agreement_needs_the_users_own_banked_wording(self):         # S3
+        import autoapply_forms as f
+        for label in ("I agree to arbitration and I am eligible to work in the US",
+                      "I certify that I am legally authorized to work in the US", "I consent to background checks"):
+            self.assertIsNone(f.answer_for(label, ANSWERS), label)
 
     def test_bank_entry_wins_and_must_be_the_users_wording(self):
         import autoapply_forms as f

@@ -276,7 +276,7 @@ def record(ws, posting_id, result="submitted"):
         entry = _entry(ws, posting_id)
         if entry.get("state") == "applied":
             return entry
-        if entry.get("state") not in ("approved", "needs-you"):
+        if entry.get("state") not in ("approved", "needs-you", "applied?"):
             raise Refused(f"{entry.get('company')} is {entry.get('state')}, not approved")
         entry = jobqueue.set_state(ws, posting_id, "applied", via_hub=True)
         with open(p, "a", encoding="utf-8") as f:     # inside the lock already: not append_jsonl
