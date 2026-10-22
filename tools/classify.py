@@ -193,8 +193,10 @@ def _name_rx(name):
     return re.compile("|".join(pats), re.I) if pats else None
 
 
-# Job-board mail names one role in its subject: "Senior Manager - Reliability Engineering @ Netflix".
-SUBJECT_ROLE = re.compile(r"^\s*(.+?)\s+@\s+\S")
+# Job-board mail names one role in its subject: "Senior Manager - Reliability Engineering @ Netflix". A
+# calendar invite's "@" is followed by a day ("Interview with Grow @ Thu Oct 29"), never a company.
+SUBJECT_ROLE = re.compile(r"^(?!invitation\b|updated invitation\b)\s*(.+?)\s+@\s+"
+                          r"(?!(mon|tue|wed|thu|fri|sat|sun)[a-z]*\b|\d)\S", re.I)
 
 
 def _title_in(job, text):

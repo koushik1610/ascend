@@ -260,6 +260,10 @@ class Round2(unittest.TestCase):
         self.assertEqual(classify.match_detail(same, jobs)[0], "03")
         plain = {"from": "paixc@jobs.netflix.com", "subject": "Next steps w/ Netflix", "body_excerpt": "Thanks for the chat."}
         self.assertEqual(classify.match_detail(plain, jobs)[0], "01")      # no role named: the company is enough
+        invite = {"from": "paixc@netflix.com", "body_excerpt": "Netflix Recruiter Phone Screen",
+                  "subject": "Invitation from an unknown sender: Koushik - Netflix Recruiter Phone Screen @ Fri Oct 16, "
+                             "2026 14:30 - 15:00 (GMT-6) (k@example.com)"}
+        self.assertEqual(classify.match_detail(invite, jobs)[0], "01")     # a calendar invite's "@" is a time
 
     def test_a_newsletter_is_never_an_assessment(self):
         import classify
