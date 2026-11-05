@@ -81,7 +81,13 @@ Field-agnostic — the *method* is universal; the *keywords* come from the user'
   unknown code point or nothing. The linter flags any symbol glyph in `resume.json` (`scan`).
 - **Never hide keywords** (white text, 1pt text, a pasted JD). AI-assisted screeners and the parse
   preview both expose it, and a flagged résumé is worse than an unmatched one. The LaTeX template
-  cannot produce hidden text, which is one reason it is the default path.
+  cannot produce hidden *layout* — no white-on-white, no 1pt body, no off-page box, because the
+  layout is locked and the renderer emits macro calls only. It does not stop hidden **code points**:
+  until 2026-11-05 a zero-width space or a character from the U+E0000 tag block passed through
+  `tex_escape` into the `.tex` and rendered as nothing while still extracting. Both gates now
+  exist — `lint_artifacts.py` fails any invisible character in a `resume.json` (`scan`, Unicode
+  category `Cf`) and the renderer strips them — so the guarantee is now mechanical rather than
+  assumed. Do not weaken either one to force a keyword match.
 - **PDF or DOCX.** A text-based PDF from the LaTeX template parses fine in current ATS. DOCX is the
   lower-risk upload when the portal asks for Word, or when its autofill preview mangles the PDF
   (common with older Taleo and iCIMS deployments). The test is the same for both: after upload, check

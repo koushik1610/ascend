@@ -22,7 +22,7 @@ import os
 import re
 import sys
 from concurrent.futures import ThreadPoolExecutor
-from datetime import date
+from datetime import date, datetime, timezone
 from pathlib import Path
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
@@ -30,6 +30,7 @@ from urllib.request import Request, urlopen
 TOOLS = Path(__file__).resolve().parent
 sys.path.insert(0, str(TOOLS))
 import _v2data as d  # noqa: E402
+import _untrusted  # noqa: E402
 from _paths import PathOutsideWorkspace, resolve_out  # noqa: E402
 
 ENDPOINTS = {
@@ -67,9 +68,20 @@ def fetch_board(ats, slug):
     return jobs if isinstance(jobs, list) else None
 
 
-def clean(s):
+def clean(s, findings=None):
+    """Board HTML -> plain text, with hidden content REMOVED rather than laundered.
+
+    The old order was the bug: `html.unescape` turned `&#8203;` into a real zero-width space and
+    `re.sub(r"<[^>]+>")` deleted the `style="display:none"` wrapper while keeping its text, so a
+    hidden payload came out indistinguishable from the visible job description. Hidden-element
+    removal now runs first, and invisible code points are stripped before the TEXT_LIMIT slice
+    (a smuggled run is one invisible character per letter, so trimming first lets it keep eating
+    the budget). See tools/_untrusted.py.
+    """
     s = html.unescape(s or "")
-    s = re.sub(r"(?is)<(script|style).*?</\1>", " ", s)
+    s, f = _untrusted.clean_untrusted(s, is_html=True)
+    if findings is not None:
+        findings.extend(f)
     s = re.sub(r"<[^>]+>", " ", s)
     return re.sub(r"\s+", " ", html.unescape(s)).strip()[:TEXT_LIMIT]
 
@@ -85,12 +97,44 @@ def _remote_from_text(loc):
     return True if "remote" in (loc or "").lower() else None
 
 
+def _posted(*values):
+    """The board's own publish date as YYYY-MM-DD, or None. First parseable value wins.
+
+    Every one of the five boards returns this and the finder threw all of them away, so the only
+    date in the system was `first_seen` — the day ASCEND looked. On a workspace's first run that
+    makes every posting one day old, including a 90-day-old requisition with 400 applicants already
+    in it. `reference/ats-and-keywords.md` says recruiters review in arrival order and to apply
+    early; arrival order is unknowable without this field, and `prompts/14-ats-aggregation.md`
+    already named these exact keys before the deterministic path replaced it and dropped them.
+    """
+    for v in values:
+        if not v:
+            continue
+        s = str(v).strip()
+        if s.isdigit() and len(s) >= 10:          # epoch millis (Lever) or seconds
+            try:
+                ts = int(s) / (1000 if len(s) > 10 else 1)
+                return datetime.fromtimestamp(ts, timezone.utc).date().isoformat()
+            except (ValueError, OverflowError, OSError):
+                continue
+        try:                                       # ISO 8601, with or without a Z / offset
+            return datetime.fromisoformat(s.replace("Z", "+00:00")).date().isoformat()
+        except ValueError:
+            pass
+        try:
+            return date.fromisoformat(s[:10]).isoformat()
+        except ValueError:
+            continue
+    return None
+
+
 def normalize(ats, slug, company, j):
     if ats == "greenhouse":
         loc = (j.get("location") or {}).get("name", "")
         p = dict(native=j["id"], title=j.get("title", ""), location=loc, remote=_remote_from_text(loc),
                  url=j.get("absolute_url"), apply_url=j.get("absolute_url"), text=clean(j.get("content")),
-                 comp_min=None, comp_max=None)
+                 comp_min=None, comp_max=None,
+                 posted_on=_posted(j.get("first_published"), j.get("updated_at")))
     elif ats == "ashby":
         comp = next((c for c in (j.get("compensation") or {}).get("summaryComponents", []) or []
                      if c.get("compensationType") == "Salary"), {})
@@ -98,7 +142,8 @@ def normalize(ats, slug, company, j):
                  remote=j.get("isRemote") if isinstance(j.get("isRemote"), bool) else _remote_from_text(j.get("location")),
                  url=j.get("jobUrl"), apply_url=j.get("applyUrl") or j.get("jobUrl"),
                  text=clean(j.get("descriptionPlain")), comp_min=_money(comp.get("minValue")),
-                 comp_max=_money(comp.get("maxValue")))
+                 comp_max=_money(comp.get("maxValue")),
+                 posted_on=_posted(j.get("publishedAt"), j.get("updatedAt")))
     elif ats == "lever":
         wp = (j.get("workplaceType") or "").lower()
         loc = (j.get("categories") or {}).get("location", "")
@@ -107,20 +152,23 @@ def normalize(ats, slug, company, j):
         p = dict(native=j["id"], title=j.get("text", ""), location=loc,
                  remote=True if wp == "remote" else False if wp in ("onsite", "on-site", "hybrid") else _remote_from_text(loc),
                  url=j.get("hostedUrl"), apply_url=j.get("applyUrl") or j.get("hostedUrl"), text=clean(text),
-                 comp_min=_money(sal.get("min")), comp_max=_money(sal.get("max")))
+                 comp_min=_money(sal.get("min")), comp_max=_money(sal.get("max")),
+                 posted_on=_posted(j.get("createdAt")))
     elif ats == "workable":
         loc = ", ".join(x for x in (j.get("city"), j.get("country")) if x)
         p = dict(native=j["shortcode"], title=j.get("title", ""), location=loc,
                  remote=bool(j["telecommuting"]) if "telecommuting" in j else _remote_from_text(loc),
                  url=j.get("url"), apply_url=j.get("application_url") or j.get("url"),
-                 text=clean(j.get("description")), comp_min=None, comp_max=None)
+                 text=clean(j.get("description")), comp_min=None, comp_max=None,
+                 posted_on=_posted(j.get("published_on"), j.get("created_at")))
     elif ats == "smartrecruiters":
         l = j.get("location") or {}
         loc = ", ".join(x for x in (l.get("city"), l.get("country")) if x)
         url = f"https://jobs.smartrecruiters.com/{slug}/{j['id']}"
         p = dict(native=j["id"], title=j.get("name", ""), location=loc,
                  remote=l.get("remote") if isinstance(l.get("remote"), bool) else _remote_from_text(loc),
-                 url=url, apply_url=url, text="", comp_min=None, comp_max=None)
+                 url=url, apply_url=url, text="", comp_min=None, comp_max=None,
+                 posted_on=_posted(j.get("releasedDate"), j.get("createdOn")))
     else:
         raise ValueError(f"unknown ats {ats!r}")
     native = p.pop("native")

@@ -49,6 +49,17 @@ Any hit caps the score at 2.5 and ends the triage. These are real blockers, not 
 - <e.g. requires a clearance the user does not hold>
 - <e.g. on-site 5 days in a metro the user will not move to>
 - <e.g. a named company on the do-not-apply list>
+- <e.g. requires a working language the user did not declare at intake — see Languages below>
+
+## Languages (declared at intake, verbatim)
+| Language | Level, in the user's own words |
+|---|---|
+| <English> | <fluent, professional> |
+
+A posting that **requires** a language absent from this table is a hard DQ. A posting that asks a
+**higher level** in a language that IS in the table is a gap to flag, never a DQ and never a score —
+the user decides whether their B2 clears a "fluent" bar. Nothing here is ever inferred: an empty
+table means the question was not answered, so a language requirement becomes `NEEDS YOU`, not a drop.
 
 ## Soft red flags
 Each costs -0.5. Preferences, not blockers.

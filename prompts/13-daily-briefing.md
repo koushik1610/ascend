@@ -28,7 +28,12 @@ flagging applications gone quiet and drafting the follow-up (or the "move on" ca
 
 ### 1. Today's 3 actions (highest-leverage first)
 Pick the 3 that move the needle most, usually one from each lane:
-- **Apply:** the top apply-pack that's ready to send (référral checked first).
+- **Apply:** the top apply-pack that's ready to send (referral checked first). **Where two are
+  equally ready, send the fresher requisition first** and say its age out loud — "this one went up
+  yesterday; the Northwind role has been open five weeks." `reference/ats-and-keywords.md` notes
+  that recruiters review in arrival order, and `jobqueue.py candidates` now carries `posted_on` and
+  `age_days` from the board itself, so this is a lookup rather than a guess. A posting with no
+  board date shows as unknown age — never as fresh.
 - **Connect:** the single best warm path to message today (from `network-map.md` "best warm paths") —
   with the short draft ready, flagged `REWRITE IN YOUR VOICE`.
 - **Follow up:** the most overdue thread (see ghost-detector below) — with the nudge drafted.

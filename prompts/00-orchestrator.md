@@ -54,6 +54,11 @@ at a time). Required answers are marked ★ — do not proceed past Step 2 witho
   same field would pick.
 - **Location / work mode**: remote-only, hybrid-OK (which metros), on-site-OK (where), relocation
   appetite, work authorization constraints.
+- **Working languages**, and your level in each, in your own words ("English — fluent, professional";
+  "German — A2, reading only"). Asked, never inferred: a level guessed from where you live, studied or
+  worked is a fabricated skill under `reference/number-and-honesty-policy.md`, and guessing it from a
+  name or a country is worse than useless. Leave it blank and a language requirement becomes a
+  question for you rather than a disqualifier.
 - **Compensation** expectations or floor (kept private; used only to filter and to script the
   recruiter-screen comp anchor).
 - **Timeline**: actively applying now, or exploring?
