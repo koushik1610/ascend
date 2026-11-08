@@ -33,7 +33,8 @@ exist yet — see Phase 6), `job-queue.md` (that entry), `../templates/job-folde
 ## Build these 5 files into the existing folder (per `_TEMPLATE.md` §2,§3,§4,§6,§7)
 1. **`prep-doc.md`** — the ≤2-page night-before read: positioning hook (from
    `company-positioning.md`), role thesis, talking points, **story map** (round → story ID →
-   job-specific opening line), rehearsed gap-handling lines, closer, numbers-discipline box.
+   job-specific opening line, allocated per `../reference/interview-prep-framework.md` §3 4b so no
+   story leads in two rounds), rehearsed gap-handling lines ranked dealbreaker / significant / minor, closer, numbers-discipline box.
 2. **`interview-questions.md`** — predicted technical/domain/design questions (bullet-skeleton answers,
    ≥3 design/case prompts); a **coding/assessment section calibrated to this company's REAL loop**
    (named LeetCode-style problems where the company tests algorithms; practical/take-home/portfolio

@@ -44,6 +44,12 @@ and `workspace/<name>/.ascend-state.json` first, then:
   that extracts real, quantified accomplishments into new `master-resume.md` entries (extract, never invent).
 - **`drill [NN|track]`** → **"Interview Me" Drill** (`prompts/17-interview-me.md`): a live mock interview
   — one question at a time with rubric feedback grounded in the user's real stories.
+- **`cover-letter <NN>`** → **Cover Letter** (`prompts/30-cover-letter.md`): 250–350 words that say what
+  the résumé can't: the problem the posting is hiring for, one or two proof stories by ID, an honest
+  line on a dealbreaker gap, and a `[USER WRITES]` why-here paragraph the user owns.
+- **`debrief <NN>`** → **Interview Debrief** (`prompts/31-interview-debrief.md`): the same day as a real
+  round, capture the questions asked and the stories told, score the answers on the drill rubric
+  (`tools/drills.py`, source `real`), and feed them back into the job's prep and story map.
 - **`degenericize [file]`** → **De-Genericizer** (`prompts/18-degenericizer.md`): a specificity pass that
   replaces generic/AI-flavored text with the user's real evidence (tightens what's true; adds nothing).
 - **`negotiate [company]`** → **Salary Negotiation Studio** (`prompts/19-salary-studio.md`): a grounded

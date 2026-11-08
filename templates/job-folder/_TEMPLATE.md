@@ -28,7 +28,7 @@ shared prep.
 - **Top: HTML-comment Delta Log** — queue entry #, JD link, `JD title (verbatim): <posting title>`
   (the linter checks the headline against it), `JD keywords (verbatim): a | b | c` (the posting's
   must-have search terms, in its exact form) and `True gaps: x | y` or `True gaps: none` (the linter
-  checks every keyword not on the gap line is on the page), date, ATS target + its constraints, which
+  checks every keyword not on the gap line is on the page), `Skills-only: x | y` or `Skills-only: none` (keywords on the page that no experience or project bullet uses; the linter's `evidence` check reports any it finds that are not on this line, and deep-prep treats each one as a question with no story behind it yet), date, ATS target + its constraints, which
   master-resume entry IDs were selected and in what order + why, verbatim JD phrases inserted (each
   used ONCE), the number-policy grep confirmation, export filename
   `<name>-resume-<company-role>.pdf`, and a **MASTER GAPS** note if any needed bullet didn't exist.

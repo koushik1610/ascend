@@ -25,8 +25,9 @@ say so in the record below.
 
 ## Step 2. Score each one, 0 to 100
 
-Use the Fit Score components from `prompts/04-job-search.md` (skills, seniority, comp, location,
-excitement, 0 to 20 each). The score must be explainable from the master résumé:
+Use the Fit Score from `prompts/04-job-search.md`: skills, seniority, comp and location at 0 to 25
+each, excitement reported separately as a veto, and the seniority cap in both directions (a gap of two
+or more levels keeps the total below 70). The score must be explainable from the master résumé:
 
 - **why**: one sentence naming the strongest match, citing master entry IDs.
 - **gaps**: the posting's must-haves the evidence does not cover, plainly.

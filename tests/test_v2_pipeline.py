@@ -6,6 +6,7 @@ Run: python3 -m unittest tests/test_v2_pipeline.py -v
 import json
 import subprocess
 import sys
+from datetime import date, timedelta
 import tempfile
 import unittest
 from pathlib import Path
@@ -23,7 +24,9 @@ def make_ws(root, jobs):
         d.mkdir(parents=True)
         log = f"# Application Log: {company}, {role}\n\nNotes the user wrote.\n"
         if status:
-            log += f"\n```ascend-state\nstatus: {status}\napplied_on: 2026-09-01\n```\n"
+            # Relative to today: a fixed date aged out of the 60-day duplicate window on 2026-10-31.
+            applied = (date.today() - timedelta(days=7)).isoformat()
+            log += f"\n```ascend-state\nstatus: {status}\napplied_on: {applied}\n```\n"
         (d / "application-log.md").write_text(log, encoding="utf-8")
     (ws / "data").mkdir(parents=True, exist_ok=True)
     return ws

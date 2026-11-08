@@ -188,6 +188,10 @@ interview prep is generated **on demand**, per job, only when a screen is booked
   the dashboard, `/ascend schedule` installs the daily zero-token sync.
 - `26-industry-language.md`: **Industry Language**: rebuild or inspect the shared phrasing reference
   for the user's industry/domain outside a full run (normally Phase 26 of the run order): `/ascend industry`.
+- `30-cover-letter.md`: **Cover Letter**, what the résumé can't say, for the forms that take one;
+  the why-here paragraph stays the user's own words: `/ascend cover-letter <NN>`.
+- `31-interview-debrief.md`: **Interview Debrief**, capture a real round the same day, score it on the
+  drill rubric into `tools/drills.py`'s ledger, and feed the questions back into prep: `/ascend debrief <NN>`.
 - `25-references.md` — **Reference Bench**: a consent-tracked reference list and the referee brief,
   built early so the offer-stage request is a lookup rather than a scramble: `/ascend references`.
 

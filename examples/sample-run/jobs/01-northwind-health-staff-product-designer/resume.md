@@ -16,6 +16,7 @@ DELTA LOG, selection record (not a rewrite)
     Projects: P1 (design system) selected; P2/P3 omitted to keep one page focused on systems.
 - JD keywords (verbatim): design system at scale | accessibility-first | design-engineering partnership | design tokens | Figma | Storybook | WCAG 2.1 AA
 - True gaps: none
+- Skills-only: design system at scale | accessibility-first | design tokens
 - Verbatim JD phrases inserted ONCE each: "design system at scale", "accessibility-first",
     "design-engineering partnership".
 - Number policy: all metrics swapped to public/sanitized values (M3 "~32%", M4 "roughly in half",

@@ -324,6 +324,21 @@ Each reacts to a real event and updates the dashboard.
   (`classify.py resolve`) → `pipeline.py ingest` moves each job → the hub pins info requests and
   assessments with due dates.
 
+### J25: Write a cover letter
+- **Trigger:** `/ascend cover-letter <NN>`, for a form with a cover-letter field, after the CORE pack.
+- **Path:** the problem the posting is hiring for, one or two proof stories by master or story ID, an
+  honest line on a dealbreaker gap, and a why-here paragraph the user writes. Lint-gated.
+- **Ends with:** `jobs/<NN>/cover-letter.md`.
+- **Implemented by:** [`prompts/30-cover-letter.md`](prompts/30-cover-letter.md).
+
+### J26: Debrief a real interview
+- **Trigger:** `/ascend debrief <NN>`, the same day as the round.
+- **Path:** questions recalled, stories used, the interviewer's reactions; each answer scored on the
+  drill rubric and recorded as `real` in `tools/drills.py`; questions and ranked concerns fed back into
+  the job's prep, and the story map updated so no story leads twice.
+- **Ends with:** `jobs/<NN>/debriefs/<date>-<round>.md` and new rows in `data/drills.jsonl`.
+- **Implemented by:** [`prompts/31-interview-debrief.md`](prompts/31-interview-debrief.md) and [`tools/drills.py`](tools/drills.py).
+
 ---
 
 ## Meta journey

@@ -122,9 +122,11 @@ Give every surviving job a transparent **Fit Score out of 100**, the sum of four
 | Dimension (0–25) | What it measures |
 |---|---|
 | **Skills match** | How well the master résumé's evidence covers the JD's must-haves (use the §4 keyword set) |
-| **Seniority fit** | Is the level right — same, a step up (good), or a reach/down-level (note it) |
+| **Seniority fit** | Is the level right: the same, or one step up (good). Scored **symmetrically**: a role two or more levels below the user scores as low as one two or more levels above (see the cap below) |
 | **Comp fit** | Posted/estimated comp vs the user's `intake.md` target/floor |
 | **Location/logistics** | Remote/hybrid/on-site vs the user's constraints + work auth |
+
+**The seniority cap, in both directions.** A gap of two or more levels between the posting and the user's current scope caps Seniority fit at 8/25 **and the total below 70**, whatever the other three sub-scores say. A role asking for 2–5 years from someone with 10+, or an individual contributor's role for someone who has led teams, is as much a mismatch as a principal role for someone three years in: it screens out as overqualified, and if it doesn't, it is a step back the user didn't ask for. Name the gap on the row (`seniority: two levels below`). If the user's intake explicitly asks for a step down (a career change, a return to IC work), the cap does not apply. Say so on the row.
 
 **Contract, hourly and agency-mediated postings score differently, and scoring them as salaried is a
 bug.** A posting quoting `$85/hr` against a `$150k` floor passes or fails depending on whether the

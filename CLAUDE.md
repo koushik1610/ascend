@@ -67,7 +67,7 @@ rule sources; prompts reference them rather than re-stating them. Templates: `te
   breaks, banned vocabulary (`.claude/banned-words.md`), clause-joining semicolons, dramatic colons,
   the user's forbidden numbers + retracted claims (from `workspace/<name>/lint-config.json`),
   Delta-Log provenance, and the résumé scan gate (date order and format, icon glyphs, headline vs.
-  the posting's exact title, must-have JD keywords on the page). Phases 3/5/8 and every language-gated prompt call it before "done" — zero
+  the posting's exact title, must-have JD keywords on the page and backed by a bullet). Phases 3/5/8 and every language-gated prompt call it before "done" — zero
   findings, or each finding surfaced to the user.
 - **Lock the master.** Once `.ascend-state.json` has `"master_locked": true`, downstream work is
   **selection-only**: reorder/trim locked bullets, never reword, never add unlisted ones. MASTER GAP →
@@ -80,7 +80,7 @@ researches jobs across many domains), but **`Write`/`Edit` only under `workspace
 writes user output there and can't silently change the repo's own prompts/code), plus
 `industryresearch/**` for Phase 26's anonymized, shared phrasing reference. The Bash boundary is
 **allow-list-only**: only a few pinned forms run (`python3 ui/server.py…`,
-`python3 tools/lint_artifacts.py…`, `python3 tools/render_resume.py…`, `python3 tools/industry_research.py…`, `mkdir/rm -f` under
+`python3 tools/lint_artifacts.py…`, `python3 tools/render_resume.py…`, `python3 tools/industry_research.py…`, `python3 tools/drills.py…`, `mkdir/rm -f` under
 `workspace/`, `git check-ignore`, `pandoc`);
 anything else is refused, so an injected page can't write a script under `workspace/` and run it. A **hardened deny-list** backs that up for interactive use: `sudo`,
 network/exfil tools (`curl`/`wget`/`nc`/`ssh`/`scp`), shell-bypass forms (`bash -c`/`sh -c`/`env`/`xargs`/
