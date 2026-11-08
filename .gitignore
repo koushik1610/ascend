@@ -52,6 +52,8 @@ Endorsement*.csv
 **/signal.md
 **/cover-letter.md
 **/*-cover-letter.md
+# The cover-letter phase prompt is system, not anyone's letter. Exact path only.
+!/prompts/30-cover-letter.md
 **/resume.md
 **/*-resume.md
 **/*-resume.pdf
