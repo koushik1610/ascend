@@ -82,7 +82,7 @@ class Sheet(unittest.TestCase):
         ws = apply_ws(self.td.name)
         s = apply.sheet(ws, "greenhouse:acme:1")
         self.assertTrue(s["resume_pdf"].endswith("Jordan-Rivera-Resume-Acme.pdf"))
-        self.assertEqual((s["answers"]["email"], s["apply_url"]), ("jordan@example.com", "https://boards.greenhouse.io/acme/jobs/1"))
+        self.assertEqual((s["answers"]["email"], s["apply_url"]), ("jordan@example.com", "https://job-boards.greenhouse.io/acme/jobs/1"))
         self.assertIn("work_authorization", s["ask_user"])
         self.assertNotIn("work_authorization", s["answers"])
         self.assertTrue((ws / "data" / "apply-sheets").is_dir())
@@ -97,7 +97,15 @@ class Sheet(unittest.TestCase):
             q = d.read_json(ws / "data" / "queue.json", {})
             q["jobs"][0]["apply_url"] = bad
             d.write_json_atomic(ws / "data" / "queue.json", q)
-            self.assertIn("Check the address", apply.sheet(ws, "greenhouse:acme:1")["link_note"], bad)
+            # A Greenhouse posting's link is rebuilt from its own ID, so a stored hostile link never shows.
+            s = apply.sheet(ws, "greenhouse:acme:1")
+            self.assertEqual((s["apply_url"], s["link_note"]), ("https://job-boards.greenhouse.io/acme/jobs/1", None))
+            q = d.read_json(ws / "data" / "queue.json", {})
+            q["jobs"][0]["posting_id"] = "web:acme1"
+            d.write_json_atomic(ws / "data" / "queue.json", q)
+            self.assertIn("Check the address", apply.sheet(ws, "web:acme1")["link_note"], bad)
+            q["jobs"][0]["posting_id"] = "greenhouse:acme:1"
+            d.write_json_atomic(ws / "data" / "queue.json", q)
 
     def test_refuses_unapproved(self):
         import apply
@@ -241,7 +249,7 @@ class Record(unittest.TestCase):
         import jobqueue
         import pipeline
         ws = apply_ws(self.td.name)
-        jobqueue.set_state(ws, "greenhouse:acme:1", "applied")
+        jobqueue.set_state(ws, "greenhouse:acme:1", "applied", via_hub=True)
         self.assertEqual(pipeline.parse_state(ws / "jobs/05-acme-staff/application-log.md")["status"], "applied")
 
 

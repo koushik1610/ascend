@@ -68,6 +68,7 @@
     <div class="sub" id="runLine" style="margin-bottom:12px"></div>
     <div class="cards" id="week"></div>
     <div id="gmailStatus"></div>
+    <div id="healthStatus"></div>
     <div id="warning"></div>
     <h2>Needs a reply</h2><div class="panel" id="pinned"></div>
     <h2>Pipeline</h2><div class="panel funnel" id="funnel"></div>
@@ -108,6 +109,7 @@ $("week").innerHTML = [["Applied", w.applied], ["Replies", w.replies], ["Intervi
   .map(([l, v]) => `<div class="stat"><div class="v">${esc(v)}</div><div class="l">${l} this week</div></div>`).join("");
 if (D.callback_gate) $("callbackGate").textContent = D.callback_gate.note;
 if (D.gmail && D.gmail.warning) $("gmailStatus").innerHTML = `<div class="banner">${esc(D.gmail.warning)}</div>`;
+if (D.health) $("healthStatus").innerHTML = [D.health.boards, D.health.mail].filter(Boolean).map(t => `<div class="banner">${esc(t)}</div>`).join("");
 if (D.warning) $("warning").innerHTML = `<div class="banner">${esc(D.warning)}</div>`;
 
 $("pinned").innerHTML = D.pinned.length
@@ -157,12 +159,16 @@ function showSheet(s, id) {
   $("copyAns").onclick = () => navigator.clipboard && navigator.clipboard.writeText(ans);
   $("sheet").scrollIntoView({behavior: "smooth"});
 }
+const CONFIRM = {approved: "Approve this job? Ascend then builds its apply sheet. You still submit it yourself.",
+                 applied: "Record that you submitted this application yourself?"};
 document.querySelector("#queue").addEventListener("click", ev => {
   const b = ev.target.closest("button.act[data-a]"); if (!b || !S) return;
   if (b.dataset.a === "sheet") {
     post("/api/apply", {posting_id: b.dataset.id}).then(r => r.error ? showSheet({company: "Not ready", title: r.error, answers: {}, ask_user: []}, "") : showSheet(r, b.dataset.id));
     return;
   }
+  // Approving and recording a send are yours alone: each asks before it is saved.
+  if (CONFIRM[b.dataset.a] && !confirm(CONFIRM[b.dataset.a])) return;
   b.disabled = true;
   post("/api/queue", {posting_id: b.dataset.id, action: b.dataset.a}).then(r => {
       if (b.dataset.a === "applied") { $("sheet").innerHTML = r.ok ? "Recorded as applied." : esc(r.error || "not saved"); return; }

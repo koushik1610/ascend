@@ -35,7 +35,7 @@ class FinderAdd(unittest.TestCase):
         self.assertEqual(out, {"added": 1, "skipped": 2})
         p = d.read_jsonl(self.ws / "data" / "postings.jsonl")[0]
         self.assertTrue(p["id"].startswith("linkedin:"))
-        self.assertEqual((p["remote"], p["source"], len(p["text"])), (True, "linkedin", 6000))
+        self.assertEqual((p["remote"], p["source"], len(p["text"])), (True, "linkedin", finder.TEXT_LIMIT))
         self.assertTrue(p["text"].startswith("AWS"))
 
     def test_ats_url_maps_to_the_board_id_closed_or_duplicate(self):
@@ -99,6 +99,9 @@ class GmailAdd(unittest.TestCase):
                 {"msg_id": "d", "subject": "no sender"}]
         self.assertEqual(g.add(self.ws, rows), {"added": 1, "skipped": 4, "window_moved": True})
         self.assertEqual(len(d.read_jsonl(self.ws / "data" / "mail.jsonl")[0]["body_excerpt"]), 2000)
+        # Only the user's exact address is theirs: info.me@example.com is someone else.
+        other = [{"msg_id": "e", "from": "Info <info.me@example.com>", "subject": "Hi", "date": "2026-10-16T10:00:00Z"}]
+        self.assertEqual(g.add(self.ws, other)["added"], 1)
 
     def test_add_stores_iso_dates_and_refuses_unreadable_ones(self):
         import _v2data as d
@@ -111,7 +114,8 @@ class GmailAdd(unittest.TestCase):
     def test_connector_query_reads_from_the_last_read_and_only_job_mail(self):
         import gmail_sync as g
         q = g.connector_query(self.ws, today="2026-10-17")
-        self.assertIn("newer_than:2d", q)
+        self.assertIn("newer_than:30d", q)          # a first read backfills a month, like engine A
+        self.assertIn("-in:sent", q)                 # the user's own replies never reach Claude
         self.assertIn("greenhouse.io", q)
         self.assertIn("-category:promotions", q)
         g.add(self.ws, [{"msg_id": "z", "from": "r@co.example", "subject": "Hi", "date": "2026-10-10T10:00:00Z"}],
@@ -177,6 +181,7 @@ class GmailAdd(unittest.TestCase):
                            capture_output=True, text=True)
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertEqual(j.loads(r.stdout)["added"], 1)
+        self.assertFalse(rows.exists())     # the staging copy is removed once its rows are stored
 
     def test_added_mail_classifies(self):
         import _v2data as d

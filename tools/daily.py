@@ -2,6 +2,7 @@
 """daily.py: the scheduled Ascend 2.0 sync, zero tokens (M10).
 
   python3 tools/daily.py WS
+  python3 tools/daily.py WS --retention-only      # mail retention alone, for runs without the schedule
 
 Runs every stage that needs no model, in order, each isolated so one failure never stops the rest:
 Gmail sync (engine A), classify, ingest, finder, prefilter, alerts, mail retention, hub build. A stage
@@ -12,6 +13,7 @@ wait for the next `/ascend run-v2` session. One row per run lands in data/run-lo
 """
 
 import json
+import re
 import sys
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -22,20 +24,37 @@ import _v2data as d  # noqa: E402
 
 
 RETENTION_DAYS = 180
+TRIM_AFTER_DAYS = 14
 
 
 def _engine(ws):
     return (d.read_json(Path(ws) / ".ascend-state.json", {}).get("run_defaults") or {}).get("engine")
 
 
+AUTOMATED = re.compile(r"^(no-?reply|do-?not-?reply|donotreply|info|hello|news|newsletter|notifications?|team|"
+                       r"marketing|updates?)[@+.]", re.I)
+
+
+def _automated(sender):
+    """A machine-sent address. Its non-job mail keeps headers only from day one; a person's waits 14 days."""
+    import classify
+    addr = classify.sender({"from": sender or ""})
+    return bool(AUTOMATED.search(addr) or classify.BULK_SENDER.search(addr.partition("@")[2]))
+
+
 def prune(ws, today=None):
     """Spec §8 retention: drop mail older than retention_days (sources.json, default 180), and keep only the
-    headers of mail the rules placed as not job-related. Mail waiting for a model keeps its excerpt."""
+    headers of mail placed as not job-related once it is TRIM_AFTER_DAYS old. Mail waiting for a model, and
+    mail in a thread that has job mail (a recruiter's follow-up), keep their excerpt. Claude's staging files
+    are removed: they hold copies that would outlive this."""
     dd = d.data_dir(ws)
     days = d.read_json(dd / "sources.json", {}).get("retention_days") or RETENTION_DAYS
     cutoff = (date.fromisoformat(today) if today else date.today()) - timedelta(days=int(days))
     import classify
     latest = {e.get("msg_id"): e for e in classify.latest_events(d.read_jsonl(dd / "events.jsonl"))}
+    trim_before = ((date.fromisoformat(today) if today else date.today()) - timedelta(days=TRIM_AFTER_DAYS)).isoformat()
+    job_threads = {m.get("thread_id") for m in d.read_jsonl(dd / "mail.jsonl") if m.get("thread_id") and
+                   (latest.get(m.get("msg_id")) or {}).get("category") not in (None, "other", "job-alert")}
     out = {"dropped": 0, "trimmed": 0}
 
     def keep(rows):
@@ -45,13 +64,19 @@ def prune(ws, today=None):
                 out["dropped"] += 1
                 continue
             e = latest.get(m.get("msg_id")) or {}
-            if e.get("category") == "other" and not e.get("needs_llm") and m.get("body_excerpt"):
+            if (e.get("category") == "other" and not e.get("needs_llm") and m.get("body_excerpt")
+                    and m.get("thread_id") not in job_threads
+                    and ((m.get("date") or "")[:10] < trim_before or _automated(m.get("from")))):
                 m = dict(m, body_excerpt="")
                 out["trimmed"] += 1
             kept.append(m)
         return kept
     if (dd / "mail.jsonl").exists():
         d.rewrite_jsonl(dd / "mail.jsonl", keep)
+    import gmail_sync
+    for name in gmail_sync.STAGING:
+        if (dd / name).is_file():
+            (dd / name).unlink()
     return out
 
 
@@ -129,6 +154,9 @@ def main(argv):
     if len(argv) < 2 or argv[1].startswith("-"):
         print(__doc__, file=sys.stderr)
         return 2
+    if "--retention-only" in argv:          # for runs without the scheduled sync (prompts/29 Step 4)
+        print(json.dumps(prune(argv[1])))
+        return 0
     out = run(argv[1])
     for s in out["stages"]:
         print(f"{'ok ' if s['ok'] else 'ERR'} {s['stage']:<10} {s['detail']}")
