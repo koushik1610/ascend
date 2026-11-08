@@ -1,0 +1,17 @@
+[
+  {
+    "_comment": "Copy to workspace/<name>/data/answer-bank.json and write every answer YOURSELF. Claude cannot write this file; it may draft entries in data/answer-bank.proposed.json from your own words for you to copy. A form question matches an entry when it equals your question or contains it (12 characters or more), so use the form's own wording. Answer a legal agreement (certification, privacy notice, arbitration) only if you mean it for every company whose form uses that wording. Entries below are placeholders."
+  },
+  {
+    "question": "I certify that the information provided in this application is true",
+    "answer": "your answer: Yes or No"
+  },
+  {
+    "question": "Have you ever worked for this company before",
+    "answer": "your answer: Yes or No"
+  },
+  {
+    "question": "Why are you interested in this role",
+    "answer": "your own answer, in your words"
+  }
+]

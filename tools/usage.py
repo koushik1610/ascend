@@ -3,7 +3,7 @@
 
   python3 tools/usage.py record WS --stage STAGE --chars-in N --chars-out N [--engine A|B|C] [--mode M] [--items K] [--backfill]
   python3 tools/usage.py summary WS [--json]
-  python3 tools/usage.py estimate WS --engine A|B|C [--mode assisted] [--jobs N] [--json]
+  python3 tools/usage.py estimate WS --engine A|B|C [--mode assisted|automatic] [--jobs N] [--json]
 
 Claude Code does not report token counts to the agent, so each stage records the characters it read and
 wrote and this tool converts at 4 characters per token. Every figure carries `estimated: true` and the hub
@@ -34,7 +34,7 @@ BASE_STAGES = ("mail", "web_search", "linkedin_search")     # what a day costs b
 # the posting and the templates and writes a résumé, outreach and log) is not measured yet.
 STAGE_DEFAULT = {"score": 600, "tailor": 12_000}
 DEFAULT_JOBS = 5                                            # assisted: applications the user sends in a day
-JOB_STAGES = {"assisted": ["score", "tailor"]}
+JOB_STAGES = {"assisted": ["score", "tailor"], "automatic": ["score", "tailor"]}    # submitting is zero tokens
 MIN_SAMPLES = 3
 
 

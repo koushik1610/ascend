@@ -1,0 +1,20 @@
+<!doctype html><html><head><meta charset="utf-8"><title>lever</title></head><body>
+<form id="f">
+  <ul>
+  <li class="application-question"><label><div class="application-label">Resume/CV<span>✱</span></div><input id="resume-upload-input" name="resume" type="file" required></label></li>
+  <li class="application-question"><label><div class="application-label">Full name<span>✱</span></div><input name="name" type="text" required></label></li>
+  <li class="application-question"><label><div class="application-label">Email<span>✱</span></div><input name="email" type="email" required></label></li>
+  <li class="application-question"><label><div class="application-label">Phone<span>✱</span></div><input name="phone" type="text" required></label></li>
+  <li class="application-question"><label><div class="application-label">Current company<span>✱</span></div><input name="org" type="text" required></label></li>
+  <li class="application-question"><label><div class="application-label">LinkedIn URL</div><input name="urls[LinkedIn]" type="text"></label></li>
+  <li class="application-question"><div class="application-label">Are you authorized to work in the United States?<span>✱</span></div>
+    <ul><li><label><input type="radio" name="cards[c1][field0]" value="Yes" required>Yes</label></li>
+        <li><label><input type="radio" name="cards[c1][field0]" value="No" required>No</label></li></ul></li>
+  <li class="application-question"><label><div class="application-label">Gender</div>
+    <select name="eeo[gender]"><option value="">Select ...</option><option>Male</option><option>Female</option><option>Decline to self-identify</option></select></label></li>
+  </ul>
+  <div id="err"></div>
+  <button type="submit">SUBMIT APPLICATION</button>
+</form>
+<script src="common.js"></script>
+<script>submitTo(document.getElementById("f"), () => { location.href = "/thanks.html"; });</script></body></html>

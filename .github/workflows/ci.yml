@@ -53,9 +53,17 @@ jobs:
           done
           [ "$missing" -eq 0 ] || { echo "::error::TeX packages missing (see MISSING lines above)"; exit 1; }
 
+      # The automatic-apply form filler is the one module that needs a third-party package. Without it its
+      # tests skip, so CI installs a pinned Playwright and Chromium and makes a skip a failure.
+      - name: Install Playwright (so the form-filler tests run against the fake ATS forms)
+        run: |
+          python3 -m pip install --quiet "playwright==1.58.0"
+          python3 -m playwright install --with-deps chromium
+
       - name: Smoke tests (server + reader security, perms, dashboards, gitignore, cross-refs, phase-order, scripts, résumé render)
         env:
           ASCEND_REQUIRE_TEX: "1"
+          ASCEND_REQUIRE_PLAYWRIGHT: "1"
         run: python3 tests/smoke.py
 
       # The committed sample is the golden fixture: it is the output a new user reads first, and the

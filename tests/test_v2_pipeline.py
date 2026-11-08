@@ -202,6 +202,16 @@ class Guard(unittest.TestCase):
         self.assertIn("date unknown", r.stdout)
         self.assertNotIn("0 day(s) ago", r.stdout)
 
+    def test_level_markers_do_not_make_a_new_role(self):
+        # Run 4 (2026-10-22): Netflix's board says "Security Engineer 5 - ...", the user's folder says
+        # "Security Engineer (L5), ...". The role they were interviewing for came back as a new candidate.
+        import pipeline
+        n = pipeline.normalize_title
+        self.assertEqual(n("Security Engineer 5 - Cloud Architecture, Tooling and Security"),
+                         n("Security Engineer (L5), Cloud Architecture, Tooling and Security"))
+        self.assertEqual(n("Security Engineer L6 - IAM"), n("Security Engineer 6 - IAM"))
+        self.assertNotEqual(n("Windows 11 Security Engineer"), n("Windows Security Engineer"))
+
     def test_normalize_title(self):
         import pipeline
         self.assertEqual(pipeline.normalize_title("Sr. Staff Security Eng (Remote)"),

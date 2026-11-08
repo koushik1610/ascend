@@ -1,0 +1,23 @@
+<!doctype html><html><head><meta charset="utf-8"><title>ashby</title><style>._required_x::after{content:"*";color:red}</style></head><body>
+<form id="f">
+  <div class="_fieldEntry_1"><label for="a1">Legal First Name</label><input id="a1" name="a1" type="text" required></div>
+  <div class="_fieldEntry_1"><label for="a2">Legal Last Name</label><input id="a2" name="a2" type="text" required></div>
+  <div class="_fieldEntry_1"><label for="_systemfield_email">Email</label><input id="_systemfield_email" name="_systemfield_email" type="email" required></div>
+  <div class="_fieldEntry_1"><label for="_systemfield_resume">Resume</label><input id="_systemfield_resume" type="file" required></div>
+  <div class="_fieldEntry_1"><label for="a5">LinkedIn URL</label><input id="a5" name="a5" type="url"></div>
+  <div class="_fieldEntry_1" data-q="auth" data-required-q="1"><label>Are you legally authorized to work in the United States?*</label><input type="checkbox" data-skip="1" style="opacity:0;position:absolute;width:1px;height:1px">
+    <div><button type="button">Yes</button><button type="button">No</button></div></div>
+  <div class="_fieldEntry_1" data-q="sponsor" data-required-q="1"><label>Will you now or in the future require sponsorship?*</label><input type="checkbox" data-skip="1" style="opacity:0;position:absolute;width:1px;height:1px">
+    <div><button type="button">Yes</button><button type="button">No</button></div></div>
+  <div id="office"></div>
+  <div id="err"></div>
+  <button type="submit">Submit Application</button>
+</form>
+<script src="common.js"></script>
+<script>
+if (V === "office") document.getElementById("office").innerHTML = '<div class="_fieldEntry_1" data-q="office" data-required-q="1"><label class="_required_x">Are you able to work in the office three days per week?</label><div><button type="button">Yes</button><button type="button">No</button></div></div>';
+document.querySelectorAll("[data-q] button").forEach(b => b.addEventListener("click", () => {
+  b.closest("[data-q]").dataset.picked = b.textContent;
+}));
+submitTo(document.getElementById("f"), () => { document.body.innerHTML = "<h2>Thank you for applying!</h2><p>Your application was successfully submitted.</p>"; });
+</script></body></html>

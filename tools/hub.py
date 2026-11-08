@@ -202,7 +202,8 @@ def compute(ws, today=None):
                      "title": q.get("title"), "fit": q.get("fit"), "why": q.get("why"), "gaps": q.get("gaps") or [],
                      "status": _row_status(jobs[slug]["status"] if slug else None, q.get("state")),
                      "url": q.get("url") or q.get("posting_id"), "source": q.get("source"),
-                     "reasons": q.get("reasons") or []})
+                     "reasons": q.get("reasons") or [], "stop_reason": q.get("stop_reason"),
+                     "approved_by": q.get("approved_by")})
     # Open decisions first, best fit first: a job not yet applied to (matched, needs-you, or a v1 folder
     # still `queued`) is waiting on the user. Everything else after, also by fit.
     rows.sort(key=lambda r: (r["status"] not in OPEN_DECISIONS, -(r["fit"] or 0)))
@@ -221,7 +222,13 @@ def compute(ws, today=None):
     if defaults:
         import usage
         run = dict(defaults, estimate=usage.estimate(ws, defaults["engine"], defaults["mode"]))
-    return {"as_of": today.isoformat(), "run": run, "gmail": _gmail_status(ws, data, defaults, today),
+    import autoapply
+    auto = autoapply.status(ws, today)
+    last_run = (d.read_jsonl(data / "run-log.jsonl") or [{}])[-1]
+    stage = next((st for st in last_run.get("stages") or [] if st.get("stage") == "autoapply"), None)
+    auto["stage_error"] = None if stage is None or stage.get("ok") else str(stage.get("detail"))[:300]
+    auto["last_supervised"] = next((r for r in reversed(d.read_jsonl(data / "apply-log.jsonl")) if r.get("supervised")), None)
+    return {"as_of": today.isoformat(), "run": run, "gmail": _gmail_status(ws, data, defaults, today), "auto": auto,
             "health": _health(ws, data, events),
             "callback_gate": callback_gate, "funnel": funnel, "week": week, "rates": rates, "warning": warning,
             "inbox": inbox, "pinned": pinned, "queue": rows, "tokens": tokens}
@@ -237,6 +244,11 @@ def _health(ws, data, events):
         out["boards"] = (f"{len(bad)} of {bh.get('boards')} job boards need a look on {bh.get('checked')}: "
                          f"{', '.join(bad)}. Find the right board with python3 tools/finder.py probe \"Company\", "
                          f"then fix workspace/{Path(ws).name}/data/sources.json.")
+    slow = bh.get("throttled") or []
+    if slow:
+        note = (f"{', '.join(slow)} asked Ascend to slow down on {bh.get('checked')}. "
+                "It is tried again on the next run, and nothing on it was closed.")
+        out["boards"] = f"{out['boards']} {note}" if out["boards"] else note
     # Waiting means not yet settled by ingest: matched there on a second look, or given up as an application
     # made outside Ascend, it no longer counts.
     done = {r.get("key") for r in d.read_jsonl(data / "ingested.jsonl")}

@@ -5,7 +5,8 @@
   python3 tools/daily.py WS --retention-only      # mail retention alone, for runs without the schedule
 
 Runs every stage that needs no model, in order, each isolated so one failure never stops the rest:
-Gmail sync (engine A), classify, ingest, finder, prefilter, alerts, mail retention, hub build. A stage
+Gmail sync (engine A), classify, ingest, finder, prefilter, alerts, automatic apply (only when turned on
+in the hub), mail retention, hub build. A stage
 that cannot do its job fails with the fix in its message (Gmail signed out, no boards to poll), so the
 day's log never reads "ok" over a sync that did nothing. Stages that
 need Claude (reading Gmail through the connector for engines B and C, scoring, tailoring, agent apply)
@@ -25,6 +26,7 @@ import _v2data as d  # noqa: E402
 
 RETENTION_DAYS = 180
 TRIM_AFTER_DAYS = 14
+SHOT_DAYS = 30
 
 
 def _engine(ws):
@@ -73,6 +75,13 @@ def prune(ws, today=None):
         return kept
     if (dd / "mail.jsonl").exists():
         d.rewrite_jsonl(dd / "mail.jsonl", keep)
+    # Application screenshots show the user's answers: kept SHOT_DAYS, long enough to check a send.
+    shot_cutoff = datetime.combine(date.fromisoformat(today) if today else date.today(), datetime.min.time()) \
+        - timedelta(days=SHOT_DAYS)
+    for shot in Path(ws).glob("jobs/*/apply/*.png"):
+        if datetime.fromtimestamp(shot.stat().st_mtime) < shot_cutoff:
+            shot.unlink()
+            out["shots"] = out.get("shots", 0) + 1
     import gmail_sync
     for name in gmail_sync.STAGING:
         if (dd / name).is_file():
@@ -127,7 +136,8 @@ def run(ws):
         if out["failed"] and len(out["failed"]) == out["boards"]:
             raise RuntimeError(f"every board was unreachable ({', '.join(out['failed'])}): check the slugs in "
                                "data/sources.json")
-        return f"{out['new']} new, {out['closed']} closed" + (f", unreachable: {', '.join(out['failed'])}" if out["failed"] else "")
+        return (f"{out['new']} new, {out['closed']} closed" + (f", unreachable: {', '.join(out['failed'])}" if out["failed"] else "")
+                + (f", throttled: {', '.join(out['throttled'])}" if out.get("throttled") else ""))
 
     def pre():
         import prefilter
@@ -137,12 +147,22 @@ def run(ws):
         import alerts
         return json.dumps(alerts.run(ws))
 
+    def autoapply_():
+        import autoapply
+        out = autoapply.run(ws)
+        if out["error"]:
+            raise RuntimeError(out["error"])
+        if out["skipped"]:
+            return f"skipped: {out['skipped']}"
+        return (f"{out['submitted']} submitted, {out['unclear']} unclear, {out['stopped']} stopped"
+                + (f", {len(out['waiting'])} waiting for a résumé" if out["waiting"] else ""))
+
     def hub_():
         import hub
         return str(hub.build(ws))
 
     for name, fn in [("gmail", gmail), ("classify", classify_), ("ingest", ingest), ("finder", find),
-                     ("prefilter", pre), ("alerts", alerts_), ("retention", lambda: json.dumps(prune(ws))),
+                     ("prefilter", pre), ("alerts", alerts_), ("autoapply", autoapply_), ("retention", lambda: json.dumps(prune(ws))),
                      ("hub", hub_)]:
         stage(name, fn)
     out = {"at": datetime.now().isoformat(timespec="seconds"), "engine": engine, "stages": stages}

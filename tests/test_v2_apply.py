@@ -177,11 +177,11 @@ class Sheet(unittest.TestCase):
 
 
 class AssistedOnly(unittest.TestCase):
-    """Agent-submit and fully automatic live on the ascend-v2-agent-modes branch, not in this release."""
+    """apply.py builds sheets and gates; only tools/autoapply.py submits, and only the hub turns it on."""
 
     def test_no_agent_submit_surface(self):
         import apply
-        for name in ("next", "allowed", "pause", "resume"):
+        for name in ("next", "pause", "resume", "submit"):
             self.assertFalse(hasattr(apply, name), name)
         self.assertFalse((REPO / "tools" / "fakeform.py").exists())
         r = subprocess.run([sys.executable, str(REPO / "tools/apply.py"), "next", "workspace/x", "--mode", "agent"],

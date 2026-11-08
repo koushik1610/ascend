@@ -167,11 +167,13 @@ where the quality comes from.
 
 Version 1 builds the apply packs. Version 2 keeps the search running: it finds matching roles every day,
 prepares the applications you approve, and reads your inbox to track what happened, all on your machine.
-You submit every application yourself. Ascend never sends one.
+By default you submit every application yourself. If you turn on automatic apply in the hub, a runner on
+your Mac submits Greenhouse, Ashby and Lever applications for you, within limits you set.
 
 ```
   every day, zero tokens      finder (public ATS boards) → prefilter → alerts → Gmail sync → classify → ledger → hub
   when you run it             score the survivors (Phase 27) → you approve → apply (Phase 28) → hub
+  automatic apply (opt-in)    daily sync → runner submits ready Greenhouse/Ashby/Lever jobs → Needs you for the rest
 ```
 
 **You choose the engine per run, and see the token estimate and the permissions before anything is spent**
@@ -183,12 +185,42 @@ You submit every application yourself. Ascend never sends one.
 | **B** agent-driven | Claude does every stage, including web search | none, but the most tokens |
 | **C** core + connector | Python reads the boards; Claude reads Gmail through the claude.ai connector | none |
 
-**Applying is assisted.** For each job you approve, the hub shows an apply sheet: the answers to copy,
-the résumé to attach and the application link. You submit and press **I submitted it**. The sheet is
-built only when the job is approved, it is not a duplicate, its résumé passes the linter, and every answer
-comes from your own `data/profile.json`. Work authorization, sponsorship, salary and start date are always
-left for you to answer. Agent-submit and fully automatic modes are being developed separately on the
-`ascend-v2-agent-modes` branch and are not in this release.
+**Applying by hand.** For each job you approve, the hub shows an apply sheet: the answers to copy, the
+résumé to attach and the application link. You submit and press **I submitted it**. The sheet is built only
+when the job is approved, it is not a duplicate, its résumé passes the linter, and every answer comes from
+your own files.
+
+**Automatic apply (opt-in, beta).** Turn it on in the hub's Queue tab by typing "apply for me". From then
+on the daily sync runs `tools/autoapply.py`, which opens each ready job's application page in a headless
+browser, fills it and submits it. Install Playwright into the same Python that runs Ascend:
+`python3 -m pip install playwright && python3 -m playwright install chromium` (`autoapply.py status` prints
+which Python that is).
+- **First send, supervised.** Nothing goes out on its own until you press **Send one now** in the hub, watch
+  one application go through in a visible browser window, and press **It looked right**. Do a dry run first
+  (`python3 tools/autoapply.py run workspace/<you> --dry-run`) and look at the screenshots in each job's
+  `apply/` folder.
+- **Ready** means: on a Greenhouse, Ashby or Lever board in your `sources.json`, fit at or above your
+  threshold (default 75), passed your rule filter, a tailored résumé that passes the linter, not a
+  duplicate, and fewer than 2 applications to that company in 30 days. A job folder from an earlier run that
+  you left unsent goes only after you approve it. The page is rebuilt from the board, never taken from a link
+  in a posting or an email.
+- **Answers** come only from files you write: `data/profile.json`, `data/apply-answers.json` (work
+  authorization, sponsorship, salary, start date, demographic choices) and `data/answer-bank.json` (your
+  own answers to recurring questions, matched by their wording). Claude cannot write the last two. Essays,
+  legal agreements and company-specific questions are never answered from anything else, so a form that
+  requires one stops.
+- **Stops go to Needs you** with the reason: a visible CAPTCHA, a sign-in page, a question your answers do
+  not cover. After you add the missing answer, **Try again automatically** puts the job back. An attempt
+  with no confirmation page shows as **sent?** until you say whether it went; it blocks a second application. A job is marked applied only when the confirmation page appeared, with
+  screenshots in the job folder. Claude can fill stopped jobs with you in a session and submits only after
+  your yes for that batch.
+- **Limits:** 5 a day for the first week, then your cap (default 25); pause and resume in the hub; it
+  pauses itself after 3 unclear results in a day, or when fewer than 5% of your last 50 applications got
+  any reply.
+- **Risks you accept:** some job boards' terms forbid automated applications, and every form carries a
+  bot check. Ascend does nothing to get past one: a visible challenge stops the job and an invisible one
+  decides on its own, so some submissions may be rejected. A wrong saved answer repeats on every form until
+  you fix it. Workday and Eightfold jobs are found and tracked, never submitted automatically.
 
 **What you are granting, per engine.** `run.py plan` prints this list every time.
 
@@ -199,8 +231,8 @@ left for you to answer. Agent-submit and fully automatic modes are being develop
 | Google Drive | Not used. | Share, create, update, copy and trash are denied. | Same as B. |
 | Web | Public job-board APIs, read only. | Public boards plus Claude's web searches. | Public job-board APIs, read only. |
 | Web page fetches | Ask you every time. | Ask you every time. | Ask you every time. |
-| Applications | Never submitted by Ascend. Claude in Chrome's form-input, upload, scripting and batch tools are denied; it can still click and type, so keep its per-action prompts on. | Same as A. | Same as A. |
-| Approve, "I submitted it" | Your click in the hub, with a confirm. Claude's file tools cannot edit the queue or the apply log. | Same as A. | Same as A. |
+| Applications | Submitted only by the runner after you turn automatic apply on in the hub, or by Claude in Chrome after your yes for a batch. Claude in Chrome's scripting, shortcut, image-upload and batch tools are denied; form filling and file upload are allowed, so keep its per-action prompts on. | Same as A. | Same as A. |
+| Approve, "I submitted it", automatic apply | Your click in the hub, with a confirm (and a typed phrase to turn automatic apply on). Claude's file tools cannot edit the queue, the apply log, `auto.json` or your answer files. | Same as A. | Same as A. |
 
 Engines B and C search Gmail with a query limited to job senders and job subjects: 30 days on the first
 read, then from the day before the last read. Your own sent mail is never stored, but a thread Claude opens
@@ -221,7 +253,8 @@ answers an apply sheet pre-fills; Claude asks for your contact details and shows
 `data/sources.json` (the company boards to watch and your filters). `run.py plan` will not start until both
 exist. Each board is found with `python3 tools/finder.py probe "Company"`, because a guessed slug fails
 quietly: on the first from-scratch run, 30 of 127 hand-listed boards were wrong. Companies on Workday or
-their own career sites cannot be watched. Your job folders from the v1 run join the queue
+Eightfold (Netflix) are found with `python3 tools/finder.py probe --careers <careers page URL>`; companies on
+Phenom, iCIMS or their own career sites cannot be watched. Your job folders from the v1 run join the queue
 (`jobqueue.py sync`), so their mail is tracked and their roles are not scored again, and Claude asks which
 of them you already sent. Restart `python3 ui/server.py` after updating Ascend: the server keeps the tool
 code it started with.
@@ -275,7 +308,7 @@ reading nothing.
 | "Run Ascend maintenance" *(beta)* | Weekly: new/closed jobs, follow-ups due, retro patterns |
 | "Ascend industry" *(beta)* | Rebuild or inspect the phrasing reference for your field (runs monthly by itself) |
 | "Ascend run-v2" *(beta)* | Ascend 2.0 run: choose an engine, see the token estimate and permissions, find, score, track |
-| "Ascend apply" *(beta)* | Apply to approved jobs: a gated apply sheet in the hub, you submit |
+| "Ascend apply" *(beta)* | Apply: automatic for Greenhouse, Ashby and Lever once you turn it on, an apply sheet for the rest, Claude helps with stopped jobs after your yes |
 | "Ascend linkedin-search" *(beta)* | LinkedIn Jobs in your own browser, result cards only |
 | "Ascend hub" *(beta)* | The live dashboard: funnel, queue with approve and apply, inbox, token spend |
 | "Ascend schedule" *(beta)* | Run the zero-token daily sync on a schedule |
@@ -353,8 +386,10 @@ permission settings backing it up. See [`ui/README.md` → The daily brief](ui/R
 <details>
 <summary><b>FAQ</b></summary>
 
-**Will it apply to jobs for me?** No. It finds, tailors, and preps. You review, export, submit.
-Auto-applying violates most sites' terms and skips your judgment.
+**Will it apply to jobs for me?** Only if you turn on automatic apply in the hub (Ascend 2.0, beta), and
+only on Greenhouse, Ashby and Lever, from answers you wrote yourself. Otherwise it finds, tailors and preps,
+and you submit. Automated applications break some sites' terms, and every form carries a bot check that
+may reject them: read the risks in the Ascend 2.0 section before turning it on.
 
 **Are the job links real?** Phase 4 fetches each link and marks it verified or unverified, and
 never invents req IDs. Career sites block bots and postings rot, so the queue reports the honest
