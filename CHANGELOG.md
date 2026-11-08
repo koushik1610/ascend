@@ -11,6 +11,94 @@ _Working toward v1.0. Real-run gate: **1 of 2–3 runs signed off** (2026-07-01,
 see `docs/ROADMAP.md` → sign-off log); cases (b) no-résumé/non-tech and (c) resume-after-interruption
 remain, plus a green CI run on the remote + a demo GIF._
 
+### Fixed + Added: 2026-11-05 features comparison update 3 — de-smuggling, arrival time, the text layer
+A feature comparison against other open-source career-operations modules, then a council review
+(coding/systems · AI-agent-security · technical recruiter) of the integrated flow. Full analysis in
+`docs/ASCEND-3.0-PLAN.md`. **The two most valuable changes were not on the candidate list**, and one
+candidate turned out to be 70% built already and pointed at the wrong artifact.
+
+- **The ingest path laundered hidden content, and this was verified rather than theorised.**
+  `finder.clean()` and `gmail_sync._strip_html()` ran `html.unescape` and then
+  `re.sub(r"<[^>]+>", " ", s)`, which deletes the `style="display:none"` wrapper and **keeps its
+  text**. A `display:none` payload, a `font-size:0` span, a U+200B inside a word and a sentence
+  spelled in the U+E0000 tag block all survived — arriving indistinguishable from the visible job
+  description, because the only thing removed was the evidence that they were hidden. The ordering
+  was the bug. New `tools/_untrusted.py` removes hidden elements *with their content* before tags are
+  flattened, strips every `Cf` code point, decodes tag-block runs before removing them so the payload
+  can be quoted, and runs at four call sites — including `jobqueue.servable_text`, the last seam
+  before the model, so rows written by `finder.add` or by earlier runs are covered too. Always
+  **before** the character budget: a smuggled run is one invisible code point per character, so
+  trimming first would let it keep eating the allowance the scorer is given.
+  - It is a **module, not an allow-listed command**, deliberately. `.claude/settings.json` pins a
+    Bash entry by path prefix and places no constraint on the arguments, so a scanner taking
+    untrusted text — or a URL — on argv would turn an allow-listed entry into a primitive that
+    attacker-influenced content can aim. And a scanner the model is *told* to run is itself an
+    instruction-level control, the class of defence it exists to replace.
+  - **No instruction-shaped-line or homoglyph detection**, on purpose: an SSH role says "SSH", every
+    ad says "submit your resume as a PDF", and "Яндекс" is a company. Removing invisible characters
+    has no false-positive cost; heuristic flagging does, and stays with the quarantine.
+  - The plainest cost was never security: `prefilter.keyword_overlap` matches by literal substring,
+    so `"Pyt\u200bhon"` does not contain `"python"` and a well-matched posting silently sorted out of
+    triage. The commonest source of those characters is a JD drafted in Word.
+- **The outbound half was broken independently.** `lint_artifacts._symbol_glyphs` gated on Unicode
+  `So`/`Co`; U+200B, U+00AD, U+FEFF and the whole tag block are all **`Cf`**, so it returned `[]` for
+  a name carrying a zero-width space — and `render_resume.tex_escape` passed them into the `.tex`, so
+  invisible text could ship inside a submitted PDF, which `reference/ats-and-keywords.md` calls worse
+  than an unmatched résumé. `Cf` added to the `scan` gate, the renderer strips invisibles, and that
+  file's claim that "The LaTeX template cannot produce hidden text" is corrected — it was true of
+  layout and false of code points.
+- **Arrival time: the board's publish date was fetched and thrown away.**
+  `reference/ats-and-keywords.md` says "recruiters review in arrival order — **apply early**", and
+  nothing acted on it because nothing could. `finder.normalize()` received `updated_at` /
+  `createdAt` / `publishedAt` / `published_on` / `releasedDate` from the five boards and captured
+  none; the only date stored was `first_seen`, *when Ascend looked*, so on a fresh workspace a
+  90-day-old requisition with 400 applicants in it looked one day old. This was also a regression
+  against `prompts/14-ats-aggregation.md`, which names those exact fields. Now captured as
+  `posted_on` across all five shapes (ISO, offset and epoch-millis), exposed as `age_days`, used as
+  the queue's freshness tie-break with **unknown age sorting last, never first** (None is not zero),
+  and surfaced in the daily brief: "this one went up yesterday; the other has been open five weeks."
+- **PDF text-layer verification, which was mostly already written.** The renderer enforced the page
+  budget and nothing else, so "ATS-safe" meant "exists and has one page". A ToUnicode-CMap extractor
+  for exactly this already lived in `tests/smoke.py` — pointed at one committed sample, skipped
+  entirely when no TeX engine was installed, and therefore never run against the file a user submits.
+  It now lives in `tools/render_resume.py` (the test imports the single copy) and runs after every
+  render, plus a `--verify-text <pdf>` mode for the **Overleaf path**, where the PDF is compiled
+  outside the repo and no mechanical check had ever touched it. ToUnicode presence is reported as
+  context, never asserted: a PDF can carry a CMap per font and still extract as garbage. It reports
+  and never blocks — a false positive that refuses to produce a PDF the night before a deadline is
+  worse than the bug. **It immediately found a real defect in the committed sample**: the Chrome/HTML
+  fallback emits a text layer containing `ﬁ`, so `remote-first` extracts as `remote-ﬁrst` and a
+  search for "first" misses it, plus 8 glyphs with no usable ToUnicode entry.
+- **Language gate**, declared-only. Hard-DQ a *required* language absent from the brief's new
+  Languages table; flag a higher-level ask as a gap and let the user decide whether their B2 clears a
+  "fluent" bar. Routed through the existing required/preferred/mentioned classifier rather than a new
+  rule class. Never inferred — a level guessed from where someone lives, studied or is named is both
+  a fabricated skill and a protected-characteristic inference; an empty table makes the requirement
+  `NEEDS YOU`, not a drop.
+- **`jobqueue.py gaps`** counts the per-job gaps Phase 27 already recorded and names one appearing in
+  **three or more** scored roles, in the weekly review. Deliberately not a heatmap, tier list or study
+  plan with hour estimates — an hour estimate is a fabricated number, and a gap plan is the most
+  comfortable-feeling work in a job search: it looks like progress and displaces applying.
+- **Two test-harness defects.** `tests/test_v2_apply.py` had been **red since 2026-10-31**: a
+  hardcoded `applied_on: 2026-09-01` fell outside `pipeline.GUARD_DAYS = 60`, a time bomb unrelated
+  to any code change. Dated relative to today. And the unit-suite glob matched only `test_v2_*.py`,
+  so any later suite would have run green locally and never been gated; it now matches
+  `test_v[0-9]*_*.py`.
+
+**Deferred: query-based discovery across aggregators.** The gap is real — the finder polls company
+boards by slug, so the user must already know which companies to watch. But the five supported ATSs
+publish per-company endpoints, not cross-company search, so a "uniform search contract" over them has
+no implementations; this container's network is restricted, so no endpoint could be verified live and
+shipping an untested endpoint list is the kind of unverified external claim this repo refuses
+elsewhere; and the recruiter's read is that for a candidate outside the US the gap is source coverage
+for their market, not query mode — while posting supply is not the binding constraint at all. Arrival
+speed is, and that shipped above. The shape it would take, if built, is recorded in the plan doc.
+
+**Rejected:** a robots.txt guard whose only purpose is to permit a browser-header `curl` retry —
+`curl` is deny-listed, and it is the one general-purpose outbound-POST primitive in that list, so
+adopting the guard means adding the capability it guards. And user-supplied résumé templates, which
+are the single change that makes "a render can never reintroduce a table or a column" false.
+
 ### Fixed: Ascend 2.0 from scratch (branch `fix/v2-rerun-council`)
 A from-scratch run on a real user's profile, reviewed by the ten-persona council, found that the merged
 release only worked on a workspace seeded by hand:

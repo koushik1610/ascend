@@ -27,7 +27,7 @@ JD = {"05-affirm-staff-security-enterprise-ai": "https://job-boards.greenhouse.i
 
 
 def seed(root):
-    ws = make_ws(root, FOLDERS)
+    ws = make_ws(root, FOLDERS, applied_on="2026-09-01")   # before the fixture mail's dates
     for slug, url in JD.items():
         log = ws / "jobs" / slug / "application-log.md"
         log.write_text(log.read_text().replace("\nNotes the user wrote.\n",

@@ -24,6 +24,7 @@ from pathlib import Path
 TOOLS = Path(__file__).resolve().parent
 sys.path.insert(0, str(TOOLS))
 import _v2data as d  # noqa: E402
+import _untrusted  # noqa: E402
 import prefilter  # noqa: E402
 from _paths import PathOutsideWorkspace  # noqa: E402
 from classify import ALERT_DOMAINS, _domain_in, sender_domain  # noqa: E402

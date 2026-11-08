@@ -4,6 +4,7 @@
   python3 tools/jobqueue.py candidates WS [--limit N]          # survivors waiting for a score (compact JSON)
   python3 tools/jobqueue.py score WS POSTING_ID --fit N --why TEXT [--gaps "a; b"]
   python3 tools/jobqueue.py score WS --file SCORES.json             # [{"posting_id", "fit", "why", "gaps": [..]}]
+  python3 tools/jobqueue.py gaps WS [--floor 3]        # which gap recurs across the scored queue
   python3 tools/jobqueue.py set-state WS POSTING_ID STATE
   python3 tools/jobqueue.py link WS POSTING_ID NN                     # after Phase 5 builds the job's folder
   python3 tools/jobqueue.py sync WS                                   # bring v1 job folders into the queue
@@ -26,6 +27,7 @@ from pathlib import Path
 TOOLS = Path(__file__).resolve().parent
 sys.path.insert(0, str(TOOLS))
 import _v2data as d  # noqa: E402
+import _untrusted  # noqa: E402
 from finder import ROLE_START, role_text  # noqa: E402,F401
 
 STATES = ["matched", "approved", "rejected", "needs-you", "applying", "applied", "applied?", "inbound-filtered"]
@@ -55,6 +57,28 @@ def role_key(company, title):
     import pipeline
     from prefilter import company_key
     return f"{company_key(company)}|{pipeline.normalize_title(title)}"
+
+
+def age_days(posted_on):
+    """Days since the BOARD said the role went up, or None when the board gave no date.
+
+    None is not zero. A posting with no date is unknown age, and the one thing worse than not
+    knowing is treating unknown as fresh — which is what `first_seen` did, since on a workspace's
+    first run every posting was "first seen today" including a 90-day-old requisition.
+    """
+    if not posted_on:
+        return None
+    try:
+        return (date.today() - date.fromisoformat(str(posted_on)[:10])).days
+    except ValueError:
+        return None
+
+
+def _age_key(posted_on):
+    """Sort key: fresher first, unknown age last (never ahead of a known-fresh posting)."""
+    a = age_days(posted_on)
+    return (1, 0) if a is None else (0, a)
+
 
 
 def budget_text(text):
@@ -155,6 +179,20 @@ def link(ws, posting_id, nn):
     return d.update_json(Path(ws) / "data" / "queue.json", {"jobs": []}, change)
 
 
+def servable_text(text, findings):
+    """The last seam before posting text reaches the model: de-smuggle, THEN trim to budget.
+
+    `finder.clean` already does this for board rows, but not every row came from a board:
+    `finder.py add --source web|linkedin` ingests rows the model wrote, and postings.jsonl holds
+    rows written before this check existed. Doing it here too means every row is covered whatever
+    wrote it, and the order matters — a smuggled payload is one invisible code point per character,
+    so trimming to TEXT_BUDGET first would let it keep eating the allowance the scorer is given.
+    """
+    clean, f = _untrusted.clean_untrusted(text or "", is_html=False)
+    findings.extend(f)
+    return budget_text(clean)
+
+
 def candidates(ws, limit=25):
     dd = Path(ws) / "data"
     sync_folders(ws)
@@ -178,10 +216,19 @@ def candidates(ws, limit=25):
     closed = {pid for pid, st in d.read_json(dd / "postings-state.json", {}).items() if st.get("closed")}
     rows = [(c, posts[pid]) for pid, c in latest.items() if c.get("passed") and pid not in queued and pid in posts
             and pid not in closed and not already_queued(posts[pid])]
-    rows.sort(key=lambda r: -r[0].get("keyword_overlap", 0))
-    return [{"posting_id": p["id"], "company": company_of(p, names), "title": p.get("title"), "location": p.get("location"),
-             "comp": [p.get("comp_min"), p.get("comp_max")], "keyword_overlap": c.get("keyword_overlap"),
-             "url": p.get("url"), "text": budget_text(p.get("text"))} for c, p in rows[:limit]]
+    # Overlap first, then FRESHNESS as the tie-break. `reference/ats-and-keywords.md` says
+    # recruiters review in arrival order and to apply early; before posted_on was captured there was
+    # nothing to sort on, so two equally-matched roles were ordered arbitrarily and a 90-day-old
+    # requisition could outrank one posted yesterday. Unknown dates sort last, never first.
+    rows.sort(key=lambda r: (-r[0].get("keyword_overlap", 0), _age_key(r[1].get("posted_on"))))
+    findings = []
+    out = [{"posting_id": p["id"], "company": company_of(p, names), "title": p.get("title"), "location": p.get("location"),
+            "comp": [p.get("comp_min"), p.get("comp_max")], "keyword_overlap": c.get("keyword_overlap"),
+            "url": p.get("url"), "posted_on": p.get("posted_on"), "age_days": age_days(p.get("posted_on")),
+            "text": servable_text(p.get("text"), findings)} for c, p in rows[:limit]]
+    if findings:
+        print("  " + _untrusted.summarize(findings), file=sys.stderr)
+    return out
 
 
 def score(ws, posting_id, fit, why, gaps):
@@ -271,12 +318,47 @@ def set_state(ws, posting_id, state, via_hub=False, **fields):
     return entry
 
 
+def recurring_gaps(ws, floor=3):
+    """Which gap shows up across the scored queue, counted from gaps already on disk.
+
+    `score ... --gaps` has always stored a per-job gap list; nothing ever counted one term across
+    jobs, so "the thing that keeps costing me" was invisible while being fully recorded. This is a
+    Counter over existing data: no new field, no model call, no new op.
+
+    Deliberately NOT a heatmap, a tier list or a study plan with hour estimates. An hour estimate
+    for learning something is a fabricated number, which `reference/number-and-honesty-policy.md`
+    forbids, and a gap plan is the most comfortable-feeling work in a job search: it looks like
+    progress, it is entirely within the candidate's control, and it displaces applying. So: count,
+    rank, cite the jobs, stop. Surfaced only at `floor` occurrences, because one posting wanting
+    Kubernetes is not a pattern.
+
+    A named gap also rarely decides a SCREEN — the screen turns on whether the résumé matched the
+    search and whether anyone vouched. Gaps decide loops, which is `prompts/10-deep-prep.md`'s job,
+    per job, after a screen passes.
+    """
+    counts, where = {}, {}
+    for j in _queue(ws).get("jobs", []):
+        seen = set()
+        for g in j.get("gaps") or []:
+            key = " ".join(str(g).lower().split())
+            if not key or key in seen:
+                continue
+            seen.add(key)
+            counts[key] = counts.get(key, 0) + 1
+            where.setdefault(key, []).append(j.get("posting_id"))
+    scored = sum(1 for j in _queue(ws).get("jobs", []) if j.get("gaps") is not None)
+    rows = [{"gap": k, "count": v, "of_scored": scored, "jobs": where[k][:6]}
+            for k, v in counts.items() if v >= floor]
+    rows.sort(key=lambda r: (-r["count"], r["gap"]))
+    return {"scored_jobs": scored, "floor": floor, "recurring": rows}
+
+
 def _opt(args, name, default=None):
     return args[args.index(name) + 1] if name in args and args.index(name) + 1 < len(args) else default
 
 
 def main(argv):
-    if len(argv) < 3 or argv[1] not in ("candidates", "score", "set-state", "link", "sync", "show", "list"):
+    if len(argv) < 3 or argv[1] not in ("candidates", "score", "set-state", "link", "sync", "show", "list", "gaps"):
         print(__doc__, file=sys.stderr)
         return 2
     cmd, ws, args = argv[1], argv[2], argv[3:]
@@ -285,6 +367,8 @@ def main(argv):
             out = candidates(ws, int(_opt(args, "--limit", 25)))
         elif cmd == "list":
             out = _queue(ws).get("jobs", [])
+        elif cmd == "gaps":
+            out = recurring_gaps(ws, int(_opt(args, "--floor", 3)))
         elif cmd == "score" and "--file" in args:
             # Model-written text read from a file, never through the shell, where "$(...)" would expand.
             rows = json.loads(Path(_opt(args, "--file")).read_text(encoding="utf-8"))

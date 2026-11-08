@@ -61,6 +61,14 @@ _ESCAPES = (
     ("~", r"\textasciitilde{}"),
     ("^", r"\textasciicircum{}"),
 )
+# Invisible code points (Cf: zero-width space/joiners, soft hyphen, BOM, the U+E0000 tag block)
+# are REMOVED, not escaped. They reached the .tex untouched before, so a résumé could ship text that
+# renders as nothing and still extracts — hidden keywords inside a submitted PDF. The linter now
+# fails them upstream (`scan`); this is the belt to that braces, because the renderer is also
+# reachable from the builder and from a hand-edited resume.json.
+_INVISIBLE = re.compile(r"[\u00ad\u200b-\u200f\u2028-\u202e\u2060-\u2064\ufeff"
+                        r"\U000e0000-\U000e007f\U000e0100-\U000e01ef]")
+
 # Characters a résumé picks up from smart editors and from our own templates.
 _UNICODE = (
     ("\u2014", "---"), ("\u2013", "--"), ("\u2018", "`"), ("\u2019", "'"),
@@ -77,7 +85,7 @@ def tex_escape(s) -> str:
     """Make an arbitrary string safe to drop into LaTeX body text."""
     if s is None:
         return ""
-    out = str(s)
+    out = _INVISIBLE.sub("", str(s))
     for a, b in _ESCAPES:
         out = out.replace(a, b)
     for a, b in _UNICODE:
@@ -235,6 +243,97 @@ def validate(tex: str) -> list[str]:
     return problems
 
 
+def _safe_inflate(b):
+    try:
+        return zlib.decompressobj().decompress(b)
+    except zlib.error:
+        return b""
+
+
+def _pdf_text(pdf: bytes) -> str:
+    """Extract text through the PDF's own ToUnicode CMaps.
+
+    This is what an ATS does. A glyph with no ToUnicode entry is invisible to it,
+    which is why this reads the CMaps rather than just asserting Tj/TJ exist.
+    """
+    streams = [_safe_inflate(m.group(1))
+               for m in re.finditer(rb"stream\r?\n(.*?)\r?\nendstream", pdf, re.S)]
+    streams = [s for s in streams if s]
+    cmap, width = {}, 1
+    for st in streams:
+        cs = re.search(rb"begincodespacerange\s*<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>", st)
+        if cs:
+            width = max(width, len(cs.group(1)) // 2)
+        for blk in re.findall(rb"beginbfchar(.*?)endbfchar", st, re.S):
+            for src, dst in re.findall(rb"<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>", blk):
+                cmap[int(src, 16)] = bytes.fromhex(dst.decode()).decode("utf-16-be", "replace")
+        for blk in re.findall(rb"beginbfrange(.*?)endbfrange", st, re.S):
+            for lo, hi, dst in re.findall(
+                    rb"<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>", blk):
+                lo, hi = int(lo, 16), int(hi, 16)
+                base = bytes.fromhex(dst.decode()).decode("utf-16-be", "replace")
+                for i in range(lo, hi + 1):
+                    cmap[i] = chr(ord(base[0]) + i - lo) if base else "?"
+    out = []
+    for st in streams:
+        if not re.search(rb"\b(Tj|TJ)\b", st):
+            continue
+        for t in re.finditer(rb"<([0-9A-Fa-f]+)>|\((?:[^()\\]|\\.)*\)", st):
+            g = t.group(0)
+            raw = (bytes.fromhex(g[1:-1].decode()) if g.startswith(b"<")
+                   else re.sub(rb"\\([()\\])", rb"\1", g[1:-1]))
+            codes = ([int.from_bytes(raw[i:i + 2], "big") for i in range(0, len(raw) - 1, 2)]
+                     if width == 2 else list(raw))
+            out.append("".join(cmap.get(c, "�") for c in codes))
+    return "".join(out)
+
+
+def verify_text_layer(pdf: Path, must_contain=()) -> tuple[str, list[str]]:
+    """Read the PDF the way an ATS does and report what a parser would actually see.
+
+    Why this exists: the renderer enforced the PAGE BUDGET and nothing else, so "the PDF is
+    ATS-safe" meant "the PDF exists and has one page". The failure modes that cost a candidate an
+    application are all silent and all invisible to a page count:
+
+      * the contact line rendered as icon-font glyphs, so the parsed record has a name, a work
+        history and no email address — a shortlistable candidate with no reachable human attached;
+      * ligatures or a missing ToUnicode map, so "fintech" extracts as "ntech" and the résumé
+        misses the recruiter's Boolean search;
+      * a scrambled reading order, so the database holds the wrong current employer.
+
+    An extractor for exactly this already existed — in `tests/smoke.py`, pointed at one committed
+    sample, skipped entirely when no TeX engine was installed, and therefore never run against the
+    file a user submits. It now lives here and the test imports it, so there is one copy.
+
+    Returns (extracted_text, problems). Tri-state on purpose: an empty `problems` list with little
+    text means "could not read the text layer", which is reported rather than passed — a binary
+    verdict would have to lie in that case. ToUnicode presence is context in the message, never the
+    assertion: a PDF can carry a CMap per font and still extract as eight ligatures (demonstrated
+    on the committed sample), and a wrong CMap entry maps cleanly to the wrong character.
+    """
+    raw = pdf.read_bytes()
+    txt = _pdf_text(raw)
+    flat = re.sub(r"\s+", "", txt)
+    problems = []
+    ligatures = [lig for lig in "\ufb00\ufb01\ufb02\ufb03\ufb04\ufb05\ufb06" if lig in txt]
+    if ligatures:
+        problems.append(
+            "ligature glyphs survive into the text layer (" + " ".join(ligatures) + "): a word like "
+            "'first' extracts as 'ﬁrst', so a recruiter's search for 'first' — or for 'fintech', "
+            "'benefit', 'workflow' — does not match it. The LaTeX template disables these; a PDF "
+            "produced any other way may not.")
+    if "\ufffd" in txt:
+        n = txt.count("\ufffd")
+        i = txt.index("\ufffd")
+        problems.append(f"{n} glyph(s) have no usable ToUnicode entry, so a parser reads them as "
+                        f"garbage. First one here: {txt[max(0, i - 30):i + 30]!r}")
+    for needle in must_contain:
+        if needle and re.sub(r"\s+", "", str(needle)) not in flat:
+            problems.append(f"not found in the text layer: {str(needle)[:60]!r} — a parser cannot "
+                            "read it, whatever the page looks like")
+    return txt, problems
+
+
 def page_count(pdf: Path) -> int:
     """Count pages, including PDFs that pack page objects into object streams.
 
@@ -299,7 +398,41 @@ def main() -> int:
     ap.add_argument("--engine", help="force a specific TeX engine")
     ap.add_argument("--check", action="store_true",
                     help="write and validate the .tex, skip compilation")
+    ap.add_argument("--verify-text", metavar="PDF",
+                    help="read an EXISTING PDF's text layer the way an ATS does and report what a "
+                         "parser sees, then exit. This is the Overleaf path: when no TeX engine is "
+                         "installed the tool hands over a .tex and the PDF is compiled elsewhere, "
+                         "so without this no mechanical check ever touches the file that gets "
+                         "submitted — exactly the users most at risk.")
+    ap.add_argument("--no-text-check", action="store_true",
+                    help="skip the post-render text-layer report (it never blocks either way)")
     a = ap.parse_args()
+
+    if a.verify_text:
+        pdf = Path(a.verify_text)
+        if not pdf.is_file():
+            print(f"render_resume: no such PDF: {pdf}", file=sys.stderr)
+            return 2
+        want = []
+        if Path(a.resume_json).is_file():
+            b = (json.loads(Path(a.resume_json).read_text(encoding="utf-8")).get("basics") or {})
+            # Contact details only. A headline legitimately differs between the master public
+            # résumé and a per-job one, so asserting `label` across an arbitrary PDF/JSON pair
+            # reports a mismatch that is not a defect.
+            want = [b.get("email"), b.get("phone"), b.get("name")]
+        txt, problems = verify_text_layer(pdf, [w for w in want if w])
+        print(f"text layer: {len(txt)} characters extracted from {pdf}")
+        if len(txt) < 200:
+            print("render_resume: almost nothing extracted. Either the PDF has no text layer "
+                  "(a scan or an image), or its fonts carry no usable ToUnicode map. An ATS would "
+                  "read this as an empty résumé. Run the manual parse test in "
+                  "prompts/08-export-pdf.md before submitting.", file=sys.stderr)
+            return 1
+        for pr in problems:
+            print(f"  ! {pr}", file=sys.stderr)
+        print("  text layer looks parseable" if not problems else
+              "  fix the above, or verify by pasting the PDF into a text editor")
+        return 1 if problems else 0
 
     src = Path(a.resume_json)
     if not src.exists():
@@ -369,6 +502,23 @@ def main() -> int:
               f"Cut CONTENT per reference/resume-writing-rules.md. Never shrink the type.",
               file=sys.stderr)
         return 1
+
+    if not a.no_text_check:
+        # The page budget says the PDF is the right SHAPE. This says a parser can read it.
+        # Reported, never fatal — the budget is a rule the user chose, a garbled glyph is a
+        # warning they need to see and act on with the deadline they actually have.
+        b = data.get("basics") or {}
+        want = [b.get("email"), b.get("phone"), b.get("name")]
+        txt, problems = verify_text_layer(out_pdf, [w for w in want if w])
+        if len(txt) < 200:
+            print(f"  ! text layer: only {len(txt)} characters extracted — an ATS would read this "
+                  "as nearly empty. Check the fonts, then the manual parse test in "
+                  "prompts/08-export-pdf.md.", file=sys.stderr)
+        elif problems:
+            for pr in problems:
+                print(f"  ! {pr}", file=sys.stderr)
+        else:
+            print(f"  text layer: {len(txt)} characters, contact details parse as literal text")
     return 0
 
 

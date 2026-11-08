@@ -45,6 +45,7 @@ from urllib.request import Request, urlopen
 TOOLS = Path(__file__).resolve().parent
 sys.path.insert(0, str(TOOLS))
 import _v2data as d  # noqa: E402
+import _untrusted  # noqa: E402
 from _paths import PathOutsideWorkspace, resolve_out  # noqa: E402
 
 SCOPE = "https://www.googleapis.com/auth/gmail.readonly"
@@ -349,7 +350,13 @@ def _find_part(payload, mime):
 
 
 def _strip_html(s):
-    s = re.sub(r"(?is)<(script|style).*?</\1>", " ", s)
+    """Mail HTML -> plain text. Hidden elements and invisible code points go, not just the tags.
+
+    A recruiter mail is attacker-influenceable text that reaches the classifier and the ledger, so
+    it gets the same de-smuggling as a board posting. See tools/_untrusted.py for why removing the
+    wrapper while keeping the payload was the wrong order.
+    """
+    s, _ = _untrusted.clean_untrusted(s or "", is_html=True)
     return html.unescape(re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", s))).strip()
 
 

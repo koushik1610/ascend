@@ -208,7 +208,8 @@ class Resolve(unittest.TestCase):
     def setUp(self):
         import _v2data as d
         self.td = tempfile.TemporaryDirectory()
-        self.ws = make_ws(self.td.name, [("01-streamco", "StreamCo", "Security Engineer", "applied")])
+        self.ws = make_ws(self.td.name, [("01-streamco", "StreamCo", "Security Engineer", "applied")],
+                          applied_on="2026-09-01")   # before the fixture mail's dates
         d.write_json_atomic(self.ws / "data" / "queue.json", {"jobs": [{"posting_id": "x1", "company": "StreamCo",
                                                                         "title": "Security Engineer", "nn": "01"}]})
         d.append_jsonl(self.ws / "data" / "mail.jsonl", {"msg_id": "n1", "from": "recruiter@jobs.streamco.example",

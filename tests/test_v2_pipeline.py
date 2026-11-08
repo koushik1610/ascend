@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from datetime import date, timedelta
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
@@ -15,15 +16,25 @@ sys.path.insert(0, str(REPO / "tools"))
 TOOL = [sys.executable, str(REPO / "tools/pipeline.py")]
 
 
-def make_ws(root, jobs):
-    """A workspace with job folders. pipeline.py refuses paths without a `workspace` component."""
+# The duplicate-apply guard is a WINDOW (pipeline.GUARD_DAYS), so a fixture with a hardcoded
+# applied_on is a time bomb: `2026-09-01` sat inside the 60-day window when it was written and fell
+# out of it on 2026-10-31, turning test_refuses_a_duplicate red for reasons that had nothing to do
+# with the code. Dating the fixture relative to today keeps it inside the window forever.
+APPLIED_ON = str(date.today() - timedelta(days=7))
+
+
+def make_ws(root, jobs, applied_on=APPLIED_ON):
+    """A workspace with job folders. pipeline.py refuses paths without a `workspace` component.
+
+    Pass a fixed `applied_on` when the test also uses dated mail: mail is matched only to an
+    application sent on or before its date, so a relative date can land after the mail."""
     ws = Path(root) / "workspace" / "tester"
     for slug, company, role, status in jobs:
         d = ws / "jobs" / slug
         d.mkdir(parents=True)
         log = f"# Application Log: {company}, {role}\n\nNotes the user wrote.\n"
         if status:
-            log += f"\n```ascend-state\nstatus: {status}\napplied_on: 2026-09-01\n```\n"
+            log += f"\n```ascend-state\nstatus: {status}\napplied_on: {applied_on}\n```\n"
         (d / "application-log.md").write_text(log, encoding="utf-8")
     (ws / "data").mkdir(parents=True, exist_ok=True)
     return ws
