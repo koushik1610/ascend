@@ -23,15 +23,18 @@ TOOL = [sys.executable, str(REPO / "tools/pipeline.py")]
 APPLIED_ON = str(date.today() - timedelta(days=7))
 
 
-def make_ws(root, jobs):
-    """A workspace with job folders. pipeline.py refuses paths without a `workspace` component."""
+def make_ws(root, jobs, applied_on=APPLIED_ON):
+    """A workspace with job folders. pipeline.py refuses paths without a `workspace` component.
+
+    Pass a fixed `applied_on` when the test also uses dated mail: mail is matched only to an
+    application sent on or before its date, so a relative date can land after the mail."""
     ws = Path(root) / "workspace" / "tester"
     for slug, company, role, status in jobs:
         d = ws / "jobs" / slug
         d.mkdir(parents=True)
         log = f"# Application Log: {company}, {role}\n\nNotes the user wrote.\n"
         if status:
-            log += f"\n```ascend-state\nstatus: {status}\napplied_on: {APPLIED_ON}\n```\n"
+            log += f"\n```ascend-state\nstatus: {status}\napplied_on: {applied_on}\n```\n"
         (d / "application-log.md").write_text(log, encoding="utf-8")
     (ws / "data").mkdir(parents=True, exist_ok=True)
     return ws

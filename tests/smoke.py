@@ -93,6 +93,16 @@ def test_server():
             check("/resume-builder served", stb == 200)
             check("/resume-builder sets a strict CSP (default-src none + connect-src none)",
                   "default-src 'none'" in cspb and "connect-src 'none'" in cspb)
+            # Rerun 1: /workspace/ served data/mail.jsonl, profile.json and engine A's client secret with no token.
+            ws_s = REPO / "workspace/_sec_smoke"
+            (ws_s / "data").mkdir(parents=True, exist_ok=True)
+            for rel in ("data/mail.jsonl", "data/notes.md", "gmail-client.json", ".ascend-state.json", "hub.html"):
+                (ws_s / rel).write_text("{}", encoding="utf-8")
+            check("/workspace refuses data/", req("GET", "/workspace/_sec_smoke/data/mail.jsonl")[0] == 404)
+            check("/workspace refuses gmail-client.json", req("GET", "/workspace/_sec_smoke/gmail-client.json")[0] == 404)
+            check("/workspace refuses dotfiles", req("GET", "/workspace/_sec_smoke/.ascend-state.json")[0] == 404)
+            check("/view refuses data/", reqh("/view/_sec_smoke/data/notes.md")[0] == 404)
+            check("/workspace still serves dashboards", req("GET", "/workspace/_sec_smoke/hub.html")[0] == 200)
         finally:
             shutil.rmtree(REPO / "workspace/_sec_smoke", ignore_errors=True)
     finally:

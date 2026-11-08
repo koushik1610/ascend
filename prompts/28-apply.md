@@ -20,13 +20,17 @@ the token estimate and the permissions the engine uses. `data/profile.json`. The
 
 There is nothing for Claude to click. The hub's Queue tab (served at `/hub?slug=<name>`) shows **Apply** on
 each job the user approved. It builds the sheet (`python3 tools/apply.py sheet workspace/<name> <posting_id>`),
-which is refused unless the job is approved, not a duplicate, and its résumé passes lint. The sheet shows
+which is refused unless the job is approved, not a duplicate, linked to its own job folder, and its résumé
+passes lint. A job is linked when Phase 5 builds its folder (`jobqueue.py link`) or when its folder came from
+an earlier run (`jobqueue.py sync`, run by `candidates`, `ingest` and the sheet itself). The sheet shows
 the answers to copy, the résumé to attach and the application link. Work authorization, sponsorship,
 salary and start date are always left to the user. The user submits and presses **I submitted it**,
 which records the send in `data/apply-log.jsonl` and moves the job folder to applied.
 
 When the user asks Claude to prepare sheets in a session, run `sheet` for each approved job and report
-each result or `REFUSED` reason. Never approve a job yourself: approval is the user's click in the hub.
+each result or `REFUSED` reason. Never approve a job yourself: approval is the user's click in the hub. Never
+press Approve, Reject or "I submitted it" in the hub, even with Claude in Chrome open on it: each is the user's
+decision, and each asks the user to confirm.
 
 ## Verify & checkpoint
 - `python3 tools/apply.py status workspace/<name>` shows today's recorded sends.

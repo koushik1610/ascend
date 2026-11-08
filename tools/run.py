@@ -31,8 +31,9 @@ CONNECTOR = ("Gmail: Claude reads your mail through the claude.ai Gmail connecto
              "This repo's .claude/settings.json denies the connector's send, reply, forward, draft, label, spam and "
              "trash tools, and Drive's share, create, update, copy and trash tools.")
 CONNECTOR_RISK = ("Risk you accept: mail anyone can send you is read in the same session that can fetch web pages. "
-                  "Claude treats mail as data, but this repo's settings allow web fetches to any domain. To close that, "
-                  'add "ask": ["WebFetch"] (or "deny" on engine C) to your own .claude/settings.local.json.')
+                  "Claude treats mail as data, and this repo's settings ask you before every web fetch, so a fetch an "
+                  'email asked for still needs your yes. On engine C you can add "deny": ["WebFetch"] to your own '
+                  ".claude/settings.local.json to rule fetches out.")
 PERMISSIONS = {
     "A": ["Gmail: your own Google OAuth client with the gmail.readonly scope. The refresh token stays in your "
           "macOS Keychain. Ascend cannot send, change or delete mail."],
@@ -41,7 +42,11 @@ PERMISSIONS = {
 }
 PERMISSIONS_ALL = [
     "Job boards: public board APIs, read only, no login.",
-    "Applications: Ascend never submits anything. You open each application and press Submit yourself.",
+    "Applications: Ascend never submits anything. You open each application and press Submit yourself. This repo "
+    "denies Claude in Chrome's form-input, file-upload, image-upload, scripting, shortcut and batch tools. Claude in "
+    "Chrome can still click and type, so keep its per-action prompts on. Claude's file tools cannot edit your queue "
+    "or logs: approving a job and recording a send through Ascend are your clicks in the hub, each with a confirm "
+    "(pipeline.py log, for a job you applied to elsewhere, also marks it applied).",
     "LinkedIn search (only if you ask for it): Claude in Chrome reads job result cards in your own logged-in "
     "browser. Automated browsing can break LinkedIn's terms of use and put the account at risk.",
 ]
@@ -78,7 +83,7 @@ def _setup_problems(ws):
     return out
 
 
-def plan(ws, engine, mode="assisted", jobs=20):
+def plan(ws, engine, mode="assisted", jobs=usage.DEFAULT_JOBS):
     problems = _setup_problems(ws)
     if engine not in ENGINES:
         problems.append(f"unknown engine {engine!r}")
@@ -87,7 +92,8 @@ def plan(ws, engine, mode="assisted", jobs=20):
     elif mode not in MODES:
         problems.append(f"unknown mode {mode!r}")
     if problems:
-        return {"ok": False, "problems": problems, "estimate": None, "warning": "", "permissions": []}
+        return {"ok": False, "problems": problems, "estimate": None, "warning": "", "permissions": [],
+                "prefill": [], "notes": []}
     if engine == "A":
         if not (Path(ws) / "gmail-client.json").is_file():
             problems.append("engine A needs workspace/<name>/gmail-client.json (docs/GMAIL-SETUP.md). "
@@ -103,8 +109,30 @@ def plan(ws, engine, mode="assisted", jobs=20):
         state = d.read_json(p, {"name": Path(ws).name, "phases": {}})
         state["run_defaults"] = {"engine": engine, "mode": mode}
         d.write_json_atomic(p, state)
+    import apply
+    profile = d.read_json(Path(ws) / "data" / "profile.json", {})
+    # Every answer an apply sheet pre-fills, by name: Step 1 shows the values to the user to confirm.
+    prefill = [k for k in apply.PROFILE_FIELDS if profile.get(k) and k not in apply.ALWAYS_ASK]
+    notes = _setup_notes(ws)
+    sync = d.read_json(Path(ws) / "data" / "sync-state.json", {})
+    if engine in ("B", "C") and not (sync.get("connector_last_read") or sync.get("connector_first_partial")):
+        notes.append("The first Gmail read covers 30 days, a one-time cost on top of the daily estimate (about 90,000 "
+                      "tokens for 90 threads on the first from-scratch run). Record it with --backfill.")
     return {"ok": ok, "problems": problems, "estimate": est, "warning": warning,
-            "permissions": PERMISSIONS[engine] + PERMISSIONS_ALL}
+            "permissions": PERMISSIONS[engine] + PERMISSIONS_ALL, "prefill": prefill, "notes": notes}
+
+
+def _setup_notes(ws):
+    """Gaps that do not stop a run but change what it can do."""
+    ws, out = Path(ws), []
+    if not (ws / "industry-fit.md").is_file():
+        out.append("no industry-fit.md (Phase 26): scoring judges must-haves from the master résumé's bullets alone")
+    boards = d.read_json(ws / "data" / "sources.json", {}).get("boards") or []
+    named = [b for b in boards if b.get("company") and b.get("company") != b.get("slug")]
+    if boards and len(named) < len(boards):
+        out.append(f"{len(boards) - len(named)} of {len(boards)} boards have no display name (company is the slug): "
+                   "the hub and apply sheets show the slug. python3 tools/finder.py probe prints Greenhouse names")
+    return out
 
 
 def steps(engine):
@@ -137,7 +165,7 @@ def main(argv):
     if not args or args[0].startswith("--"):
         print(__doc__, file=sys.stderr)
         return 2
-    out = plan(args[0], _opt(args, "--engine", "A"), _opt(args, "--mode", "assisted"), int(_opt(args, "--jobs", 20)))
+    out = plan(args[0], _opt(args, "--engine", "A"), _opt(args, "--mode", "assisted"), int(_opt(args, "--jobs", usage.DEFAULT_JOBS)))
     print(json.dumps(out, indent=2))
     return 0 if out["ok"] else 3
 
