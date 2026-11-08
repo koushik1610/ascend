@@ -38,6 +38,21 @@ def seed_candidates(ws):
                                                       "title": "Staff Cloud Security Engineer", "state": "matched", "fit": 70}]})
 
 
+class RoleText(unittest.TestCase):
+    def test_role_start_skips_company_boilerplate(self):
+        import jobqueue
+        t = ("Join us for the opportunity for growth. " * 5 + "As the Principal Platform Security Engineer at Upstart, "
+             "you will define the strategy.")
+        self.assertTrue(jobqueue.role_text(t).startswith("As the Principal"), jobqueue.role_text(t)[:40])
+        self.assertTrue(jobqueue.role_text("Boilerplate. What you do Act as the DRI.").startswith("What you do"))
+
+    def test_candidate_text_includes_requirements(self):
+        import jobqueue
+        t = "Responsibilities " + "build things. " * 300 + "Requirements: 8+ years of Go and Kubernetes."
+        self.assertIn("8+ years of Go", jobqueue.budget_text(t))
+        self.assertLessEqual(len(jobqueue.budget_text(t)), jobqueue.TEXT_BUDGET + 10)
+
+
 class Usage(unittest.TestCase):
     def setUp(self):
         self.td = tempfile.TemporaryDirectory()
@@ -53,10 +68,36 @@ class Usage(unittest.TestCase):
         row = d.read_jsonl(self.ws / "data" / "usage.jsonl")[0]
         self.assertEqual((row["input_tokens"], row["output_tokens"], row["estimated"]), (1001, 200, True))
 
+    def test_defaults_match_a_measured_day(self):
+        # Rerun 1 measured engine C at ~3.5K tokens for mail and ~500 per scored job; the old defaults said
+        # 140K and 3,000 and put 290K a day on the hub.
+        import usage
+        e = usage.estimate(self.ws, "C", "assisted")
+        self.assertEqual(e["jobs"], 5)
+        self.assertLess(e["daily"], 100_000)
+        self.assertEqual(usage.STAGE_DEFAULT["score"], 600)
+
+    def test_the_first_reads_backfill_is_not_the_daily_base(self):
+        import _v2data as d
+        import usage
+        for day in ("2026-10-01", "2026-10-02", "2026-10-03"):
+            d.append_jsonl(self.ws / "data" / "usage.jsonl", {"stage": "mail", "input_tokens": 3000, "output_tokens": 500,
+                                                              "engine": "C", "items": 1, "at": f"{day}T08:00:00"})
+        usage.record(self.ws, "mail", chars_in=330000, chars_out=38000, engine="C", backfill=True)
+        e = usage.estimate(self.ws, "C", "assisted", jobs=0)
+        self.assertEqual(e["daily"], 3500)
+
+    def test_one_record_of_many_items_calibrates(self):
+        import usage
+        usage.record(self.ws, "score", chars_in=45500, chars_out=4200, engine="C", mode="assisted", items=25)
+        e = usage.estimate(self.ws, "C", "assisted")
+        self.assertEqual(e["stages"]["score"], "measured")
+
     def test_estimate_defaults_then_measured(self):
         import usage
         e = usage.estimate(self.ws, "A", "assisted", jobs=20)
-        self.assertEqual((e["basis"], e["per_job"], e["daily"]), ("default", 7500, 85000 + 20 * 7500))
+        self.assertEqual((e["basis"], e["per_job"]), ("default", sum(usage.STAGE_DEFAULT.values())))
+        self.assertEqual(e["daily"], usage.BASE_DAILY["A"] + 20 * e["per_job"])
         for _ in range(3):
             usage.record(self.ws, "score", chars_in=8000, chars_out=0, engine="A", mode="assisted")
             usage.record(self.ws, "tailor", chars_in=12000, chars_out=0, engine="A", mode="assisted")
@@ -142,23 +183,23 @@ class Queue(unittest.TestCase):
     def test_set_state(self):
         import _v2data as d
         import jobqueue as qt
-        qt.set_state(self.ws, "greenhouse:d:4", "approved")
+        qt.set_state(self.ws, "greenhouse:d:4", "approved", via_hub=True)
         self.assertEqual(d.read_json(self.ws / "data" / "queue.json", {})["jobs"][0]["state"], "approved")
         with self.assertRaises(ValueError):
             qt.set_state(self.ws, "greenhouse:d:4", "teleported")
         with self.assertRaises(KeyError):
-            qt.set_state(self.ws, "nope", "approved")
+            qt.set_state(self.ws, "nope", "approved", via_hub=True)
 
     def test_a_sent_job_never_moves_back(self):
         import jobqueue as qt
-        qt.set_state(self.ws, "greenhouse:d:4", "approved")
-        qt.set_state(self.ws, "greenhouse:d:4", "applied?")
+        qt.set_state(self.ws, "greenhouse:d:4", "approved", via_hub=True)
+        qt.set_state(self.ws, "greenhouse:d:4", "applied?", via_hub=True)
         for back in ("approved", "matched", "rejected", "needs-you"):
             with self.assertRaises(ValueError):
-                qt.set_state(self.ws, "greenhouse:d:4", back)
-        self.assertEqual(qt.set_state(self.ws, "greenhouse:d:4", "applied")["state"], "applied")
+                qt.set_state(self.ws, "greenhouse:d:4", back, via_hub=True)
+        self.assertEqual(qt.set_state(self.ws, "greenhouse:d:4", "applied", via_hub=True)["state"], "applied")
         with self.assertRaises(ValueError):
-            qt.set_state(self.ws, "greenhouse:d:4", "approved")
+            qt.set_state(self.ws, "greenhouse:d:4", "approved", via_hub=True)
 
     def test_cli_cannot_approve_or_mark_applied(self):
         import _v2data as d
@@ -232,6 +273,25 @@ class Plan(unittest.TestCase):
         self.assertIn("tokens", out["warning"])
         state = d.read_json(Path(self.ws) / ".ascend-state.json", {})
         self.assertEqual(state["run_defaults"], {"engine": "B", "mode": "assisted"})
+
+    def test_plan_names_prefilled_fields_and_missing_industry_fit(self):
+        import run
+        out = run.plan(self.ws, "C")
+        self.assertIn("email", out["prefill"])
+        self.assertNotIn("work_authorization", out["prefill"])
+        self.assertTrue(any("industry-fit.md" in n for n in out["notes"]), out["notes"])
+
+    def test_plan_warns_about_the_first_connector_read(self):
+        import run
+        notes = " ".join(run.plan(self.ws, "C")["notes"])
+        self.assertIn("first Gmail read", notes)
+        self.assertNotIn("first Gmail read", " ".join(run.plan(self.ws, "A")["notes"]))
+
+    def test_connector_permission_says_fetches_ask(self):
+        import run
+        perms = " ".join(run.plan(self.ws, "C")["permissions"])
+        self.assertIn("ask you before every web fetch", perms)
+        self.assertIn("form-input", perms)
 
     def test_every_engine_states_the_permissions_it_uses(self):
         import run
@@ -342,6 +402,16 @@ class Server(unittest.TestCase):
         self.assertEqual(status, 200, body)
         log = d.read_jsonl(self.ws / "data" / "apply-log.jsonl")
         self.assertEqual([(r["posting_id"], r["result"]) for r in log], [("greenhouse:e:5", "submitted")])
+
+    def test_queue_action_needs_the_pages_own_origin(self):
+        # A local process with the token but no browser Origin cannot approve: confirm() runs only in the page.
+        c = http.client.HTTPConnection("127.0.0.1", self.port, timeout=5)
+        c.request("POST", "/api/queue", body=json.dumps({"slug": self.SLUG, "posting_id": "greenhouse:d:4",
+                                                         "action": "rejected"}),
+                  headers={"Host": f"127.0.0.1:{self.port}", "X-Ascend-Token": self.token,
+                           "Content-Type": "application/json"})
+        self.assertEqual(c.getresponse().status, 403)
+        c.close()
 
     def test_queue_action_needs_token(self):
         status, _, _ = self.req("POST", "/api/queue", {"slug": self.SLUG, "posting_id": "greenhouse:d:4", "action": "approved"})

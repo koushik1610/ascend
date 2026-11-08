@@ -93,6 +93,16 @@ def test_server():
             check("/resume-builder served", stb == 200)
             check("/resume-builder sets a strict CSP (default-src none + connect-src none)",
                   "default-src 'none'" in cspb and "connect-src 'none'" in cspb)
+            # Rerun 1: /workspace/ served data/mail.jsonl, profile.json and engine A's client secret with no token.
+            ws_s = REPO / "workspace/_sec_smoke"
+            (ws_s / "data").mkdir(parents=True, exist_ok=True)
+            for rel in ("data/mail.jsonl", "data/notes.md", "gmail-client.json", ".ascend-state.json", "hub.html"):
+                (ws_s / rel).write_text("{}", encoding="utf-8")
+            check("/workspace refuses data/", req("GET", "/workspace/_sec_smoke/data/mail.jsonl")[0] == 404)
+            check("/workspace refuses gmail-client.json", req("GET", "/workspace/_sec_smoke/gmail-client.json")[0] == 404)
+            check("/workspace refuses dotfiles", req("GET", "/workspace/_sec_smoke/.ascend-state.json")[0] == 404)
+            check("/view refuses data/", reqh("/view/_sec_smoke/data/notes.md")[0] == 404)
+            check("/workspace still serves dashboards", req("GET", "/workspace/_sec_smoke/hub.html")[0] == 200)
         finally:
             shutil.rmtree(REPO / "workspace/_sec_smoke", ignore_errors=True)
     finally:
@@ -418,49 +428,11 @@ def test_resume_builder():
         shutil.rmtree(d, ignore_errors=True)
 
 # ── 4d-bis. LaTeX résumé renderer (the default export path) ──────────────────
-def _safe_inflate(b):
-    try:
-        return zlib.decompressobj().decompress(b)
-    except zlib.error:
-        return b""
-
-
-def _pdf_text(pdf: bytes) -> str:
-    """Extract text through the PDF's own ToUnicode CMaps.
-
-    This is what an ATS does. A glyph with no ToUnicode entry is invisible to it,
-    which is why this reads the CMaps rather than just asserting Tj/TJ exist.
-    """
-    streams = [_safe_inflate(m.group(1))
-               for m in re.finditer(rb"stream\r?\n(.*?)\r?\nendstream", pdf, re.S)]
-    streams = [s for s in streams if s]
-    cmap, width = {}, 1
-    for st in streams:
-        cs = re.search(rb"begincodespacerange\s*<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>", st)
-        if cs:
-            width = max(width, len(cs.group(1)) // 2)
-        for blk in re.findall(rb"beginbfchar(.*?)endbfchar", st, re.S):
-            for src, dst in re.findall(rb"<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>", blk):
-                cmap[int(src, 16)] = bytes.fromhex(dst.decode()).decode("utf-16-be", "replace")
-        for blk in re.findall(rb"beginbfrange(.*?)endbfrange", st, re.S):
-            for lo, hi, dst in re.findall(
-                    rb"<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>", blk):
-                lo, hi = int(lo, 16), int(hi, 16)
-                base = bytes.fromhex(dst.decode()).decode("utf-16-be", "replace")
-                for i in range(lo, hi + 1):
-                    cmap[i] = chr(ord(base[0]) + i - lo) if base else "?"
-    out = []
-    for st in streams:
-        if not re.search(rb"\b(Tj|TJ)\b", st):
-            continue
-        for t in re.finditer(rb"<([0-9A-Fa-f]+)>|\((?:[^()\\]|\\.)*\)", st):
-            g = t.group(0)
-            raw = (bytes.fromhex(g[1:-1].decode()) if g.startswith(b"<")
-                   else re.sub(rb"\\([()\\])", rb"\1", g[1:-1]))
-            codes = ([int.from_bytes(raw[i:i + 2], "big") for i in range(0, len(raw) - 1, 2)]
-                     if width == 2 else list(raw))
-            out.append("".join(cmap.get(c, "�") for c in codes))
-    return "".join(out)
+# The extractor lives in tools/render_resume.py so the USER's render is checked too, not only this
+# committed sample. Imported here rather than duplicated: two copies of a PDF parser would drift,
+# and the version that mattered was the one the tool did not have.
+sys.path.insert(0, str(REPO / "tools"))
+from render_resume import _pdf_text, _safe_inflate, verify_text_layer  # noqa: E402
 
 
 def test_latex_render():
@@ -1175,12 +1147,16 @@ def test_industry_research():
     check("shipped reference is not gitignored", not ignored)
     check("state.py knows phase 26", '"26"' in (REPO / "tools/state.py").read_text(encoding="utf-8"))
 
-# ── 4l. Ascend 2.0 unit suites (stdlib unittest) ─────────────────────────────
+# ── 4l. Versioned unit suites (stdlib unittest) ──────────────────────────────
 def test_v2_units():
-    # v2 modules carry their own focused unittest files; smoke runs them so CI covers them without a
-    # second workflow step, and a red v2 test fails the same gate as a red v1 check.
-    print("ascend 2.0 units")
-    for f in sorted((REPO / "tests").glob("test_v2_*.py")):
+    # Versioned modules carry their own focused unittest files; smoke runs them so CI covers them
+    # without a second workflow step, and a red unit test fails the same gate as a red v1 check.
+    #
+    # The glob was `test_v2_*.py`, which silently excluded every later suite: a new tests/test_v3_*
+    # file ran green locally under `python3 -m unittest` and was never executed by the gate. Matching
+    # `test_v[0-9]*_*.py` means a new version's suite is picked up by existing, not by remembering.
+    print("versioned units")
+    for f in sorted((REPO / "tests").glob("test_v[0-9]*_*.py")):
         r = subprocess.run([sys.executable, "-m", "unittest", str(f.relative_to(REPO))],
                            cwd=REPO, capture_output=True, text=True)
         tail = (r.stderr or r.stdout).strip().splitlines()[-1:] or [""]

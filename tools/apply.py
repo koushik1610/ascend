@@ -97,9 +97,17 @@ def sheet(ws, posting_id):
     dup = pipeline.check_duplicate(ws, entry.get("company"), entry.get("title"), posting_id)
     if dup:
         raise Refused(dup)
-    job = pipeline.find_job(ws, entry["nn"]) if entry.get("nn") else None
+    if not entry.get("nn"):
+        jobqueue.sync_folders(ws)               # a folder for this posting may exist from an earlier run
+        entry = _entry(ws, posting_id)
+    job = pipeline.job_folder(ws, entry["nn"]) if entry.get("nn") else None
     if not job:
-        raise Refused("no apply pack yet: build it with Phase 5 (prompts/05-job-folders.md)")
+        raise Refused("no apply pack linked yet: build it with Phase 5 (prompts/05-job-folders.md), then run "
+                      f"python3 tools/jobqueue.py link {ws} {posting_id} <NN>")
+    f_company, f_title, f_url, *_ = pipeline.folder_job(job)
+    from finder import ats_id
+    if not jobqueue._same_role(entry.get("company"), entry.get("title"), f_company, f_title, posting_id, ats_id(f_url)):
+        raise Refused(f"{job.name} is for {f_company}, {f_title}: a different role from this job")
     pdfs = sorted(job.glob("*-Resume-*.pdf"))
     if not pdfs or not (job / "resume.md").is_file():
         raise Refused(f"no résumé PDF in {job.name}: render it with Phase 8")
@@ -111,8 +119,13 @@ def sheet(ws, posting_id):
     profile = d.read_json(ws / "data" / "profile.json", {})
     answers = {k: profile[k] for k in PROFILE_FIELDS if profile.get(k) and k not in ALWAYS_ASK}
     ask = ALWAYS_ASK + [k for k in ("name", "email", "phone") if not profile.get(k)]
+    link = entry.get("apply_url") or entry.get("url") or entry.get("posting_id")
+    gh = re.fullmatch(r"greenhouse:([\w-]+):(\d+)", posting_id or "")
+    if gh:                  # Greenhouse's own job page, whatever careers site the company points at
+        link = f"https://job-boards.greenhouse.io/{gh.group(1)}/jobs/{gh.group(2)}"
+    entry = dict(entry, apply_url=link)
     out = {"posting_id": posting_id, "company": entry.get("company"), "title": entry.get("title"),
-           "apply_url": entry.get("apply_url") or entry.get("url") or entry.get("posting_id"),
+           "apply_url": link,
            "link_note": None if _known_link(entry.get("apply_url") or entry.get("url") or "") else
            "This link is not on a known application system. Check the address before you enter anything.",
            "resume_pdf": str(pdfs[0]), "answers": answers, "ask_user": ask, "cover_note": _hook(job),
@@ -140,7 +153,7 @@ def record(ws, posting_id, result="submitted"):
             return entry
         if entry.get("state") != "approved":
             raise Refused(f"{entry.get('company')} is {entry.get('state')}, not approved")
-        entry = jobqueue.set_state(ws, posting_id, "applied")
+        entry = jobqueue.set_state(ws, posting_id, "applied", via_hub=True)
         with open(p, "a", encoding="utf-8") as f:     # inside the lock already: not append_jsonl
             f.write(json.dumps({"posting_id": posting_id, "result": result,
                                 "at": datetime.now().isoformat(timespec="seconds")}, sort_keys=True) + "\n")

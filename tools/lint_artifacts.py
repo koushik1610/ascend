@@ -377,11 +377,19 @@ def _date_shapes(dates):
 
 
 def _symbol_glyphs(data):
-    """Emoji, dingbats, and icon-font glyphs (Unicode So / Co) anywhere in the résumé's strings."""
+    """Emoji, dingbats, icon-font glyphs (So / Co) and INVISIBLE characters (Cf) in the résumé.
+
+    Cf was missing and it is the category that matters most here. Verified: U+200B, U+00AD, U+FEFF
+    and the whole U+E0000 tag block are all Cf, so this returned [] for a name carrying a zero-width
+    space and a skills label spelled in tag characters — and `render_resume.tex_escape` passes Cf
+    straight through into the .tex. Invisible text could therefore ship inside a rendered PDF, which
+    is the one thing `reference/ats-and-keywords.md` says is worse than an unmatched résumé:
+    AI-assisted screeners and the portal's own parse preview both expose it.
+    """
     import unicodedata
     found = []
     for ch in json.dumps(data, ensure_ascii=False):
-        if unicodedata.category(ch) in ("So", "Co") and ch not in found:
+        if unicodedata.category(ch) in ("So", "Co", "Cf") and ch not in found:
             found.append(ch)
     return found
 

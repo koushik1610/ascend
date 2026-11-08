@@ -120,7 +120,7 @@ def compute(ws, today=None):
         latest[c.get("posting_id")] = c.get("passed")
     screened = {pid for pid, ok in latest.items() if ok}
     funnel = [{"stage": s, "count": n} for s, n in [
-        ("found", len(postings - {None})), ("screened", len(screened - {None})), ("matched", len(queue)),
+        ("found", len(postings - {None})), ("screened", len(screened - {None})), ("matched", sum(1 for q in queue if q.get("state") != "inbound-filtered")),
         ("applied", len(applied_on)), ("replied", len(replied)), ("interviewing", len(interviewing)),
         ("offer", len(offers))]]
 
@@ -222,8 +222,32 @@ def compute(ws, today=None):
         import usage
         run = dict(defaults, estimate=usage.estimate(ws, defaults["engine"], defaults["mode"]))
     return {"as_of": today.isoformat(), "run": run, "gmail": _gmail_status(ws, data, defaults, today),
+            "health": _health(ws, data, events),
             "callback_gate": callback_gate, "funnel": funnel, "week": week, "rates": rates, "warning": warning,
             "inbox": inbox, "pinned": pinned, "queue": rows, "tokens": tokens}
+
+
+def _health(ws, data, events):
+    """Problems that otherwise fail quietly every day: boards that never answer or list nothing, and mail
+    about an application that matched no job."""
+    out = {"boards": None, "mail": None}
+    bh = d.read_json(data / "board-health.json", {})
+    bad = [f"{b} (unreachable)" for b in bh.get("failed") or []] + [f"{b} (no jobs listed)" for b in bh.get("empty") or []]
+    if bad:
+        out["boards"] = (f"{len(bad)} of {bh.get('boards')} job boards need a look on {bh.get('checked')}: "
+                         f"{', '.join(bad)}. Find the right board with python3 tools/finder.py probe \"Company\", "
+                         f"then fix workspace/{Path(ws).name}/data/sources.json.")
+    # Waiting means not yet settled by ingest: matched there on a second look, or given up as an application
+    # made outside Ascend, it no longer counts.
+    done = {r.get("key") for r in d.read_jsonl(data / "ingested.jsonl")}
+    unmatched = [e for e in events if e.get("category") in pipeline.EVENT_STATUS and not e.get("match")
+                 and f"{e.get('msg_id')}|{e.get('category')}" not in done]
+    if unmatched:
+        n = len(unmatched)
+        out["mail"] = (f"{n} email{'s' if n != 1 else ''} about an application matched no job in your queue. "
+                       "They are in the Inbox. The next run tries again; an application you made outside Ascend never "
+                       "matches, and after 30 days it stops being counted.")
+    return out
 
 
 def _gmail_status(ws, data, defaults, today):

@@ -47,6 +47,14 @@ Three binding rules, because this is the beat that most often decides whether so
   six applications is the same sin as inventing a metric, and this project cannot do it.
 - **One action, never a verdict.** A low rate gets exactly one lever to pull, and it is almost always
   referral rate rather than application count. It never gets a judgement about the person.
+- **One recurring gap, at three or more.** Run `python3 tools/jobqueue.py gaps workspace/<name>`.
+  It counts the gaps Phase 27 already recorded per job and reports only those appearing in **three
+  or more** scored roles. Name at most one, cite the postings, and stop. Do **not** produce a
+  heatmap, a tier list, or hour estimates — an hour estimate for learning something is a fabricated
+  number. And say the honest thing about it: at most seniorities a named skill gap decides a *loop*,
+  not a *screen*. The screen turns on whether the résumé matched the search and whether anyone
+  vouched, which is why the lever above is still referral rate. A study plan is the most
+  comfortable-feeling work in a job search and the easiest substitute for applying.
 - **State what you don't know.** Ascend does not ship market benchmark numbers, because a "typical
   response rate" is a data-freshness commitment nobody here can honour and a stale one is worse than
   silence. If the user wants a comparison, say plainly that published ranges vary widely by field,

@@ -67,6 +67,24 @@ class Inbound(unittest.TestCase):
         self.assertEqual(e["state"], "inbound-filtered")
         self.assertTrue(any("not remote" in r for r in e["reasons"]), e["reasons"])
 
+    def test_a_person_writing_without_title_or_location_needs_you(self):
+        # A recruiter's subject is not a job title and most say nothing about location: judging them as a
+        # posting filtered out a real lead on the from-scratch run.
+        import alerts
+        mail = {"msg_id": "r3", "from": "eric@retailco-shared.example", "subject": "First security hire at Retailco",
+                "date": "2026-10-14T13:00:00Z", "body_excerpt": "Your background looks like a strong fit."}
+        e = alerts.inbound_entry(mail, FILTERS)
+        self.assertEqual(e["state"], "needs-you", e["reasons"])
+        self.assertTrue(any("location not stated" in r for r in e["reasons"]), e["reasons"])
+
+    def test_job_board_match_mail_names_the_company_from_the_subject(self):
+        import alerts
+        mail = {"msg_id": "i1", "from": "donotreply@match.indeed.com", "subject": "Principal Infrastructure Engineer @ Onebrief",
+                "date": "2026-10-16T12:00:00Z", "body_excerpt": "$240,000 - $290,000 a year."}
+        e = alerts.inbound_entry(mail, FILTERS)
+        self.assertEqual((e["company"], e["title"], e["state"]),
+                         ("Onebrief", "Principal Infrastructure Engineer", "inbound-filtered"))
+
     def test_location_stops_at_the_next_field(self):
         import alerts
         mail = dict(INBOUND_HYBRID, body_excerpt="Location: Hybrid 3 days in office in Phoenix - Need Local Only "

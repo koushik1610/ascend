@@ -43,6 +43,16 @@ FRAME_HEADERS_DENY = {"X-Frame-Options": "DENY", "Content-Security-Policy": "fra
 FRAME_HEADERS_SAMEORIGIN = {"X-Frame-Options": "SAMEORIGIN", "Content-Security-Policy": "frame-ancestors 'self'"}
 
 
+# Files under a workspace the browser may load. data/ holds mail, the queue and the profile; dotfiles hold run
+# state; gmail-client.json is engine A's OAuth client secret. None of those is ever served.
+SERVED_SUFFIXES = {".html", ".pdf", ".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg", ".css"}
+PRIVATE_NAMES = {"data", "gmail-client.json"}
+
+
+def _private(rel_parts):
+    return any(part.startswith(".") or part in PRIVATE_NAMES for part in rel_parts)
+
+
 def slugify(name: str) -> str:
     s = re.sub(r"[^a-zA-Z0-9]+", "-", (name or "").strip().lower()).strip("-")
     return s or "me"
@@ -436,6 +446,11 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(403, {"error": "bad host"})
         if not self._origin_ok():
             return self._send(403, {"error": "bad origin"})
+        # The hub's Approve, Reject, Apply and "I submitted it" come from the page in a browser, which always
+        # sends Origin. This turns away a bare script; it is not a wall against local processes, which can set
+        # Origin. Claude's own shell is held back by the Bash allow-list and denies instead.
+        if urlparse(self.path).path in ("/api/queue", "/api/apply") and not self.headers.get("Origin"):
+            return self._send(403, {"error": "bad origin"})
         u = urlparse(self.path)
         if u.path.startswith("/api/") and not self._token_ok():
             return self._send(403, {"error": "forbidden"})
@@ -458,7 +473,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(400, {"error": "the hub can approve, reject or mark a job applied"})
             try:
                 # "I submitted it" goes through the apply log, so the day's count and reply rates see it.
-                entry = apply.record(ws, pid, "submitted") if action == "applied" else jobqueue.set_state(ws, pid, action)
+                entry = apply.record(ws, pid, "submitted") if action == "applied" else jobqueue.set_state(ws, pid, action, via_hub=True)
             except (ValueError, apply.Refused) as e:
                 return self._send(400, {"error": str(e)})
             except KeyError:
@@ -483,10 +498,12 @@ class Handler(BaseHTTPRequestHandler):
         # (incl. sibling dirs like workspace-secrets that a string startswith would wrongly allow).
         target = (base / path[len(prefix):]).resolve()
         try:
-            target.relative_to(base.resolve())
+            rel = target.relative_to(base.resolve())
         except ValueError:
             return self._send(404, {"error": "not found"})
         if not target.is_file():
+            return self._send(404, {"error": "not found"})
+        if base == WORKSPACE and (_private(rel.parts) or target.suffix.lower() not in SERVED_SUFFIXES):
             return self._send(404, {"error": "not found"})
         ctype = {"html": "text/html; charset=utf-8", "md": "text/plain; charset=utf-8",
                  "json": "application/json", "css": "text/css", "js": "text/javascript",
@@ -513,10 +530,10 @@ class Handler(BaseHTTPRequestHandler):
         # Render a workspace .md file as a styled, offline HTML page (the in-app results reader).
         target = (WORKSPACE / path[len("/view/"):]).resolve()
         try:
-            target.relative_to(WORKSPACE.resolve())
+            rel = target.relative_to(WORKSPACE.resolve())
         except ValueError:
             return self._send(404, {"error": "not found"})
-        if not target.is_file() or target.suffix != ".md":
+        if not target.is_file() or target.suffix != ".md" or _private(rel.parts):
             return self._send(404, {"error": "not found"})
         md = target.read_text(encoding="utf-8", errors="replace")
         esc = md.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")

@@ -113,6 +113,35 @@ class Adapters(Base):
         self.assertEqual((p["remote"], p["comp_min"], p["comp_max"], p["apply_url"]),
                          (False, 210000, 260000, "https://jobs.example/u1/apply"))
 
+    def test_greenhouse_apply_link_is_greenhouses_own(self):
+        # Companies with their own careers site give Greenhouse an absolute_url there; the apply sheet then
+        # warns "not a known application system". Greenhouse's own job page works for every board.
+        import finder
+        j = gh_job(7, "Staff Security Engineer")
+        j["absolute_url"] = "https://databricks.com/company/careers/open-positions/job?gh_jid=7"
+        p = finder.normalize("greenhouse", "databricks", "Databricks", j)
+        self.assertEqual(p["apply_url"], "https://job-boards.greenhouse.io/databricks/jobs/7")
+        self.assertEqual(p["url"], j["absolute_url"])
+
+    def test_ashby_hybrid_is_not_remote(self):
+        # Ashby sets isRemote on hybrid jobs: Harvey's San Francisco hybrid roles came through remote_only.
+        import finder
+        base = {"title": "Staff Security Engineer", "location": "San Francisco", "jobUrl": "https://jobs.example/h",
+                "descriptionPlain": "x"}
+        for wp, is_remote, want in [("Hybrid", True, False), ("OnSite", True, False), ("Remote", False, True),
+                                    (None, True, True)]:
+            j = dict(base, id=f"h-{wp}", workplaceType=wp, isRemote=is_remote)
+            self.assertEqual(finder.normalize("ashby", "h", "H", j)["remote"], want, wp)
+
+    def test_stored_text_starts_at_the_role_and_keeps_requirements(self):
+        import finder
+        body = ("About Us. " + "Company boilerplate. " * 300 + "As the Staff Security Engineer at Acme, you will own "
+                "cloud guardrails. " + "Detail. " * 200 + "Requirements: active clearance required.")
+        p = finder.normalize("greenhouse", "acme", "Acme", {"id": 9, "title": "Staff Security Engineer",
+                                                            "location": {"name": "Remote"}, "content": body})
+        self.assertTrue(p["text"].startswith("As the Staff Security Engineer"), p["text"][:60])
+        self.assertIn("clearance required", p["text"])
+
     def test_lever(self):
         import finder
         self.fake.boards["/v0/postings/streamco"] = [{
@@ -158,7 +187,7 @@ class Run(Base):
         self.fake.boards["/v1/boards/acme/jobs"] = {"jobs": [gh_job(1, "Staff Security Engineer")]}
         self.fake.boards["/v1/boards/flaky/jobs"] = None
         second = finder.run(self.ws, today="2026-10-11")
-        self.assertEqual((second["new"], second["closed"], second["failed"]), (0, 1, ["flaky"]))
+        self.assertEqual((second["new"], second["closed"], second["failed"]), (0, 1, ["greenhouse:flaky"]))
         self.assertEqual(len(self.postings()), 3)
         state = d.read_json(self.ws / "data" / "postings-state.json", {})
         self.assertEqual(state["greenhouse:acme:1"]["last_seen"], "2026-10-11")
@@ -173,7 +202,7 @@ class Run(Base):
         finder.run(self.ws, today="2026-10-10")
         self.fake.boards["/v1/boards/acme/jobs"] = {"jobs": [{"renamed_id": 1}, {"renamed_id": 2}]}
         out = finder.run(self.ws, today="2026-10-11")
-        self.assertEqual((out["closed"], out["failed"]), (0, ["acme"]))
+        self.assertEqual((out["closed"], out["failed"]), (0, ["greenhouse:acme"]))
         self.assertFalse(d.read_json(self.ws / "data" / "postings-state.json", {})["greenhouse:acme:1"]["closed"])
 
     def test_an_odd_answer_never_closes_a_board_or_stops_the_run(self):
@@ -187,9 +216,32 @@ class Run(Base):
         self.fake.boards["/v1/boards/acme/jobs"] = ["not", "an", "object"]
         self.fake.boards["/v1/boards/weird/jobs"] = {"error": "maintenance"}
         out = finder.run(self.ws, today="2026-10-11")
-        self.assertEqual((out["closed"], sorted(out["failed"])), (0, ["acme", "weird"]))
+        self.assertEqual((out["closed"], sorted(out["failed"])), (0, ["greenhouse:acme", "greenhouse:weird"]))
         state = d.read_json(self.ws / "data" / "postings-state.json", {})
         self.assertFalse(state["greenhouse:weird:5"]["closed"])
+
+    def test_board_health_names_the_ats_and_counts_empty_boards(self):
+        import _v2data as d
+        import finder
+        self.fake.boards["/v1/boards/acme/jobs"] = {"jobs": [gh_job(1, "Staff Security Engineer")]}
+        self.fake.boards["/v1/boards/quiet/jobs"] = {"jobs": []}
+        self.sources([{"ats": "greenhouse", "slug": "acme"}, {"ats": "greenhouse", "slug": "quiet"},
+                      {"ats": "lever", "slug": "acme"}])
+        out = finder.run(self.ws, today="2026-10-17")
+        self.assertEqual((out["failed"], out["empty"]), (["lever:acme"], ["greenhouse:quiet"]))
+        health = d.read_json(self.ws / "data" / "board-health.json", {})
+        self.assertEqual((health["failed"], health["empty"], health["checked"]), (["lever:acme"], ["greenhouse:quiet"], "2026-10-17"))
+
+    def test_probe_finds_the_board_and_its_name(self):
+        import finder
+        self.fake.boards["/v1/boards/acmehq/jobs"] = {"jobs": [gh_job(1, "Staff Security Engineer")]}
+        self.fake.boards["/v1/boards/acmehq"] = {"name": "Acme Robotics"}
+        self.fake.boards["/posting-api/job-board/acme-robotics"] = {"jobs": [{"id": "x"}, {"id": "y"}]}
+        self.fake.boards["/v1/companies/acmerobotics/postings"] = {"content": []}     # answers for any name
+        hits = finder.probe("Acme Robotics")
+        self.assertFalse([h for h in hits if h["jobs"] == 0], hits)
+        self.assertIn({"ats": "greenhouse", "slug": "acmehq", "jobs": 1, "name": "Acme Robotics"}, hits)
+        self.assertIn({"ats": "ashby", "slug": "acme-robotics", "jobs": 2, "name": None}, hits)
 
     def test_cli(self):
         self.sources([{"ats": "greenhouse", "slug": "acme", "company": "Acme"}])
@@ -251,7 +303,8 @@ class Evaluate(unittest.TestCase):
         for loc in ["remote - california", "remote u.s.", "remote - seattle", "remote - nyc",
                     "remote-friendly (travel-required) | san francisco, ca", "remote - washington d.c."]:
             self.assertTrue(prefilter.location_ok(loc, us), loc)
-        for loc in ["remote - india", "remote - denmark; remote - united kingdom", "london, uk"]:
+        for loc in ["remote - india", "remote - denmark; remote - united kingdom", "london, uk",
+                    "remote - latin america", "south america"]:
             self.assertFalse(prefilter.location_ok(loc, us), loc)
 
     def test_remote_stated_only_in_description(self):
@@ -264,6 +317,9 @@ class Evaluate(unittest.TestCase):
         self.check(False, "blocklist", company="Badco")
         self.check(False, "already applied", applied=[("acme", "staff security engineer")],
                    title="Staff Security Eng (Remote)")
+        # A board slug ("acmeusa") is the same company as the folder's "Acme".
+        self.check(False, "already applied", applied=[("acme", "staff security engineer")], company="acmeusa")
+        self.check(False, "blocklist", company="badcousa")
 
 
 class PrefilterRun(Base):

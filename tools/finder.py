@@ -3,6 +3,7 @@
 
   python3 tools/finder.py run WS [--json]
   python3 tools/finder.py add WS --source web|linkedin --file workspace/<name>/data/<rows>.json   # rows Claude found
+  python3 tools/finder.py probe "Company Name" [...]     # which boards answer for a company (setup)
 
 Reads the board list from workspace/<name>/data/sources.json and calls each board's public JSON API:
 Greenhouse, Ashby, Lever, Workable and SmartRecruiters. No login, no scraping, no model.
@@ -22,7 +23,7 @@ import os
 import re
 import sys
 from concurrent.futures import ThreadPoolExecutor
-from datetime import date
+from datetime import date, datetime, timezone
 from pathlib import Path
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
@@ -30,6 +31,7 @@ from urllib.request import Request, urlopen
 TOOLS = Path(__file__).resolve().parent
 sys.path.insert(0, str(TOOLS))
 import _v2data as d  # noqa: E402
+import _untrusted  # noqa: E402
 from _paths import PathOutsideWorkspace, resolve_out  # noqa: E402
 
 ENDPOINTS = {
@@ -39,7 +41,7 @@ ENDPOINTS = {
     "workable": ("https://apply.workable.com", "/api/v1/widget/accounts/{slug}"),
     "smartrecruiters": ("https://api.smartrecruiters.com", "/v1/companies/{slug}/postings"),
 }
-TEXT_LIMIT = 6000
+TEXT_LIMIT = 8000
 UA = {"User-Agent": "Ascend/2.0 (job search; public board API)"}
 
 
@@ -67,11 +69,36 @@ def fetch_board(ats, slug):
     return jobs if isinstance(jobs, list) else None
 
 
-def clean(s):
+# Most postings open with paragraphs about the company. Stored text and the scorer's budget start at the
+# first heading that introduces the role instead. Found on real runs: the first 1,500 characters of Affirm's,
+# Twilio's, Upstart's and GitLab's postings were company boilerplate, and 40 of 50 survivors were cut at
+# 6,000 characters before their requirements.
+ROLE_START = re.compile(r"(about the role|about this role|role overview|the role\b|in this role|what you('|’)ll do|"
+                        r"what you will do|what you do\b|responsibilities|your impact|you will:|"
+                        r"the opportunity(?! for)|\bas (a|an|the) [^.]{3,90}?, you will)", re.I)
+
+
+def role_text(text):
+    m = ROLE_START.search(text or "")
+    return (text or "")[m.start():] if m else (text or "")
+
+
+def clean(s, limit=TEXT_LIMIT, findings=None):
+    """Board HTML -> plain text, with hidden content REMOVED rather than laundered.
+
+    The old order was the bug: `html.unescape` turned `&#8203;` into a real zero-width space and
+    `re.sub(r"<[^>]+>")` deleted the `style="display:none"` wrapper while keeping its text, so a
+    hidden payload came out indistinguishable from the visible job description. Hidden-element
+    removal now runs first, and invisible code points are stripped before the TEXT_LIMIT slice
+    (a smuggled run is one invisible character per letter, so trimming first lets it keep eating
+    the budget). See tools/_untrusted.py.
+    """
     s = html.unescape(s or "")
-    s = re.sub(r"(?is)<(script|style).*?</\1>", " ", s)
+    s, f = _untrusted.clean_untrusted(s, is_html=True)
+    if findings is not None:
+        findings.extend(f)
     s = re.sub(r"<[^>]+>", " ", s)
-    return re.sub(r"\s+", " ", html.unescape(s)).strip()[:TEXT_LIMIT]
+    return role_text(re.sub(r"\s+", " ", html.unescape(s)).strip())[:limit]
 
 
 def _money(v):
@@ -85,20 +112,57 @@ def _remote_from_text(loc):
     return True if "remote" in (loc or "").lower() else None
 
 
+def _posted(*values):
+    """The board's own publish date as YYYY-MM-DD, or None. First parseable value wins.
+
+    Every one of the five boards returns this and the finder threw all of them away, so the only
+    date in the system was `first_seen` — the day ASCEND looked. On a workspace's first run that
+    makes every posting one day old, including a 90-day-old requisition with 400 applicants already
+    in it. `reference/ats-and-keywords.md` says recruiters review in arrival order and to apply
+    early; arrival order is unknowable without this field, and `prompts/14-ats-aggregation.md`
+    already named these exact keys before the deterministic path replaced it and dropped them.
+    """
+    for v in values:
+        if not v:
+            continue
+        s = str(v).strip()
+        if s.isdigit() and len(s) >= 10:          # epoch millis (Lever) or seconds
+            try:
+                ts = int(s) / (1000 if len(s) > 10 else 1)
+                return datetime.fromtimestamp(ts, timezone.utc).date().isoformat()
+            except (ValueError, OverflowError, OSError):
+                continue
+        try:                                       # ISO 8601, with or without a Z / offset
+            return datetime.fromisoformat(s.replace("Z", "+00:00")).date().isoformat()
+        except ValueError:
+            pass
+        try:
+            return date.fromisoformat(s[:10]).isoformat()
+        except ValueError:
+            continue
+    return None
+
+
 def normalize(ats, slug, company, j):
     if ats == "greenhouse":
         loc = (j.get("location") or {}).get("name", "")
         p = dict(native=j["id"], title=j.get("title", ""), location=loc, remote=_remote_from_text(loc),
-                 url=j.get("absolute_url"), apply_url=j.get("absolute_url"), text=clean(j.get("content")),
-                 comp_min=None, comp_max=None)
+                 url=j.get("absolute_url"), apply_url=f"https://job-boards.greenhouse.io/{slug}/jobs/{j['id']}",
+                 text=clean(j.get("content")),
+                 comp_min=None, comp_max=None,
+                 posted_on=_posted(j.get("first_published"), j.get("updated_at")))
     elif ats == "ashby":
         comp = next((c for c in (j.get("compensation") or {}).get("summaryComponents", []) or []
                      if c.get("compensationType") == "Salary"), {})
+        # workplaceType first: Ashby sets isRemote on hybrid jobs too.
+        wp = (j.get("workplaceType") or "").lower()
         p = dict(native=j["id"], title=j.get("title", ""), location=j.get("location", ""),
-                 remote=j.get("isRemote") if isinstance(j.get("isRemote"), bool) else _remote_from_text(j.get("location")),
+                 remote=True if wp == "remote" else False if wp in ("hybrid", "onsite", "on-site") else
+                 j.get("isRemote") if isinstance(j.get("isRemote"), bool) else _remote_from_text(j.get("location")),
                  url=j.get("jobUrl"), apply_url=j.get("applyUrl") or j.get("jobUrl"),
                  text=clean(j.get("descriptionPlain")), comp_min=_money(comp.get("minValue")),
-                 comp_max=_money(comp.get("maxValue")))
+                 comp_max=_money(comp.get("maxValue")),
+                 posted_on=_posted(j.get("publishedAt"), j.get("updatedAt")))
     elif ats == "lever":
         wp = (j.get("workplaceType") or "").lower()
         loc = (j.get("categories") or {}).get("location", "")
@@ -107,20 +171,23 @@ def normalize(ats, slug, company, j):
         p = dict(native=j["id"], title=j.get("text", ""), location=loc,
                  remote=True if wp == "remote" else False if wp in ("onsite", "on-site", "hybrid") else _remote_from_text(loc),
                  url=j.get("hostedUrl"), apply_url=j.get("applyUrl") or j.get("hostedUrl"), text=clean(text),
-                 comp_min=_money(sal.get("min")), comp_max=_money(sal.get("max")))
+                 comp_min=_money(sal.get("min")), comp_max=_money(sal.get("max")),
+                 posted_on=_posted(j.get("createdAt")))
     elif ats == "workable":
         loc = ", ".join(x for x in (j.get("city"), j.get("country")) if x)
         p = dict(native=j["shortcode"], title=j.get("title", ""), location=loc,
                  remote=bool(j["telecommuting"]) if "telecommuting" in j else _remote_from_text(loc),
                  url=j.get("url"), apply_url=j.get("application_url") or j.get("url"),
-                 text=clean(j.get("description")), comp_min=None, comp_max=None)
+                 text=clean(j.get("description")), comp_min=None, comp_max=None,
+                 posted_on=_posted(j.get("published_on"), j.get("created_at")))
     elif ats == "smartrecruiters":
         l = j.get("location") or {}
         loc = ", ".join(x for x in (l.get("city"), l.get("country")) if x)
         url = f"https://jobs.smartrecruiters.com/{slug}/{j['id']}"
         p = dict(native=j["id"], title=j.get("name", ""), location=loc,
                  remote=l.get("remote") if isinstance(l.get("remote"), bool) else _remote_from_text(loc),
-                 url=url, apply_url=url, text="", comp_min=None, comp_max=None)
+                 url=url, apply_url=url, text="", comp_min=None, comp_max=None,
+                 posted_on=_posted(j.get("releasedDate"), j.get("createdOn")))
     else:
         raise ValueError(f"unknown ats {ats!r}")
     native = p.pop("native")
@@ -135,17 +202,50 @@ def run(ws, today=None):
     boards = d.read_json(dd / "sources.json", {}).get("boards", [])
     with ThreadPoolExecutor(16) as ex:
         results = list(ex.map(lambda b: (b, fetch_board(b["ats"], b["slug"])), boards))
-    out = {"boards": len(boards), "failed": [], "new": 0, "seen": 0, "closed": 0}
+    out = {"boards": len(boards), "failed": [], "empty": [], "new": 0, "seen": 0, "closed": 0}
     d.update_json(dd / "postings-state.json", {}, lambda state: _merge(dd, results, state, out, today))
+    # The hub shows these: a wrong slug otherwise fails quietly every day.
+    d.write_json_atomic(dd / "board-health.json", {"checked": today, "boards": len(boards),
+                                                   "failed": out["failed"], "empty": out["empty"]})
     return out
+
+
+def probe(company):
+    """Boards on the five supported ATSs that answer for a company name, with their job count and, for
+    Greenhouse, the board's own display name. For setup: a wrong slug is the commonest first-run problem."""
+    words = re.findall(r"[a-z0-9]+", (company or "").lower())
+    if not words:
+        return []
+    base = "".join(words)
+    stems = [base] + ([words[0]] if len(words) > 1 and len(words[0]) >= 4 else [])
+    slugs = list(dict.fromkeys([base, "-".join(words)] + [st + x for st in stems for x in ("", "hq", "inc", "usa", "jobs", "careers")]))
+    tries = [(ats, slug) for ats in ENDPOINTS for slug in slugs]
+    with ThreadPoolExecutor(16) as ex:
+        found = list(ex.map(lambda t: (t, fetch_board(*t)), tries))
+    hits = []
+    for (ats, slug), jobs in found:
+        if not jobs:            # SmartRecruiters and Workable answer with an empty list for any name at all
+            continue
+        name = None
+        if ats == "greenhouse":
+            try:
+                with urlopen(Request(_url("greenhouse", slug).split("/jobs?")[0], headers=UA), timeout=20) as r:
+                    name = json.loads(r.read().decode("utf-8", "replace")).get("name")
+            except Exception:
+                name = None
+        hits.append({"ats": ats, "slug": slug, "jobs": len(jobs), "name": name})
+    return hits
 
 
 def _merge(dd, results, state, out, today):
     """Fold the fetched boards into postings-state, under its lock (finder.add may run at the same time)."""
     for board, raw in results:
+        where = f"{board['ats']}:{board['slug']}"
         if raw is None:
-            out["failed"].append(board["slug"])
+            out["failed"].append(where)
             continue
+        if not raw:
+            out["empty"].append(where)
         current = set()
         for j in raw:
             try:
@@ -161,7 +261,7 @@ def _merge(dd, results, state, out, today):
                 state[p["id"]] = {"first_seen": today, "last_seen": today, "closed": False}
                 out["new"] += 1
         if raw and not current:         # every job failed to read: the ATS changed its format, not the board
-            out["failed"].append(board["slug"])
+            out["failed"].append(where)
             continue
         prefix = f"{board['ats']}:{board['slug']}:"
         for pid, st in state.items():
@@ -173,6 +273,17 @@ def _merge(dd, results, state, out, today):
 ATS_URL = [("greenhouse", re.compile(r"https://(?:job-)?boards\.greenhouse\.io/([\w-]+)/jobs/(\d+)")),
            ("lever", re.compile(r"https://jobs\.lever\.co/([\w-]+)/([0-9a-f-]{8,})")),
            ("ashby", re.compile(r"https://jobs\.ashbyhq\.com/([\w-]+)/([0-9a-f-]{8,})"))]
+
+
+def board_names(ws):
+    """{"ats:slug": company} from sources.json: the board's current name, which wins over the name a posting
+    was first stored with (renaming a board fixes every posting on it)."""
+    return {f"{b.get('ats')}:{b.get('slug')}": b.get("company") for b in
+            d.read_json(Path(ws) / "data" / "sources.json", {}).get("boards", []) if b.get("company")}
+
+
+def company_of(posting, names):
+    return names.get(str(posting.get("id", "")).rsplit(":", 1)[0]) or posting.get("company")
 
 
 def ats_id(url):
@@ -239,6 +350,13 @@ def main(argv):
             print(f"finder: {e}", file=sys.stderr)
             return 2
         return 0
+    if len(argv) >= 3 and argv[1] == "probe":
+        for name in argv[2:]:
+            hits = probe(name)
+            print(f"{name}: " + ("; ".join(f"{h['ats']}:{h['slug']} ({h['jobs']} jobs"
+                                            + (f", board name {h['name']!r}" if h["name"] else "") + ")" for h in hits)
+                                 or "no board on Greenhouse, Ashby, Lever, Workable or SmartRecruiters"))
+        return 0
     if len(argv) < 3 or argv[1] != "run" or argv[2].startswith("--"):
         print(__doc__, file=sys.stderr)
         return 2
@@ -251,7 +369,8 @@ def main(argv):
         print(json.dumps(out))
     else:
         print(f"{out['boards']} board(s): {out['new']} new, {out['seen']} still open, {out['closed']} closed"
-              + (f", unreachable: {', '.join(out['failed'])}" if out["failed"] else ""))
+              + (f", unreachable: {', '.join(out['failed'])}" if out["failed"] else "")
+              + (f", no jobs listed: {', '.join(out['empty'])}" if out["empty"] else ""))
     return 0
 
 

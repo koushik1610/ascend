@@ -100,6 +100,15 @@ as written. Only the reason is prose.
   `intake.md` already captures the constraint and `profile-brief.md` carries it; for a visa-dependent
   candidate this is the single highest-cost class of wasted application in the whole search, so the
   triage line must state which side of it the posting falls on rather than leaving it implied.
+- **Working language is a hard DQ only when the posting makes it one.** Classify it with the same
+  required / preferred / mentioned test as every other must-have, and act on the classification:
+  **required** and absent from the brief's Languages table → DQ. **Required at a higher level** than
+  declared → a flagged gap, scored normally; the user decides whether their B2 clears a "fluent" bar.
+  **Preferred or merely mentioned** → not a DQ, a note. The language of the posting is a decent
+  predictor of the language of the standup: an English-language ad at an international company
+  asking for "fluent German" is usually softer than it reads, and a local-market, client-facing or
+  public-sector role usually means it. Where the brief's table is empty, the requirement is
+  `NEEDS YOU` — never inferred from the user's location, name or employer.
 - **Score five dimensions**, 1-5 each: archetype fit (30%), comp vs the floor (25%), location (25%),
   proof-point overlap (15%), soft red flags (−0.5 each). Round to 0.1.
 - **PASS** ≥3.5 · **MARGINAL** 3.0-3.4 · **FAIL** <3.0 · **SKIP** = posting inaccessible or expired.
