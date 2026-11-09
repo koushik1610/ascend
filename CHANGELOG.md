@@ -19,6 +19,21 @@ remain, plus a green CI run on the remote + a demo GIF._
 | **Feature update 3** (Nov 2026) | Hidden text removed from postings and mail before the model sees it, posting dates used for freshness, a PDF text-layer check, a language gate, and recurring gaps counted across the queue | [history/feature-update-3.md](docs/history/feature-update-3.md) |
 | **Feature update 4** (Nov 2026) | Keywords must be backed by a bullet, seniority scored in both directions, a cover-letter op, anchored five-dimension interview scoring, a drill ledger (`tools/drills.py`), and a same-day interview debrief | [history/feature-update-4.md](docs/history/feature-update-4.md) |
 
+### Changed: 2026-11-08 the sample run is now a software engineer
+- **`examples/sample-run/` rebuilt** for the same fictional Jordan Rivera as a Senior Software
+  Engineer (backend and platform) targeting Staff and Senior roles. The designer sample and its two
+  job folders are gone. The new one has the same shape: intake, LinkedIn dashboard, master résumé and
+  PDF, a 15-job queue, an interview packet, a full pack for Acme Health and a CORE-only pack for Acme
+  Retail, and the navigator.
+- **Obviously fake details:** phone 111-111-1111, email xyz@abc.org, and only Acme company names
+  (Acme Pay, Acme Corp, Acme Inc for the career; Acme Health, Acme Retail and others as targets).
+- **Interview prep fits the field:** coding rounds, system design and code review instead of a
+  portfolio review.
+- **Tests follow the sample:** new job-folder paths, the new never-publish list and contact email.
+  The ligature test now feeds the extractor its own ligature text, because the new PDF comes from the
+  LaTeX path and has none. A new check asserts the committed PDF stays ligature-free.
+- **README screenshots** regenerated from the new dashboards.
+
 ### Changed: 2026-11-08 repository reorganization and a shorter README
 - **README** rewritten: what Ascend does, then one table of the run's steps, the commands, the
   safeguards, status and privacy. The daily find-apply-track detail moved to `docs/automation.md`, and

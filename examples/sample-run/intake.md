@@ -1,9 +1,9 @@
-# Intake Summary — Jordan Rivera
+# Intake Summary, Jordan Rivera
 
-> **🧪 FICTIONAL SAMPLE — every name, number, company, and link is invented.** This is a
+> **🧪 FICTIONAL SAMPLE: every name, number, company, and link is invented.** This is a
 > demonstration persona, not a real person. Real runs write this file to `workspace/<name>/intake.md`.
 
-**Date:** 2026-06-11 · **Run owner:** Jordan Rivera (fictional)
+**Date:** 2026-11-08 · **Run owner:** Jordan Rivera (fictional)
 
 ---
 
@@ -11,50 +11,54 @@
 | Field | Value |
 |---|---|
 | Name | Jordan Rivera |
-| LinkedIn export | `inputs/linkedin-export/` (sample — not a real export) |
+| Email · Phone | xyz@abc.org · 111-111-1111 (both deliberately fake) |
+| LinkedIn export | `inputs/linkedin-export/` (sample, not a real export) |
 | Current resume | `inputs/current-resume.pdf` (sample) |
 | Portfolio | https://example.com/jordanrivera (placeholder) |
-| Other links | LinkedIn: https://example.com/in/jordan-rivera-design · Dribbble: https://example.com/jordanr |
+| Other links | LinkedIn: https://example.com/in/jordan-rivera-swe · GitHub: https://example.com/gh/jordanr |
 
 ## Targeting
-- **Roles/titles (recruiter-searchable):** Staff Product Designer · Lead Product Designer · Principal
-  Product Designer (stretch).
-- **Seniority:** one step up — from Senior IC to Staff/Lead IC scope (broader surface, design-systems
-  ownership, mentoring). Not chasing a manager title.
-- **Companies / industries:** consumer apps and B2B SaaS; fintech, health, retail/commerce,
-  mobility/marketplace. Open to Series B → public.
+- **Roles/titles (recruiter-searchable):** Staff Software Engineer · Senior Software Engineer
+  (backend / platform) · Senior Backend Engineer.
+- **Seniority:** one step up, from Senior IC to Staff IC scope (cross-team technical direction,
+  design docs other teams build on, mentoring). Senior roles at larger companies are fine. Not chasing
+  an engineering-manager title.
+- **Companies / industries:** B2B SaaS, fintech, health, commerce, developer tooling. Series B to
+  public.
 - **Location / work mode:** Austin, TX. Remote-first, hybrid-OK for Austin metro. No relocation right
   now. US work authorization, no sponsorship needed.
-- **Compensation (private — used only to filter + script the comp anchor):** targeting $200k–$245k
-  base; total-comp floor ~$235k. Never volunteer current comp first.
+- **Compensation (private, used only to filter and script the comp anchor):** targeting $195k–$240k
+  base; total-comp floor ~$250k. Never volunteer current comp first.
 - **Timeline:** actively applying.
 
 ## Calibration & honesty
 **Strongest differentiators (own words):**
-1. Builds and scales **design systems** that engineering actually adopts — ships tokens + components,
-   not just Figma libraries.
-2. **0→1 product design** under ambiguity — has taken three products from blank canvas to launch.
-3. **Design-engineering collaboration** — pairs with eng on implementation; reduces design-to-build
-   drift.
+1. Builds **internal platforms** other teams choose to adopt: a shared deploy platform that 6 teams
+   moved 40+ services onto.
+2. **Performance and reliability work** on systems that carry money: cut payments-API p99 latency
+   ~60% and Sev-1 incidents from 14 to 5 a quarter.
+3. **Clear design docs and code review**: writes the RFC, gets it through review, then mentors the
+   people who build on it.
 
 **Honest gaps (handled with honest framing, never hidden):**
-- **No people-management title.** Jordan is an IC who mentors 3–4 designers informally; has run design
-  crits and onboarding, but has never carried direct reports. Frame as "IC leadership / multiplier,"
-  target IC-track Staff/Lead, and be explicit in screens that a manager title isn't the goal.
-- **No formal data-science skills.** Comfortable reading analytics dashboards, partnering with data/PM
-  on metrics, and running quant surveys — but does not build models or write SQL beyond basics. Do not
-  claim "data scientist" keywords; claim "data-informed design" and "experiment partnership" instead.
+- **No people-management title.** Jordan is an IC who mentors 3–4 engineers and runs the team's
+  design-review meeting, but has never had direct reports. Target IC-track Staff/Senior and say in
+  screens that a manager title isn't the goal.
+- **No production ML experience.** Has called model-serving APIs and built the queues around them,
+  but has not trained, tuned, or served models. Do not claim "ML engineer" keywords.
+- **Limited front-end.** Reads and fixes React, ships small UI changes, does not own a front-end
+  codebase. Claim "full-stack fluent", never "front-end engineer".
 
 ## Sanitization rule (applied to every sendable surface)
-- **Round** employer-internal operational numbers (exact funnel counts, internal MAU, headcount) to a
-  public band on anything sendable (resume, signal, outreach, prep talking points).
-- **Keep exact** Jordan's own verifiable, externally checkable numbers (e.g., component counts in a
-  public design system, conference talks, shipped public products).
+- **Round** employer-internal operational numbers (exact transaction volume, exact cost savings,
+  headcount) to a public band on anything sendable (resume, signal, outreach, prep talking points).
+- **Keep exact** Jordan's own verifiable numbers (merged open-source PRs, public talks).
 - **Never name** internal project codenames or unreleased products.
 - **Never publish** a certification as "Active" unless it truly is.
 
 ## Field-aware note
-Jordan is a **product designer**, not an engineer. The "coding/assessment" prep in every job folder is
-therefore a **design assessment** — portfolio review, whiteboard / app critique, and a take-home or
-live design exercise — **never** LeetCode. Evidence is quantified as funnel/adoption/usability lift and
-design-system scale, per `reference/resume-writing-rules.md` field adaptation.
+Jordan is a **backend software engineer**, so the assessment prep in every job folder is the
+standard engineering loop: **coding rounds** (data structures and algorithms, LeetCode-style
+mediums in Go or Python), a **system design** round, and often a **code review or debugging**
+exercise. Evidence is quantified as latency, reliability, throughput, deploy speed, and cost, per the
+field adaptation in `reference/resume-writing-rules.md`.

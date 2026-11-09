@@ -1,89 +1,78 @@
-# STAR Stories — Jordan Rivera
+# STAR Stories, Jordan Rivera
 
-> **🧪 FICTIONAL SAMPLE** — invented events for a demonstration persona. In a real run these are the
+> **🧪 FICTIONAL SAMPLE:** invented events for a demonstration persona. In a real run these are the
 > user's true events only; the failure story (S5) must be genuine because interviewers dig.
 
 Five behavioral stories in STAR form, each with a stable ID. Per-job folders map likely questions to
-these IDs — they do **not** restate the bodies.
+these IDs; they do **not** restate the bodies.
 
 ---
 
-### S1 — Ambiguity / zero prior art (0→1 driver onboarding)
-- **S:** Atlas Mobility was losing new drivers fast, but no one knew where. There was no activation
-  funnel, no prior onboarding design, and no dedicated researcher.
-- **T:** Take driver onboarding from a blank canvas to a shippable flow that measurably improved
-  first-week retention — owning research through hand-off.
-- **A:** Ran 12 generative interviews with new and churned drivers; mapped the activation journey and
-  found three drop-off cliffs (document upload, vehicle approval wait, first-trip anxiety). Prototyped
-  three flow variants, usability-tested each with 8–10 users, and chose the variant that set
-  expectations up front and chunked document upload. Paired with engineering through build to keep the
-  flow intact.
-- **R:** First-week drop-off fell from 41% to 24% across ~40k monthly signups; the activation-journey
-  map became the team's shared reference for later growth work.
-- **Proves:** Comfort in ambiguity; full 0→1 ownership; research-to-ship. Leads for consumer 0→1 and
-  Growth loops.
+### S1, Ambiguity / no spec (0→1 order routing)
+- **S:** Acme Corp's order routing ran as a 15-minute cron job that backed up on peak days. Nobody
+  owned a spec; the old Python code was the only description of the rules.
+- **T:** Replace it with something faster without breaking routing rules nobody had written down.
+- **A:** Read the old code end to end and wrote the rules into a design doc, then built an
+  event-driven Go service on Kafka. Ran it in shadow mode for three weeks and diffed every decision
+  against the cron job, which surfaced three undocumented rules. Cut over one region at a time.
+- **R:** Peak throughput tripled and orders route in seconds. The design doc became the team's
+  reference for routing rules.
+- **Proves:** Comfort without a spec; careful migration; 0→1 ownership. Leads for backend and
+  distributed-systems loops.
 
 ---
 
-### S2 — Influence without authority (driving design-system adoption)
-- **S:** I built Beacon's design system as a sole IC, but five product teams had their own component
-  habits and no obligation to adopt mine — and I had no authority over them.
-- **T:** Get the system adopted across teams without a mandate, so we'd stop shipping inconsistent,
-  rework-heavy UI.
-- **A:** Treated adoption as a product: interviewed each team's designers and leads about their
-  friction, shipped a migration playbook and codemods-style Figma swaps, ran weekly office hours, and
-  paired with the most skeptical team first to earn a reference case. Tied the pitch to their pain
-  (rework, QA churn), not my preference.
-- **R:** 5 of 6 teams migrated; adopting teams saw new-feature adoption rise ~32% and design QA rework
-  fall roughly in half. The skeptical team became an advocate.
-- **Proves:** Influence without authority; Staff-scope leverage; treating internal tooling as a
-  product. Leads for design-systems / Staff loops.
+### S2, Influence without authority (deploy-platform adoption)
+- **S:** I built Acme Pay's deploy platform, but six other teams had their own pipelines and no
+  obligation to switch. I had no authority over any of them.
+- **T:** Get teams onto the platform without a mandate, so deploys got faster and safer everywhere.
+- **A:** Treated adoption as a product: asked each team what hurt about deploying, wrote a migration
+  guide, held weekly office hours, and paired with the most skeptical team first. Pitched it on their
+  pain (three-day lead times, manual rollbacks), not on consistency.
+- **R:** 6 of 7 teams moved 40+ services; lead time fell from ~3 days to under an hour. The skeptical
+  team's lead now presents the platform to new hires.
+- **Proves:** Influence without authority; Staff-scope leverage. Leads for platform and Staff loops.
 
 ---
 
-### S3 — Conflict / conviction under pushback (accessibility vs. the deadline)
-- **S:** Two weeks before a launch, an accessibility audit found the new component library failed WCAG
-  AA on focus order and contrast. A PM pushed to ship and "fix it later."
-- **T:** Hold the quality bar without becoming the person who blocks every launch — and bring the PM
-  along rather than escalating into a standoff.
-- **A:** Quantified the risk instead of arguing principle: showed the specific failing flows, the
-  legal/brand exposure, and a triage that split fixes into "must-fix to ship" (contrast, focus) vs.
-  "fast-follow" (reduced-motion polish). Pair-fixed the must-fix items with an engineer in three days
-  so the deadline barely moved.
-- **R:** Shipped on time at WCAG 2.1 AA on the blocking items; the triage rubric became how we scoped
-  accessibility on every release. Spec-drift defects later dropped ~44% from the closer eng pairing.
-- **Proves:** Conviction under pressure handled with data and compromise, not stubbornness. Leads for
-  quality/craft and conflict questions.
+### S3, Conflict / conviction under pushback (idempotency vs. the launch date)
+- **S:** Two weeks before a partner launch, I found that client retries could double-charge a
+  customer. A PM wanted to launch and fix it after.
+- **T:** Hold the correctness bar without becoming the person who blocks every launch, and bring the
+  PM along.
+- **A:** Quantified it: showed the two past duplicate-charge incidents, the refund cost, and the
+  partner's retry behavior. Proposed a split: idempotency keys on the two launch endpoints before
+  launch, the full outbox after. Paired with another engineer and shipped the must-have part in four
+  days.
+- **R:** Launched on time with no duplicate charges; the full outbox shipped three weeks later. "Name
+  the risk, then split the fix" became how we scope correctness work.
+- **Proves:** Conviction handled with data and compromise. Leads for quality and conflict questions.
 
 ---
 
-### S4 — Coaching / multiplying (mentoring + crit practice)
-- **S:** Our team kept giving vague, taste-based design feedback in reviews, and two junior designers
-  were stalling — lots of effort, slow growth, no shared bar.
-- **T:** Raise the team's craft as an IC (no manager title) by improving how we critique and by
-  growing specific people.
-- **A:** Introduced a structured crit format (state the goal and constraints first, critique against
-  the goal, separate "I'd explore" from "this is broken"). Took on 1:1 mentoring for two juniors and
-  one mid designer — weekly portfolio pairing with concrete, prioritized feedback. Modeled it by
-  putting my own work up first.
-- **R:** The two juniors both shipped lead features within two quarters; crit time got shorter and
-  decisions stuck. Mentored 3–4 designers total without ever holding a direct report.
-- **Proves:** IC leadership / multiplier effect — the honest answer to "have you led a team?" Leads for
-  Lead/Staff loops that want mentorship without requiring a manager.
+### S4, Coaching / multiplying (mentoring + design review)
+- **S:** Design discussions on our team happened in long PR threads, and two junior engineers were
+  stuck: lots of effort, slow growth, unsure what "good" looked like.
+- **T:** Raise the team's bar as an IC, without a manager title.
+- **A:** Started a weekly 45-minute design review with a one-page doc template (problem, options,
+  decision, risks). Took on mentoring two juniors and one mid engineer: weekly pairing, specific
+  code-review feedback, and coaching each through writing their first design doc. Put my own docs up
+  for review first.
+- **R:** Both juniors led features within two quarters; PR threads got shorter because debates moved
+  into docs. Mentored 3–4 engineers total without a direct report.
+- **Proves:** IC leadership, the honest answer to "have you led a team?"
 
 ---
 
-### S5 — Genuine failure + learning (misreading the dashboard data)
-- **S:** On an early version of the Beacon partner-dashboard redesign, I trusted a single funnel chart
-  and redesigned the primary flow around what I thought was the drop-off point.
-- **T:** Lift engagement on the B2B dashboard.
-- **A (what went wrong + the fix):** I shipped a redesign that *underperformed* — engagement was flat.
-  Digging in with the data analyst, I'd misread the funnel: the "drop-off" was a tracking artifact, not
-  real behavior. I owned the miss in the retro, then changed my process — I now pair with data to
-  validate the read *before* designing, triangulate quant with qual (I added a 600-respondent survey),
-  and ship behind a measurable hypothesis.
-- **R:** The corrected, evidence-grounded redesign moved product NPS from 22 to 41 over two quarters.
-  More durably, "validate the data read with a partner before designing" is now a habit.
-- **Proves:** A real failure, owned, with a process change that stuck — and an honest framing of the
-  data-partner (not data-scientist) boundary. Leads for data-informed and "tell me about a failure"
-  questions.
+### S5, Genuine failure + learning (the cache rollout)
+- **S:** As part of the latency work, I moved merchant-config reads to a Redis cache.
+- **T:** Cut payments-API latency without changing behavior.
+- **A (what went wrong + the fix):** My invalidation path missed one admin write endpoint. After a
+  merchant changed their payout settings, the API served stale config for 40 minutes until the TTL
+  expired. Support caught it, not our alerts. I owned it in the incident review, added a version
+  check on every cached read, an alert on cache/database mismatch, and a staged rollout by merchant
+  tier for any cache change.
+- **R:** The corrected rollout shipped two weeks later and p99 still fell ~60%. Every cache change on
+  the team now ships with a mismatch alert and a staged rollout.
+- **Proves:** A real failure, owned, with a process change that stuck. Leads for "tell me about a
+  failure" and reliability questions.
