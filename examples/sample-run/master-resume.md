@@ -1,7 +1,8 @@
 # MASTER RESUME, Jordan Rivera
 
 > **🧪 FICTIONAL SAMPLE · every name, number, company, and link is invented.** No real person, no
-> real employer, no real metric. This file demonstrates the master-resume structure only.
+> real employer, no real metric. The phone (111-111-1111) and email (xyz@abc.org) are deliberately
+> fake. This file demonstrates the master-resume structure only.
 >
 > **Private superset.** Never sent anywhere; no length limit. Every per-job resume is *selected* from
 > here, never rewritten. If tailoring needs a bullet that isn't here, fix THIS file, don't invent on
@@ -16,38 +17,39 @@
 | Field | Value |
 |---|---|
 | Name | Jordan Rivera |
-| Email · Phone | jordan.rivera@example.com · (512) 555-0147 |
-| Links | Portfolio: https://example.com/jordanrivera · LinkedIn: https://example.com/in/jordan-rivera-design · Dribbble: https://example.com/jordanr |
+| Email · Phone | xyz@abc.org · 111-111-1111 |
+| Links | Portfolio: https://example.com/jordanrivera · LinkedIn: https://example.com/in/jordan-rivera-swe · GitHub: https://example.com/gh/jordanr |
 | Location · work mode | Austin, TX · remote-first, hybrid-OK (Austin metro) |
 | Work authorization | US citizen, no sponsorship required |
 
-**Certifications** (honest status): NN/g UX Certification, *Expired 2023* (not claimed as Active). No
-active certifications. (Designer hiring rarely gates on certs; portfolio is the credential.)
+**Certifications** (honest status): AWS Certified Solutions Architect, Associate, *Expired 2024* (not
+claimed as Active). No active certifications. (Backend hiring rarely gates on certs; shipped systems
+and the interview loop are the credential.)
 
 ---
 
 ## §2 POSITIONING SUMMARIES (per audience, two lengths each)
 
-### A. Staff/Lead Product Designer, B2B SaaS / design-systems lane (PRIMARY)
-- **40-word:** Senior Product Designer, 10 years, who builds design systems engineering actually
-  adopts. Shipped a 120-component system across 5 product teams, lifting feature adoption and cutting
-  design-to-build drift. 0→1 IC who mentors without a manager title.
-- **80-word:** Senior Product Designer with 10 years across fintech, marketplace, and agency work,
-  specializing in design systems and 0→1 product design. Built a 120-component, tokenized system
-  adopted by 5 product teams that lifted new-feature adoption ~32% and cut design QA rework roughly in
-  half. Partners tightly with engineering, pairs through implementation to kill spec drift. An IC
-  multiplier who mentors 3–4 designers and runs crits, targeting Staff/Lead scope rather than a
-  management track.
+### A. Staff/Senior Software Engineer, platform and infrastructure lane (PRIMARY)
+- **40-word:** Senior Software Engineer, 9 years, who builds internal platforms teams choose to adopt.
+  Built a shared deploy platform that 6 teams moved 40+ services onto, cutting deploy lead time from
+  ~3 days to under an hour. Go, Kubernetes, Terraform, AWS. IC who mentors.
+- **80-word:** Senior Software Engineer with 9 years across fintech, logistics, and consulting work,
+  focused on platforms and reliability. At Acme Pay, built the company's first shared deploy platform
+  (Go, Kubernetes, Terraform) and moved 40+ services from 6 teams onto it, cutting deploy lead time
+  from ~3 days to under an hour. Brought Sev-1 incidents from 14 to 5 a quarter with SLOs and tracing.
+  Writes the design doc, gets it through review, and mentors 3–4 engineers, targeting Staff IC scope.
 
-### B. Consumer 0→1 / product design generalist lane (ALTERNATE)
-- **40-word:** Product Designer who takes consumer products from blank canvas to launch. Designed
-  three 0→1 experiences end-to-end, research, prototype, ship, including an onboarding redesign that
-  cut first-week drop-off from 41% to 24%. Research-driven, eng-fluent IC.
-- **80-word:** Research-driven Product Designer, 10 years, who thrives in ambiguity and ships 0→1
-  consumer and B2B products. Led an onboarding redesign that cut first-week drop-off from 41% to 24%
-  across ~40k monthly signups, and a checkout funnel rework that lifted completion 18%. Runs the full
-  arc, generative research, prototyping, usability testing, hand-off, and post-launch iteration, and
-  works elbow-to-elbow with engineering to ship pixel-accurate, accessible interfaces.
+### B. Senior backend / payments lane (ALTERNATE)
+- **40-word:** Backend engineer who makes systems that carry money fast and correct. Cut payments-API
+  p99 latency ~60% at ~1.2M transactions a day and ended a class of duplicate-charge bugs with
+  idempotency keys and an outbox. Go, PostgreSQL, Kafka, Redis.
+- **80-word:** Senior backend engineer, 9 years, who owns high-volume services end to end. Cut the
+  Acme Pay payments-API p99 latency ~60% at ~1.2M transactions a day through profiling, PostgreSQL
+  query work, and a Redis read path with write-through invalidation. Designed idempotency keys and a
+  Kafka outbox so retried payments can't double-charge. Earlier, built Acme Corp's order-routing
+  service 0→1 in Go, tripling peak throughput. Comfortable on call, in code review, and in the design
+  doc.
 
 ---
 
@@ -56,219 +58,216 @@ The only place numbers live; bullets reference it.
 
 | # | Metric | Exact value | Public/sendable value | Source | Tag |
 |---|---|---|---|---|---|
-| M1 | Design-system components shipped | 118 | "120-component system" | portfolio (public DS) | PUBLIC-OK |
-| M2 | Product teams adopting the system | 5 of 6 | "5 product teams" | intake | PUBLIC-OK |
-| M3 | New-feature adoption lift after DS rollout | +31.6% | "~32%" | internal dashboard | INTERNAL→PUBLIC |
-| M4 | Design QA / rework reduction | −54% rework tickets | "cut design QA rework roughly in half" | internal Jira | INTERNAL→PUBLIC |
-| M5 | Onboarding first-week drop-off | 41% → 24% | "41% → 24%" | A/B test readout | INTERNAL→PUBLIC (band-safe) |
-| M6 | Monthly signups in onboarding test | 39,800/mo | "~40k monthly signups" | internal | INTERNAL→PUBLIC |
-| M7 | Checkout funnel completion lift | +18.3% | "+18%" | A/B test | INTERNAL→PUBLIC |
-| M8 | Post-launch product NPS movement | 22 → 41 | "NPS 22 → 41" | quarterly survey | INTERNAL→PUBLIC |
-| M9 | Designers mentored | 4 (3 junior, 1 mid) | "3–4 designers" | intake | PUBLIC-OK |
-| M10 | Usability-test sessions run | 130+ over 3 yrs | "130+ moderated sessions" | research log | PUBLIC-OK |
-| M11 | Accessibility, WCAG conformance reached | AA across DS components | "WCAG 2.1 AA" | audit | PUBLIC-OK |
-| M12 | Design-to-eng spec-drift defects | −44% | "cut spec-drift defects ~44%" | internal | INTERNAL→PUBLIC |
-| M13 | 0→1 products shipped end-to-end | 3 | "three 0→1 products" | resume | PUBLIC-OK |
-| M14 | Conference / community talks given | 2 (design-systems meetups) | "2 design-systems talks" | public | PUBLIC-OK |
+| M1 | Services moved onto the shared deploy platform | 42 of 48 | "40+ services" | platform repo | PUBLIC-OK |
+| M2 | Teams adopting the platform | 6 of 7 | "6 teams" | intake | PUBLIC-OK |
+| M3 | Deploy lead time (merge to production) | 3.1 days → 47 min | "from ~3 days to under an hour" | deploy metrics | INTERNAL→PUBLIC |
+| M4 | Payments-API p99 latency | 820 ms → 317 ms (−61.4%) | "cut p99 latency ~60%" | APM dashboard | INTERNAL→PUBLIC |
+| M5 | Payments-API volume | 1,180,000 transactions/day | "~1.2M transactions a day" | internal | INTERNAL→PUBLIC |
+| M6 | Sev-1 incidents per quarter | 14 → 5 | "14 → 5 a quarter" | incident tracker | INTERNAL→PUBLIC (band-safe) |
+| M7 | Compute spend reduction | −34.8% | "cut compute spend ~35%" | cloud bill | INTERNAL→PUBLIC |
+| M8 | CI pipeline time | 41 min → 14 min | "41 → 14 minutes" | CI dashboard | INTERNAL→PUBLIC (band-safe) |
+| M9 | Engineers mentored | 4 (3 junior, 1 mid) | "3–4 engineers" | intake | PUBLIC-OK |
+| M10 | Design docs (RFCs) authored and approved | 11 | "11 design docs" | doc index | PUBLIC-OK |
+| M11 | Merged PRs to a public open-source Go library | 23 | "23 merged PRs" | public repo | PUBLIC-OK |
+| M12 | Mean time to recover (Sev-1) | 52 min → 19 min | "under 20 minutes" | incident tracker | INTERNAL→PUBLIC |
+| M13 | Order-routing peak throughput | 3.2x | "3x peak throughput" | load tests | INTERNAL→PUBLIC |
+| M14 | Meetup talks given | 2 (Go and platform meetups) | "2 meetup talks" | public | PUBLIC-OK |
 
 ---
 
 ## §4 SKILLS INVENTORY
-ATS keywords for Staff/Lead Product Designer roles are marked `[ATS]`; each maps to evidence.
+ATS keywords for Staff/Senior Software Engineer roles are marked `[ATS]`; each maps to evidence.
 
-**Product design:** 0→1 product design `[ATS]` (E1,E5,E8) · end-to-end design `[ATS]` (E5,E8) ·
-interaction design `[ATS]` (E2,E6) · information architecture (E6) · responsive & mobile design (E6) ·
-prototyping `[ATS]` (E5,E8).
+**Languages:** Go `[ATS]` (E1,E2,E6) · Python `[ATS]` (E7,E8) · SQL (E2,E8) · Java (reads and patches,
+E8) · TypeScript (basic, small UI fixes).
 
-**Design systems:** design systems `[ATS]` (E1,E2) · design tokens `[ATS]` (E1) · component libraries
-`[ATS]` (E1,E2) · Figma library architecture `[ATS]` (E1) · accessibility / WCAG 2.1 AA `[ATS]` (E3) ·
-documentation & governance (E2).
+**Backend & distributed systems:** distributed systems `[ATS]` (E5,E6) · microservices `[ATS]`
+(E1,E6) · REST and gRPC APIs `[ATS]` (E2,E8) · event-driven design with Kafka `[ATS]` (E5,E6) ·
+idempotency and the outbox pattern (E5) · caching with Redis `[ATS]` (E2).
 
-**Research:** user research `[ATS]` (E7,E10) · usability testing `[ATS]` (E7) · generative & evaluative
-research (E7,E10) · survey design (E10) · data-informed design `[ATS]` (E4,E7).
+**Data:** PostgreSQL `[ATS]` (E2,E8) · query tuning and indexing (E2) · schema migrations (E8).
 
-**Collaboration & leadership:** design-engineering collaboration `[ATS]` (E3,E9) · cross-functional
-leadership `[ATS]` (E1,E9) · mentoring / IC leadership `[ATS]` (E9) · design crits & critique
-facilitation (E9) · stakeholder management (E4).
+**Infrastructure:** AWS `[ATS]` (E1,E4) · Kubernetes `[ATS]` (E1) · Terraform `[ATS]` (E1) · Docker
+(E1,E7) · CI/CD `[ATS]` (E1,E7) · GitHub Actions (E1,E7) · autoscaling and cost work (E4).
 
-**Tools:** Figma `[ATS]` · FigJam · Storybook `[ATS]` · Maze / usability tooling · basic HTML/CSS
-`[ATS]` (reads & tweaks front-end, pairs with eng) · Jira / Linear · Amplitude / Mixpanel (reads
-dashboards).
+**Reliability:** observability `[ATS]` (E3) · OpenTelemetry tracing (E3) · Prometheus and Grafana
+(E3) · SLOs and error budgets `[ATS]` (E3) · incident response and on-call (E3).
 
-**Honest gap list** (keywords Jordan CANNOT claim → handled honestly, never bluffed):
-- "Design manager / people manager / direct reports", Jordan is an IC who mentors; **no management
-  title.** Claim "IC leadership / multiplier" instead.
-- "Data scientist / SQL / statistical modeling / A/B test *design from scratch*", Jordan *partners*
-  with data/PM and reads analytics; does **not** build models. Claim "data-informed design" only.
-- "Front-end engineer / React / production code", reads and tweaks HTML/CSS, pairs with eng; does
-  **not** ship production code. Claim "eng-fluent / design-eng collaboration" only.
-- "Brand / visual identity / motion design lead", competent but not the differentiator; don't lead
-  with it.
+**Collaboration & leadership:** technical design docs `[ATS]` (E9) · code review (E9) · mentoring /
+IC leadership `[ATS]` (E9) · cross-team technical direction (E1) · open-source contribution (E10).
+
+**Honest gap list** (keywords Jordan CANNOT claim, handled honestly, never bluffed):
+- "Engineering manager / people manager / direct reports": Jordan is an IC who mentors; **no
+  management title.** Claim "IC leadership / mentoring" instead.
+- "ML engineer / model training / MLOps / PyTorch": Jordan has built queues and APIs around a
+  model-serving endpoint, but has **not** trained or served models. Claim nothing ML.
+- "Front-end engineer / React owner": reads and fixes React, ships small UI changes; does **not** own
+  a front-end codebase. Claim "full-stack fluent" only.
+- "Rust / C++ systems programming": not used professionally; don't list.
 
 ---
 
 ## §5 EXPERIENCE (reverse-chronological)
 
-### Beacon Financial, Senior Product Designer | Austin, TX (remote) | Mar 2021 – Present
-**Scope line:** Sole design-systems owner across a 6-team, ~28-person product org; consumer fintech app
-+ B2B partner dashboard.
+### Acme Pay, Senior Software Engineer | Austin, TX (remote) | Mar 2021 – Present
+**Scope line:** Payments platform team of 7 inside a ~60-engineer fintech org; owns the payments API
+and, since 2022, the shared deploy platform.
 
-#### E1, Built and scaled the design system
-- **(a) Standard:** Built Beacon's design system from scratch, 120 tokenized Figma components plus a
-  Storybook front-end library, adopted by 5 product teams and lifting new-feature adoption ~32% (M1,
-  M2, M3).
-- **(b) Expanded:** Created Beacon's first design system as sole owner: defined a token architecture
-  (color, type, spacing, elevation), shipped 120 components paired 1:1 with engineering's Storybook
-  library, and wrote contribution + governance docs. Drove adoption across 5 of 6 product teams
-  through office hours and a migration playbook; teams shipping on the system saw new-feature adoption
-  rise ~32% and design QA rework fall roughly in half (M1–M4).
-- **Variants:** "Owned the design system end-to-end (tokens → components → governance) for a 6-team
-  fintech org."
-- **(c) Tags:** [design-systems] [tokens] [adoption] [design-eng] [leadership] [staff-scope]
-- **(d) Source:** resume + public portfolio DS page
+#### E1, Built the shared deploy platform
+- **(a) Standard:** Built Acme Pay's first shared deploy platform (Go, Kubernetes, Terraform, GitHub
+  Actions) and moved 40+ services from 6 teams onto it, cutting deploy lead time from ~3 days to
+  under an hour (M1, M2, M3).
+- **(b) Expanded:** Wrote the design doc, then built the platform as tech lead with two engineers: a Go
+  service that turns a short service manifest into Kubernetes resources, Terraform modules for the
+  AWS pieces, and a GitHub Actions pipeline with canary and automatic rollback. Drove adoption across
+  6 of 7 teams with a migration guide, office hours, and pairing on each team's first move. Deploy
+  lead time fell from ~3 days to under an hour (M1–M3).
+- **Variants:** "Led the deploy platform from design doc to 40+ services across 6 teams."
+- **(c) Tags:** [platform] [kubernetes] [terraform] [adoption] [leadership] [staff-scope]
+- **(d) Source:** resume + platform repo
 - **(e) STAR:** S2 (influence without authority), D1 (deep-dive)
 
-#### E2, Design-system governance & contribution model
-- **(a) Standard:** Stood up the contribution and review model for the component library, cutting
-  duplicate one-off components by standardizing 40+ patterns into the shared system.
-- **(b) Expanded:** Established the design-system governance model, a contribution path, review
-  rubric, and versioned changelog, so product teams extend the system instead of forking it.
-  Consolidated 40+ ad-hoc patterns into shared components and ran monthly DS office hours.
-- **Variants:** "Authored the design-system contribution model and review rubric."
-- **(c) Tags:** [design-systems] [governance] [documentation] [leadership]
-- **(d) Source:** resume
-- **(e) STAR:** S2, S3
+#### E2, Cut payments-API latency
+- **(a) Standard:** Cut payments-API p99 latency ~60% at ~1.2M transactions a day by profiling hot
+  paths, fixing PostgreSQL query plans, and adding a Redis read path with write-through invalidation
+  (M4, M5).
+- **(b) Expanded:** Profiled the payments API with pprof and tracing, found three causes (an N+1 query
+  on merchant config, a missing composite index, and connection-pool starvation under bursts), fixed
+  each behind a flag, and moved merchant-config reads to Redis with write-through invalidation. p99
+  latency fell ~60% at ~1.2M transactions a day (M4, M5).
+- **Variants:** "Owned a payments-API latency fix that cut p99 ~60%."
+- **(c) Tags:** [performance] [postgresql] [redis] [go] [payments]
+- **(d) Source:** APM dashboard (sanitized)
+- **(e) STAR:** S5 (the cache incident), D2
 
-#### E3, Accessibility + design-engineering collaboration
-- **(a) Standard:** Brought the component library to WCAG 2.1 AA and paired through implementation,
-  cutting design-to-eng spec-drift defects ~44% (M11, M12).
-- **(b) Expanded:** Led accessibility remediation across the design system to WCAG 2.1 AA (contrast,
-  focus order, semantics, reduced-motion), and embedded with engineering during build, annotating
-  specs, reviewing PRs in Storybook, and pairing on tricky states, which cut spec-drift defects ~44%
-  (M11, M12).
-- **Variants:** "Drove WCAG 2.1 AA conformance and design-eng pairing that halved hand-off rework."
-- **(c) Tags:** [accessibility] [design-eng] [quality] [staff-scope]
-- **(d) Source:** audit + internal defect data (sanitized)
-- **(e) STAR:** S3, D1
+#### E3, Reliability: SLOs, tracing, and on-call
+- **(a) Standard:** Introduced SLOs, OpenTelemetry tracing, and runbooks for the payments services,
+  bringing Sev-1 incidents from 14 to 5 a quarter and recovery time under 20 minutes (M6, M12).
+- **(b) Expanded:** Defined SLOs and error budgets with product, added OpenTelemetry tracing across
+  the payments path, wrote runbooks for the ten most common pages, and redesigned the on-call rotation
+  so pages go to the owning team. Sev-1 incidents fell from 14 to 5 a quarter and recovery time from
+  ~50 minutes to under 20 (M6, M12).
+- **Variants:** "Set up SLOs and tracing that cut Sev-1 incidents from 14 to 5 a quarter."
+- **(c) Tags:** [reliability] [observability] [slo] [on-call] [staff-scope]
+- **(d) Source:** incident tracker (sanitized)
+- **(e) STAR:** S3, D2
 
-#### E4, Data-informed redesign of the partner dashboard
-- **(a) Standard:** Redesigned the B2B partner dashboard using funnel + survey data, lifting product
-  NPS from 22 to 41 over two quarters (M8).
-- **(b) Expanded:** Partnered with PM and data to instrument and redesign the B2B partner dashboard:
-  read Amplitude funnels, ran a 600-respondent survey, and reworked the information architecture and
-  key task flows. Product NPS rose from 22 to 41 over two quarters (M8). *Data partnership, not model
-  building, honesty boundary.*
-- **(c) Tags:** [data-informed] [research] [B2B] [IA]
-- **(d) Source:** quarterly survey + Amplitude (sanitized)
-- **(e) STAR:** S5 (failure/learning, earlier version of this), D3
-
-### Atlas Mobility, Product Designer | Austin, TX (hybrid) | Jun 2018 – Feb 2021
-**Scope line:** Two-sided mobility marketplace (riders + drivers); design team of 4; consumer mobile +
-web.
-
-#### E5, 0→1 driver-onboarding product
-- **(a) Standard:** Designed Atlas's driver-onboarding flow 0→1, research through ship, cutting
-  first-week drop-off from 41% to 24% across ~40k monthly signups (M5, M6, M13).
-- **(b) Expanded:** Took driver onboarding from a blank canvas to launch: ran generative interviews,
-  mapped the activation journey, prototyped and usability-tested three flow variants, then shipped with
-  engineering. First-week drop-off fell from 41% to 24% across ~40k monthly signups (M5, M6).
-- **Variants:** "Owned 0→1 design of a driver-activation flow serving ~40k monthly signups."
-- **(c) Tags:** [0-to-1] [onboarding] [research] [consumer] [activation]
-- **(d) Source:** A/B readout (sanitized band)
-- **(e) STAR:** S1 (ambiguity), D2
-
-#### E6, Rider checkout / fare-confirmation funnel
-- **(a) Standard:** Redesigned the rider fare-confirmation funnel, lifting checkout completion 18%
-  (M7).
-- **(b) Expanded:** Reworked the rider fare-confirmation and payment funnel, simplified the IA,
-  clarified surge messaging, and rebuilt the mobile interaction flow, lifting completion 18% in a
-  controlled rollout (M7).
-- **(c) Tags:** [funnel] [conversion] [mobile] [interaction-design] [consumer]
-- **(d) Source:** A/B test (sanitized)
+#### E4, Compute cost reduction
+- **(a) Standard:** Cut compute spend ~35% by right-sizing services, adding autoscaling, and moving
+  batch jobs to spot capacity (M7).
+- **(b) Expanded:** Built a weekly cost report per service, right-sized the 15 most over-provisioned
+  services, added horizontal autoscaling on request rate, and moved nightly batch jobs to spot
+  capacity with retry. Compute spend fell ~35% with no SLO regressions (M7).
+- **(c) Tags:** [cost] [aws] [kubernetes] [autoscaling]
+- **(d) Source:** cloud bill (sanitized)
 - **(e) STAR:**
 
-#### E7, Research practice for the marketplace
-- **(a) Standard:** Ran 130+ moderated usability sessions over three years to steer marketplace
-  roadmap decisions (M10).
-- **(b) Expanded:** Built a lightweight research cadence on a team with no dedicated researcher: ran
-  130+ moderated sessions, synthesized findings into a shared insights repository, and presented to PM
-  and leadership to prioritize roadmap bets (M10).
-- **(c) Tags:** [research] [usability] [influence] [consumer]
-- **(d) Source:** research log
-- **(e) STAR:** S4 (mentoring grew from this), D2
+#### E5, Idempotent payment retries
+- **(a) Standard:** Designed idempotency keys and a Kafka outbox for payment events, ending a class
+  of duplicate-charge bugs caused by client retries.
+- **(b) Expanded:** After two duplicate-charge incidents traced to client retries, wrote the design
+  doc for idempotency keys on every write endpoint plus a transactional outbox that publishes payment
+  events to Kafka exactly once in effect. Held the line on shipping it before a partner launch (S3).
+  No duplicate charge has been reported since.
+- **(c) Tags:** [distributed-systems] [kafka] [correctness] [payments] [design-doc]
+- **(d) Source:** design doc + incident tracker
+- **(e) STAR:** S3
 
-### Verdant Labs, UX Designer | Austin, TX (on-site) | Jul 2016 – May 2018
-**Scope line:** Boutique product-design agency; rotated across ~7 client engagements (SaaS, retail,
-healthcare).
+### Acme Corp, Software Engineer II | Austin, TX (hybrid) | Jun 2018 – Feb 2021
+**Scope line:** Logistics marketplace; order-routing team of 5; Go and Python services on AWS.
 
-#### E8, Agency 0→1 client work
-- **(a) Standard:** Delivered 0→1 product designs for 7 client engagements, including a retail
-  self-checkout concept that shipped to pilot (M13).
-- **(b) Expanded:** As an agency UX designer, owned discovery-through-delivery for 7 client
-  engagements across SaaS, retail, and healthcare, wireframes, prototypes, usability tests, and
-  developer hand-off, including a retail self-checkout concept that reached a store pilot.
-- **(c) Tags:** [0-to-1] [breadth] [client] [retail] [healthcare]
+#### E6, 0→1 order-routing service
+- **(a) Standard:** Built Acme Corp's order-routing service 0→1 in Go, replacing a Python cron job
+  with an event-driven Kafka consumer and tripling peak throughput (M13).
+- **(b) Expanded:** Took order routing from a 15-minute Python cron job to an event-driven Go service:
+  wrote the design doc, built the Kafka consumer and routing rules engine, ran it in shadow mode
+  against the old job for three weeks, then cut over by region. Peak throughput tripled and orders
+  route in seconds instead of minutes (M13).
+- **Variants:** "Owned the 0→1 build of an event-driven routing service in Go."
+- **(c) Tags:** [0-to-1] [go] [kafka] [distributed-systems] [migration]
+- **(d) Source:** load tests (sanitized)
+- **(e) STAR:** S1 (ambiguity), D3
+
+#### E7, CI speed and test health
+- **(a) Standard:** Cut the CI pipeline from 41 to 14 minutes by parallelizing tests, caching builds,
+  and quarantining flaky tests (M8).
+- **(b) Expanded:** Split the test suite into parallel shards, added Docker layer and dependency
+  caching, and built a flaky-test quarantine with an owner and a fix-by date. CI went from 41 to 14
+  minutes and engineers stopped re-running builds by habit (M8).
+- **(c) Tags:** [ci-cd] [developer-productivity] [python] [docker]
+- **(d) Source:** CI dashboard
+- **(e) STAR:** S4
+
+### Acme Inc, Software Engineer | Austin, TX (on-site) | Jul 2016 – May 2018
+**Scope line:** Software consultancy; rotated across ~6 client projects (retail, health, SaaS).
+
+#### E8, Consultancy backend work
+- **(a) Standard:** Built backend APIs for 6 client projects in Python and PostgreSQL, including a
+  retail inventory sync that went to production at 40 stores.
+- **(b) Expanded:** As a consultancy engineer, owned the backend for 6 client projects (Django and
+  Flask APIs, PostgreSQL schemas and migrations, a Java integration patched for one client), including
+  a retail inventory sync that went to production at 40 stores.
+- **(c) Tags:** [backend] [python] [postgresql] [breadth] [client]
 - **(d) Source:** resume
 - **(e) STAR:** S1
 
-#### E9, Mentoring & IC leadership (spans roles)
-- **(a) Standard:** Mentors 3–4 designers and facilitates design crits, IC leadership without a
-  manager title (M9).
-- **(b) Expanded:** Across Atlas and Beacon, mentored 3–4 junior and mid designers (portfolio reviews,
-  pairing, onboarding) and facilitated the team's design-critique practice, multiplying output as an
-  IC, with no direct reports. *Honesty: IC leadership, not people management.*
-- **(c) Tags:** [mentoring] [IC-leadership] [crits] [multiplier]
-- **(d) Source:** intake
+#### E9, Mentoring, design docs, and code review (spans roles)
+- **(a) Standard:** Mentors 3–4 engineers and runs the team's weekly design review; wrote 11 design
+  docs that other teams built on (M9, M10).
+- **(b) Expanded:** Across Acme Corp and Acme Pay, mentored 3–4 junior and mid engineers (pairing,
+  code review, design-doc coaching), started and runs the weekly design-review meeting, and wrote 11
+  approved design docs. IC leadership with no direct reports. *Honesty: mentoring, not people
+  management.*
+- **(c) Tags:** [mentoring] [IC-leadership] [design-doc] [code-review]
+- **(d) Source:** intake + doc index
 - **(e) STAR:** S4
 
-#### E10, Generative & survey research (spans roles)
-- **(a) Standard:** Designed and fielded mixed-method research (interviews + 600-respondent surveys) to
-  ground product decisions in evidence (M10).
-- **(b) Expanded:** Ran generative interviews and quantitative surveys (incl. a 600-respondent dashboard
-  study) and synthesized them into prioritized, decision-ready insights, research-driven design, not
-  opinion-driven.
-- **(c) Tags:** [research] [survey] [data-informed] [generative]
-- **(d) Source:** research log
-- **(e) STAR:** S5
+#### E10, Open source and community (spans roles)
+- **(a) Standard:** Contributed 23 merged PRs to a public open-source Go library and gave 2 meetup
+  talks on platform engineering (M11, M14).
+- **(b) Expanded:** Contributes to a public Go HTTP-middleware library (23 merged PRs, mostly
+  retry and timeout handling) and gave 2 local meetup talks on running a deploy platform.
+- **(c) Tags:** [open-source] [go] [community]
+- **(d) Source:** public repo + meetup pages
+- **(e) STAR:**
 
 ---
 
 ## §6 PROJECTS / PORTFOLIO
-### P1, Beacon Design System ("Keystone" internal name, never publish the codename)
-- **One-liner:** A 120-component, tokenized design system adopted by 5 product teams.
-- **Paragraph:** Sole-owned design system: token architecture, 120 Figma components paired to a
-  Storybook library, governance + contribution model, WCAG 2.1 AA. Drove ~32% feature-adoption lift on
-  adopting teams. *Refer to it publicly as "Beacon's design system," never the internal codename.*
-- **Stack:** Figma · Storybook · design tokens · HTML/CSS · **Metrics:** M1–M4, M11, M12 ·
-  **Status:** shipped, in production · **Link:** https://example.com/jordanrivera/design-system
+### P1, Acme Pay Deploy Platform ("Bluejay" internal name, never publish the codename)
+- **One-liner:** A shared deploy platform 6 teams moved 40+ services onto.
+- **Paragraph:** Service manifest → Kubernetes resources, Terraform modules for AWS, a GitHub Actions
+  pipeline with canary and automatic rollback. Deploy lead time from ~3 days to under an hour. *Refer
+  to it publicly as "Acme Pay's deploy platform," never the internal codename.*
+- **Stack:** Go · Kubernetes · Terraform · AWS · GitHub Actions · **Metrics:** M1–M3 · **Status:**
+  in production · **Link:** https://example.com/jordanrivera/deploy-platform
 
-### P2, Atlas Driver Onboarding (0→1)
-- **One-liner:** A 0→1 driver-activation flow that cut first-week drop-off 41% → 24%.
-- **Paragraph:** End-to-end 0→1 onboarding: generative research, journey mapping, three prototyped
-  variants, usability testing, ship. **Metrics:** M5, M6, M13 · **Status:** shipped · **Link:**
-  https://example.com/jordanrivera/atlas-onboarding
+### P2, Payments-API Latency Work
+- **One-liner:** Profiling and caching work that cut payments-API p99 latency ~60%.
+- **Paragraph:** pprof and traces → three root causes → flagged fixes and a Redis read path.
+  **Metrics:** M4, M5 · **Status:** shipped · **Link:** https://example.com/jordanrivera/latency
 
-### P3, Beacon Partner Dashboard Redesign (B2B, data-informed)
-- **One-liner:** A data-informed B2B dashboard redesign that moved NPS 22 → 41.
-- **Paragraph:** Funnel + 600-respondent survey → IA and task-flow rework on the B2B partner dashboard.
-  **Metrics:** M8 · **Status:** shipped · **Link:** https://example.com/jordanrivera/partner-dashboard
+### P3, Acme Corp Order Routing (0→1)
+- **One-liner:** An event-driven Go routing service that tripled peak throughput.
+- **Paragraph:** Kafka consumer plus rules engine, three weeks in shadow mode, regional cutover.
+  **Metrics:** M13 · **Status:** shipped · **Link:** https://example.com/jordanrivera/order-routing
 
 ---
 
 ## §7 EDUCATION & CREDENTIALS
-- **B.F.A., Communication Design**, Atlas State University (fictional), 2016.
-- NN/g UX Certification, **Expired 2023** (listed honestly; not claimed Active).
+- **B.S., Computer Science**, Acme State University (fictional), 2016.
+- AWS Certified Solutions Architect, Associate, **Expired 2024** (listed honestly; not claimed Active).
 
 ---
 
 ## §8 STORY BANK INDEX
 | Story | Theme | Experience entries | Tags |
 |---|---|---|---|
-| S1 | Ambiguity / zero prior art (0→1 onboarding) | E5, E8 | [0-to-1] [ambiguity] |
-| S2 | Influence without authority (driving DS adoption) | E1, E2 | [influence] [design-systems] |
-| S3 | Conflict / conviction under pushback (accessibility vs. deadline) | E2, E3 | [conflict] [quality] |
-| S4 | Coaching / multiplying (mentoring + crits) | E9, E7 | [mentoring] [IC-leadership] |
-| S5 | Genuine failure + learning (early dashboard misread) | E4, E10 | [failure] [research] |
+| S1 | Ambiguity / no spec (0→1 order routing) | E6, E8 | [0-to-1] [ambiguity] |
+| S2 | Influence without authority (deploy-platform adoption) | E1, E9 | [influence] [platform] |
+| S3 | Conflict / conviction under pushback (idempotency vs. launch date) | E5, E3 | [conflict] [correctness] |
+| S4 | Coaching / multiplying (mentoring + design review) | E9, E7 | [mentoring] [IC-leadership] |
+| S5 | Genuine failure + learning (cache rollout served stale data) | E2 | [failure] [reliability] |
 
 ---
 
@@ -282,17 +281,18 @@ healthcare).
 7. Log the selection (entry IDs) in the job folder's `resume.md` Delta Log.
 
 **Audience defaults:**
-- *Design-systems / B2B SaaS lane (Summary A):* lead with **E1 → E3 → E2 → E4**, then E9 (IC
-  leadership), then E5/E7 for range.
-- *Consumer 0→1 lane (Summary B):* lead with **E5 → E6 → E7**, then E1 (systems range), then E8/E10.
+- *Platform / infrastructure lane (Summary A):* lead with **E1 → E3 → E4 → E2**, then E9 (IC
+  leadership), then E6/E7 for range.
+- *Backend / payments lane (Summary B):* lead with **E2 → E5 → E3**, then E1 (platform range), then
+  E6/E8.
 
 ---
 
 ## §10 CONFLICTS & COVERAGE LOG
-- **Conflicts:** Resume listed the Atlas onboarding lift as "drop-off halved"; the A/B readout shows
-  41% → 24% (a 41% relative reduction, not 50%). **Kept the exact 41% → 24%** (resume vs. A/B readout);
-  never round up to "halved."
-- **Conflicts:** LinkedIn headline says "Design Lead"; no team has reported to Jordan. **Reconciled to
-  "Senior Product Designer (IC)"** everywhere sendable, the "Lead" title is a true gap, flagged in §4.
-- **Coverage:** Sources used, sample resume, sample LinkedIn export, intake interview. Excluded: an
-  old agency-era brand project (off-target for design-systems/0→1 lanes; available on request).
+- **Conflicts:** The old resume said latency was "cut in half or more"; the APM readout shows 820 ms →
+  317 ms. **Kept "~60%"** (a rounded public band of the real figure); never inflate it.
+- **Conflicts:** LinkedIn headline says "Staff Engineer"; Jordan's held title is Senior Software
+  Engineer. **Reconciled to "Senior Software Engineer"** everywhere sendable. Staff is the target, not
+  a held title, flagged in §4 and in the LinkedIn steps.
+- **Coverage:** Sources used: sample resume, sample LinkedIn export, intake interview. Excluded: a
+  2017 mobile app side project (off-target for platform and backend lanes; available on request).

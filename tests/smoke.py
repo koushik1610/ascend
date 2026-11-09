@@ -502,7 +502,7 @@ def test_latex_render():
     check("renderer disables shell-escape for the latex family",
           "-no-shell-escape" in tool.read_text(encoding="utf-8"))
 
-    sample = REPO / "examples/sample-run/jobs/01-northwind-health-staff-product-designer/resume.json"
+    sample = REPO / "examples/sample-run/jobs/01-acme-health-staff-software-engineer/resume.json"
     if not sample.exists():
         print("  – sample resume.json missing, skipping render")
         return
@@ -622,7 +622,7 @@ def test_honesty():
     SAMPLE = REPO / "examples/sample-run"
     # The raw internals the master's metrics bank holds (INTERNAL → PUBLIC) but that must NEVER reach a
     # sendable artifact — exactly the grep each job's DELTA LOG documents. Keep in sync with the sample.
-    NEVER_PUBLISH = ["31.6", "39,800", "39800", "−54", "-54", "Keystone"]
+    NEVER_PUBLISH = ["61.4", "1,180,000", "1180000", "34.8", "Bluejay"]
     comment = re.compile(r"<!--.*?-->", re.S)                 # strip the DELTA LOG (it names the internals)
     sendables = (sorted((SAMPLE / "jobs").glob("*/resume.md")) + sorted((SAMPLE / "jobs").glob("*/outreach.md"))
                  + sorted((SAMPLE / "jobs").glob("*/resume.json")) + sorted(SAMPLE.glob("*resume.json")))
@@ -1057,8 +1057,8 @@ def test_grade_run():
     with tempfile.TemporaryDirectory() as td:
         bad = Path(td) / "run"
         shutil.copytree(REPO / "examples/sample-run", bad)
-        j1 = bad / "jobs/01-northwind-health-staff-product-designer"
-        j2 = bad / "jobs/02-lumen-retail-lead-product-designer"
+        j1 = bad / "jobs/01-acme-health-staff-software-engineer"
+        j2 = bad / "jobs/02-acme-retail-senior-software-engineer"
         # (a) a Delta Log citing an ID the master never declares = an invented bullet
         t = (j1 / "resume.md").read_text(encoding="utf-8")
         (j1 / "resume.md").write_text(t.replace("    Summary A", "    E99 (invented)\n    Summary A", 1),

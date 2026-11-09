@@ -1,71 +1,68 @@
-# Portfolio Deep-Dives — Jordan Rivera
+# Project Deep-Dives, Jordan Rivera
 
-> **🧪 FICTIONAL SAMPLE** — invented case studies for a demonstration persona. These are **design**
-> deep-dives (case studies), not code walkthroughs — Jordan is a product designer.
+> **🧪 FICTIONAL SAMPLE:** invented projects for a demonstration persona. These are **engineering**
+> deep-dives (architecture and trade-offs), the anchors for system design and "walk me through a
+> project" rounds.
 
-Three portfolio case studies, each with a stable ID. Per-job folders reference these by ID for the
-portfolio-review round; they don't restate the bodies.
-
----
-
-### D1 — Beacon Design System (design-systems case study)
-- **60-second walkthrough:** "Beacon had five product teams shipping inconsistent UI with heavy QA
-  rework and no shared system. As sole design-systems IC, I built one from the ground up: a token
-  architecture, 120 Figma components paired 1:1 with engineering's Storybook library, and a governance
-  + contribution model so teams extend it instead of forking. I drove adoption without authority —
-  migration playbook, office hours, pairing with the most skeptical team first. Five of six teams
-  migrated; adopting teams saw new-feature adoption rise ~32% and design QA rework fall roughly in
-  half, and I took the components to WCAG 2.1 AA."
-- **Probing questions you'll get:**
-  - *"How did you decide what becomes a component vs. a one-off?"* → Beats: usage threshold (appears in
-    ≥3 flows), variant explosion risk, accessibility surface. Show the governance rubric.
-  - *"How do you handle token versioning / breaking changes?"* → Beats: semantic versioning, deprecation
-    window, changelog, codemod-style Figma swaps; eng pairing via Storybook PR review.
-  - *"How did you measure success — adoption vs. vanity?"* → Beats: adoption = % of net-new UI built on
-    the system + rework-ticket reduction (M3, M4); honest that adoption % is the public band.
-  - *"Where did engineering push back?"* → Beats: token naming and dark-mode theming; resolved by
-    co-owning the Storybook contract.
-- **Failure / limitation:** The first contribution model was too heavyweight — a review queue that
-  bottlenecked on me. Teams started forking again. I cut the process to a lightweight rubric + async
-  review and delegated review rights to two senior designers, which fixed the bottleneck. Lesson:
-  governance has to scale past the founder or the system rots.
+Three projects, each with a stable ID. Per-job folders reference these by ID; they don't restate
+the bodies.
 
 ---
 
-### D2 — Atlas Driver Onboarding (0→1 case study)
-- **60-second walkthrough:** "Atlas was hemorrhaging new drivers with no onboarding design and no
-  funnel. I owned it 0→1: 12 generative interviews surfaced three drop-off cliffs — document upload,
-  approval wait, and first-trip anxiety. I mapped the activation journey, prototyped three variants,
-  usability-tested each, and shipped the variant that set expectations up front and chunked the upload.
-  First-week drop-off went from 41% to 24% across ~40k monthly signups."
+### D1, Acme Pay deploy platform (platform case study)
+- **60-second walkthrough:** "Every team at Acme Pay deployed differently, and merge to production
+  took about three days. I wrote the design doc for a shared platform and built it with two
+  engineers: a Go service that turns a short manifest into Kubernetes resources, Terraform modules
+  for the AWS pieces, and a pipeline with canary deploys and automatic rollback. Nobody had to adopt
+  it, so I ran office hours and paired on each team's first move. Six of seven teams moved 40+
+  services, and lead time dropped to under an hour."
 - **Probing questions you'll get:**
-  - *"How did you prioritize which cliff to fix first?"* → Beats: impact × addressability; the approval
-    wait was structural (couldn't fix in design alone), so I designed *around* it with status
-    transparency.
-  - *"How did you validate before shipping?"* → Beats: 3 prototyped variants, 8–10 usability sessions
-    each, task-success + time-to-complete; chose on evidence, not preference.
-  - *"What would you do differently?"* → Beats: instrument earlier; we shipped before analytics were
-    fully in place and had to backfill the funnel.
-- **Failure / limitation:** The first variant over-explained — a long expectations screen that tested
-  worse than the control on time-to-complete. I cut it to a progressive, just-in-time pattern. Honest:
-  the win is a relative drop-off reduction (41%→24%), not "halved" — I never round it up.
+  - *"Why build instead of buy?"* → Beats: evaluated two hosted options; both needed our network and
+    compliance setup rebuilt; the manifest layer was small enough to own.
+  - *"How do you handle a team that needs something the platform doesn't do?"* → Beats: escape hatch
+    (raw Kubernetes YAML) with an owner; track who uses it; the top requests become features.
+  - *"How did you measure success?"* → Beats: lead time, deploy success rate, rollback count, and the
+    share of services on the platform; not lines of code.
+  - *"Where did teams push back?"* → Beats: secrets handling and log formats; resolved by
+    co-designing those two pieces with the loudest team.
+- **Failure / limitation:** The first design doc tried to cover deploys, secrets, and service
+  discovery at once and stalled in review. I cut it to deploys only, shipped, and added the rest in
+  later docs. Lesson: a platform earns its scope one adopted feature at a time.
 
 ---
 
-### D3 — Beacon Partner Dashboard Redesign (data-informed B2B case study)
-- **60-second walkthrough:** "The B2B partner dashboard had low engagement and a poor NPS. Partnering
-  with PM and a data analyst, I read the Amplitude funnels, ran a 600-respondent survey, and reworked
-  the information architecture and core task flows. Product NPS rose from 22 to 41 over two quarters.
-  Importantly, an *earlier* version of this redesign failed because I'd misread the data — which is
-  exactly why I now validate the read with a data partner before designing."
+### D2, Payments-API latency (performance case study)
+- **60-second walkthrough:** "Payments p99 latency had crept up as volume grew to about 1.2 million
+  transactions a day. I profiled with pprof and traces and found three causes: an N+1 query on
+  merchant config, a missing composite index, and connection-pool starvation during bursts. I fixed
+  each behind a flag and moved merchant-config reads to Redis with write-through invalidation. p99
+  fell about 60%."
 - **Probing questions you'll get:**
-  - *"How do you use data without a data background?"* → Beats: I'm a data *partner*, not a modeler — I
-    read dashboards, co-design experiments with PM/data, and triangulate quant with qual. Honest
-    boundary stated plainly.
-  - *"How did you separate IA problems from content problems?"* → Beats: tree-testing + first-click
-    tests on the survey cohort.
-  - *"How do you know the NPS lift came from your redesign?"* → Beats: phased rollout + survey cohorts;
-    honest about confounders.
-- **Failure / limitation:** This *is* the failure story (S5) — the first redesign underperformed
-  because of a misread funnel (a tracking artifact). The recovery and the durable process change are
-  the point.
+  - *"How did you prioritize the three causes?"* → Beats: trace share of time per cause; the index
+    was cheapest and biggest, so it went first.
+  - *"How do you keep a cache correct?"* → Beats: write-through on update, short TTL as a backstop,
+    and a version check. This is where S5 comes in.
+  - *"How did you prove the change, not traffic, moved p99?"* → Beats: flags per fix, before/after
+    at the same hour of day, and a load test that replayed recorded traffic.
+- **Failure / limitation:** The first cache rollout served stale merchant config for 40 minutes
+  (S5). The invalidation path missed one write endpoint. Fixed with a version check and a staged
+  rollout by merchant tier.
+
+---
+
+### D3, Acme Corp order routing (0→1 distributed-systems case study)
+- **60-second walkthrough:** "Order routing ran as a Python cron job every 15 minutes, so orders sat
+  waiting and peak days backed up. There was no spec, only the old code. I wrote the design doc for
+  an event-driven Go service: a Kafka consumer plus a rules engine. We ran it in shadow mode for three
+  weeks, compared every decision against the old job, then cut over by region. Peak throughput
+  tripled and orders route in seconds."
+- **Probing questions you'll get:**
+  - *"How did you handle ordering and duplicates?"* → Beats: partition by order ID; idempotent
+    consumer keyed on order ID plus version; a dead-letter topic for poison messages.
+  - *"Why shadow mode?"* → Beats: the old job's behavior was the only spec; diffs showed three
+    undocumented rules we would have broken.
+  - *"What would you change?"* → Beats: add tracing from day one; we added it after the first
+    regional cutover.
+- **Failure / limitation:** One region's cutover was rolled back after a day because a carrier
+  integration expected batch timing. We added a small batching adapter for that carrier and retried
+  the cutover a week later.

@@ -1,0 +1,75 @@
+{
+  "basics": {
+    "name": "Jordan Rivera",
+    "label": "Staff Software Engineer, Platform · Kubernetes, Terraform, Go",
+    "email": "xyz@abc.org",
+    "phone": "111-111-1111",
+    "location": "Austin, TX (remote-first / hybrid-OK)",
+    "url": "https://example.com/jordanrivera",
+    "summary": "Senior Software Engineer, 9 years across fintech, logistics, and consulting work, focused on platform engineering and reliability. Built Acme Pay's first shared deploy platform and moved 40+ services from 6 teams onto it, cutting deploy lead time from ~3 days to under an hour. Writes the design doc, gets it through review, and mentors the engineers who build on it, targeting Staff IC scope."
+  },
+  "work": [
+    {
+      "company": "Acme Pay",
+      "position": "Senior Software Engineer",
+      "location": "Austin, TX (remote)",
+      "dates": "Mar 2021 – Present",
+      "highlights": [
+        "Built Acme Pay's first shared deploy platform (Go, Kubernetes, Terraform, GitHub Actions) and moved 40+ services from 6 teams onto it, cutting deploy lead time from ~3 days to under an hour.",
+        "Built the payments observability stack (SLOs, OpenTelemetry tracing, runbooks), bringing Sev-1 incidents from 14 to 5 a quarter and recovery time under 20 minutes.",
+        "Cut AWS compute spend ~35% by right-sizing services, adding autoscaling, and moving batch jobs to spot capacity.",
+        "Cut payments-API p99 latency ~60% at ~1.2M transactions a day. Mentors 3–4 engineers and runs the weekly design review."
+      ]
+    },
+    {
+      "company": "Acme Corp",
+      "position": "Software Engineer II",
+      "location": "Austin, TX (hybrid)",
+      "dates": "Jun 2018 – Feb 2021",
+      "highlights": [
+        "Built the order-routing service from scratch in Go, replacing a Python cron job with an event-driven Kafka consumer and tripling peak throughput.",
+        "Improved developer experience by cutting the CI pipeline from 41 to 14 minutes with parallel tests, build caching, and a flaky-test quarantine."
+      ]
+    },
+    {
+      "company": "Acme Inc",
+      "position": "Software Engineer",
+      "location": "Austin, TX",
+      "dates": "Jul 2016 – May 2018",
+      "highlights": [
+        "Built backend APIs for 6 client projects in Python and PostgreSQL, including a retail inventory sync that went to production at 40 stores."
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "name": "Acme Pay deploy platform",
+      "role": "Tech lead.",
+      "dates": "2022 – Present",
+      "description": "Service manifests to Kubernetes, Terraform modules, canary deploys with automatic rollback."
+    }
+  ],
+  "education": [
+    {
+      "institution": "Acme State University",
+      "studyType": "B.S., Computer Science",
+      "location": "Austin, TX",
+      "dates": "2016"
+    }
+  ],
+  "skills": [
+    "Platform engineering",
+    "Go",
+    "Python",
+    "Kubernetes",
+    "Terraform",
+    "AWS",
+    "CI/CD",
+    "GitHub Actions",
+    "Observability (OpenTelemetry, Prometheus)",
+    "SLOs",
+    "Kafka",
+    "PostgreSQL",
+    "Distributed systems"
+  ]
+}

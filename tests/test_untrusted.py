@@ -193,10 +193,10 @@ class TestPdfTextLayer(unittest.TestCase):
     def test_the_extractor_reads_the_committed_sample(self):
         txt = render_resume._pdf_text(self.SAMPLE.read_bytes())
         self.assertGreater(len(txt), 500, "the ToUnicode extractor must read a real PDF")
-        self.assertIn("jordan.rivera@example.com", txt.replace(" ", ""))
+        self.assertIn("xyz@abc.org", txt.replace(" ", ""))
 
     def test_contact_details_present_means_no_problem_reported(self):
-        _, problems = render_resume.verify_text_layer(self.SAMPLE, ["jordan.rivera@example.com"])
+        _, problems = render_resume.verify_text_layer(self.SAMPLE, ["xyz@abc.org"])
         self.assertFalse([p for p in problems if "not found in the text layer" in p])
 
     def test_a_string_absent_from_the_text_layer_is_reported(self):
@@ -204,11 +204,21 @@ class TestPdfTextLayer(unittest.TestCase):
         self.assertTrue(any("not found in the text layer" in p for p in problems))
 
     def test_ligatures_surviving_into_the_text_layer_are_named(self):
-        # Real finding on the committed sample, which came from the Chrome/HTML fallback path:
-        # "first" extracts as "ﬁrst", so a recruiter's search for "first" does not match it.
-        _, problems = render_resume.verify_text_layer(self.SAMPLE)
+        # Real finding on an earlier sample PDF from the Chrome/HTML fallback path: "first" extracted
+        # as "ﬁrst", so a recruiter's search for "first" did not match it. The committed sample now
+        # comes from the LaTeX path and is clean, so feed the extractor a text layer with a ligature.
+        real = render_resume._pdf_text
+        render_resume._pdf_text = lambda raw: "Jordan Rivera built the ﬁrst deploy platform"
+        try:
+            _, problems = render_resume.verify_text_layer(self.SAMPLE)
+        finally:
+            render_resume._pdf_text = real
         self.assertTrue(any("ligature" in p for p in problems),
                         "a ligature in the text layer costs keyword matches and must be reported")
+
+    def test_the_committed_sample_has_no_ligatures_in_its_text_layer(self):
+        _, problems = render_resume.verify_text_layer(self.SAMPLE)
+        self.assertFalse([p for p in problems if "ligature" in p], problems)
 
     def test_verify_text_never_raises_on_a_file_that_is_not_a_pdf(self):
         with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as fh:
