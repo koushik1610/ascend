@@ -1,6 +1,6 @@
 """Ascend 2.0 M9: validated add commands for Claude-sourced rows (engines B and C, LinkedIn search).
 
-Run: python3 -m unittest tests/test_v2_engines.py -v
+Run: python3 -m unittest tests/test_engines.py -v
 """
 
 import json
@@ -13,7 +13,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "tools"))
 sys.path.insert(0, str(REPO / "tests"))
-from test_v2_pipeline import make_ws  # noqa: E402
+from test_pipeline import make_ws  # noqa: E402
 
 
 class FinderAdd(unittest.TestCase):
@@ -25,7 +25,7 @@ class FinderAdd(unittest.TestCase):
         self.td.cleanup()
 
     def test_add_normalizes_dedupes_and_validates(self):
-        import _v2data as d
+        import _data as d
         import finder
         rows = [{"company": "Acme", "title": "Staff Security Engineer", "url": "https://jobs.example/1",
                  "location": "Remote - US", "text": "<p>AWS</p>" + "x" * 9000},
@@ -39,7 +39,7 @@ class FinderAdd(unittest.TestCase):
         self.assertTrue(p["text"].startswith("AWS"))
 
     def test_ats_url_maps_to_the_board_id_closed_or_duplicate(self):
-        import _v2data as d
+        import _data as d
         import finder
         dd = self.ws / "data"
         d.write_json_atomic(dd / "sources.json", {"boards": [{"ats": "greenhouse", "slug": "acme", "company": "Acme"}]})
@@ -54,7 +54,7 @@ class FinderAdd(unittest.TestCase):
         self.assertFalse(state["lever:other:a7f70c18-72a9-4708-ac49-c0ab9acdf537"]["closed"])
 
     def test_alert_leads_without_urls_do_not_block_adds(self):
-        import _v2data as d
+        import _data as d
         import finder
         d.append_jsonl(self.ws / "data" / "postings.jsonl", {"id": "alert:w1:0", "url": None, "source": "alert"})
         rows = [{"company": "MongoDB", "title": "Principal Security Engineer", "url": "https://www.linkedin.com/jobs/view/1"}]
@@ -79,7 +79,7 @@ class FinderAdd(unittest.TestCase):
 
 class GmailAdd(unittest.TestCase):
     def setUp(self):
-        import _v2data as d
+        import _data as d
         self.td = tempfile.TemporaryDirectory()
         self.ws = make_ws(self.td.name, [])
         d.write_json_atomic(self.ws / "data" / "profile.json", {"email": "me@example.com"})
@@ -88,7 +88,7 @@ class GmailAdd(unittest.TestCase):
         self.td.cleanup()
 
     def test_add_caps_skips_own_and_dupes(self):
-        import _v2data as d
+        import _data as d
         import gmail_sync as g
         rows = [{"msg_id": "a", "from": "Recruiter <r@co.example>", "subject": "Hi", "date": "2026-10-16T10:00:00Z",
                  "body_excerpt": "y" * 5000},
@@ -104,7 +104,7 @@ class GmailAdd(unittest.TestCase):
         self.assertEqual(g.add(self.ws, other)["added"], 1)
 
     def test_add_stores_iso_dates_and_refuses_unreadable_ones(self):
-        import _v2data as d
+        import _data as d
         import gmail_sync as g
         rows = [{"msg_id": "r1", "from": "r@co.example", "subject": "Hi", "date": "Thu, 16 Apr 2025 10:00:00 +0000"},
                 {"msg_id": "r2", "from": "r@co.example", "subject": "Hi", "date": "10/16/2026"}]
@@ -126,7 +126,7 @@ class GmailAdd(unittest.TestCase):
         import json as j
         import gmail_sync as g
         terms = g.query_terms(self.ws)
-        fixture = [j.loads(l) for l in (REPO / "tests/fixtures/v2/mailbox.jsonl").read_text().splitlines() if l.strip()]
+        fixture = [j.loads(l) for l in (REPO / "tests/fixtures/mailbox.jsonl").read_text().splitlines() if l.strip()]
         missed = [m["msg_id"] for m in fixture
                   if (m["_expect"] if isinstance(m["_expect"], str) else m["_expect"]["category"]) != "other"
                   and not g.query_matches(m, terms)]
@@ -144,7 +144,7 @@ class GmailAdd(unittest.TestCase):
         self.assertNotIn("from:(linkedin.com", q)
 
     def test_queue_data_never_shapes_the_query(self):
-        import _v2data as d
+        import _data as d
         import gmail_sync as g
         before = g.connector_query(self.ws)
         d.write_json_atomic(self.ws / "data" / "queue.json", {"jobs": [
@@ -165,7 +165,7 @@ class GmailAdd(unittest.TestCase):
         self.assertIn("after:2026/10/09", g.connector_query(self.ws, today="2026-10-17"))
 
     def test_the_last_read_moves_only_after_a_complete_read(self):
-        import _v2data as d
+        import _data as d
         import gmail_sync as g
         g.add(self.ws, [{"msg_id": "p1", "from": "r@co.example", "subject": "Hi", "date": "2026-10-10T10:00:00Z"}],
               today="2026-10-10")
@@ -184,7 +184,7 @@ class GmailAdd(unittest.TestCase):
         self.assertFalse(rows.exists())     # the staging copy is removed once its rows are stored
 
     def test_added_mail_classifies(self):
-        import _v2data as d
+        import _data as d
         import gmail_sync as g
         g.add(self.ws, [{"msg_id": "z", "from": "no-reply@ashbyhq.com", "subject": "Thanks for applying",
                          "date": "2026-10-16T10:00:00Z", "body_excerpt": "We received your application."}])
@@ -206,7 +206,7 @@ class Resolve(unittest.TestCase):
     the hub and the pending count all honour."""
 
     def setUp(self):
-        import _v2data as d
+        import _data as d
         self.td = tempfile.TemporaryDirectory()
         self.ws = make_ws(self.td.name, [("01-streamco", "StreamCo", "Security Engineer", "applied")],
                           applied_on="2026-09-01")   # before the fixture mail's dates
@@ -234,7 +234,7 @@ class Resolve(unittest.TestCase):
         self.assertEqual([(i["msg_id"], i["category"]) for i in inbox], [("n1", "interview-invite")])
 
     def test_a_resolved_body_only_rejection_never_closes_the_job(self):
-        import _v2data as d
+        import _data as d
         import classify
         d.append_jsonl(self.ws / "data" / "mail.jsonl", {"msg_id": "b1", "from": "talent@recruiting.example",
                                                          "subject": "Next steps", "date": "2026-10-16T23:00:00Z",
@@ -248,7 +248,7 @@ class Resolve(unittest.TestCase):
         self.assertEqual(pipeline.parse_state(self.ws / "jobs/01-streamco/application-log.md")["status"], "applied")
 
     def test_resolve_only_touches_mail_waiting_for_a_model(self):
-        import _v2data as d
+        import _data as d
         import classify
         d.append_jsonl(self.ws / "data" / "mail.jsonl", {"msg_id": "r1", "from": "no-reply@greenhouse.io",
                                                          "subject": "Update on your application", "date": "2026-10-16T22:00:00Z",

@@ -1,6 +1,6 @@
 """Feature update 4: the drill ledger and the lint `evidence` check.
 
-Run: python3 -m unittest tests/test_v2_drills.py -v
+Run: python3 -m unittest tests/test_drills.py -v
 """
 
 import json

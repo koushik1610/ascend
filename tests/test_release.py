@@ -1,6 +1,6 @@
 """Ascend 2.0 M10: shared cron helper, the scheduled zero-token sync, release wiring.
 
-Run: python3 -m unittest tests/test_v2_release.py -v
+Run: python3 -m unittest tests/test_release.py -v
 Never touches the real crontab: ASCEND_CRONTAB_FILE points the helper at a temp file.
 """
 
@@ -15,7 +15,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "tools"))
 sys.path.insert(0, str(REPO / "tests"))
-from test_v2_pipeline import make_ws  # noqa: E402
+from test_pipeline import make_ws  # noqa: E402
 
 
 class Cron(unittest.TestCase):
@@ -104,7 +104,7 @@ class Daily(unittest.TestCase):
         self.td.cleanup()
 
     def test_runs_every_stage_and_isolates_failures(self):
-        import _v2data as d
+        import _data as d
         import daily
         d.write_json_atomic(self.ws / "data" / "sources.json",
                             {"boards": [{"ats": "greenhouse", "slug": "nope", "company": "Nope"}], "filters": {}})
@@ -128,7 +128,7 @@ class Daily(unittest.TestCase):
         return {s["stage"]: s for s in daily.run(self.ws)["stages"]}
 
     def test_engine_a_signed_out_is_a_failed_stage_with_the_fix(self):
-        import _v2data as d
+        import _data as d
         d.write_json_atomic(self.ws / ".ascend-state.json", {"run_defaults": {"engine": "A", "mode": "assisted"}})
         (self.ws / "gmail-client.json").write_text('{"client_id": "cid"}')
         os.environ["ASCEND_TOKEN_STORE"] = f"file:{self.td.name}/tokens.json"     # never the real Keychain
@@ -140,7 +140,7 @@ class Daily(unittest.TestCase):
         self.assertIn("gmail_sync.py connect", g["detail"])
 
     def test_engine_c_skips_gmail_and_no_boards_fails_the_finder(self):
-        import _v2data as d
+        import _data as d
         d.write_json_atomic(self.ws / ".ascend-state.json", {"run_defaults": {"engine": "C", "mode": "assisted"}})
         st = self.stages()
         self.assertTrue(st["gmail"]["ok"])
@@ -154,7 +154,7 @@ class Daily(unittest.TestCase):
         self.assertFalse((Path(self.td.name) / "--help").exists())
 
     def test_every_board_unreachable_fails_the_finder(self):
-        import _v2data as d
+        import _data as d
         d.write_json_atomic(self.ws / ".ascend-state.json", {"run_defaults": {"engine": "C", "mode": "assisted"}})
         d.write_json_atomic(self.ws / "data" / "sources.json", {"boards": [{"ats": "greenhouse", "slug": "nope"}]})
         os.environ["ASCEND_ATS_BASE"] = "http://127.0.0.1:9"
@@ -166,7 +166,7 @@ class Daily(unittest.TestCase):
         self.assertIn("unreachable", f["detail"])
 
     def test_retention_only_runs_without_the_other_stages(self):
-        import _v2data as d
+        import _data as d
         dd = self.ws / "data"
         d.write_json_atomic(dd / "sources.json", {"boards": [], "retention_days": 180})
         d.append_jsonl(dd / "mail.jsonl", {"msg_id": "old", "from": "a@b.example", "subject": "s",
@@ -178,7 +178,7 @@ class Daily(unittest.TestCase):
         self.assertEqual(d.read_jsonl(dd / "mail.jsonl"), [])
 
     def test_retention_drops_old_mail_and_keeps_only_headers_of_non_job_mail(self):
-        import _v2data as d
+        import _data as d
         import daily
         dd = self.ws / "data"
         d.write_json_atomic(dd / "sources.json", {"boards": [], "retention_days": 180})

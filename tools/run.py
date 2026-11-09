@@ -19,8 +19,9 @@ from pathlib import Path
 
 TOOLS = Path(__file__).resolve().parent
 sys.path.insert(0, str(TOOLS))
-import _v2data as d  # noqa: E402
+import _data as d  # noqa: E402
 import usage  # noqa: E402
+from _cli import opt as _opt  # noqa: E402
 
 ENGINES = ("A", "B", "C")
 MODES = ("assisted",)
@@ -96,7 +97,7 @@ def plan(ws, engine, mode="assisted", jobs=usage.DEFAULT_JOBS):
                 "prefill": [], "notes": []}
     if engine == "A":
         if not (Path(ws) / "gmail-client.json").is_file():
-            problems.append("engine A needs workspace/<name>/gmail-client.json (docs/GMAIL-SETUP.md). "
+            problems.append("engine A needs workspace/<name>/gmail-client.json (docs/gmail-setup.md). "
                             "Engine C works without it.")
         elif not _has_token(ws):
             problems.append(f"engine A is not signed in: python3 tools/gmail_sync.py connect {ws}")
@@ -150,8 +151,6 @@ def steps(engine):
             "python3 tools/prefilter.py run WS", "python3 tools/pipeline.py ingest WS"] + judge
 
 
-def _opt(args, name, default=None):
-    return args[args.index(name) + 1] if name in args and args.index(name) + 1 < len(args) else default
 
 
 def main(argv):

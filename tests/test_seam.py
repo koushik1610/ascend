@@ -2,7 +2,7 @@
 
 No test here writes `nn` by hand: every link comes from the tools.
 
-Run: python3 -m unittest tests/test_v2_seam.py -v
+Run: python3 -m unittest tests/test_seam.py -v
 """
 
 import json
@@ -15,7 +15,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "tools"))
 sys.path.insert(0, str(REPO / "tests"))
-from test_v2_pipeline import make_ws, state  # noqa: E402
+from test_pipeline import make_ws, state  # noqa: E402
 
 FOLDERS = [("05-affirm-staff-security-enterprise-ai", "Affirm", "Staff Security Engineer, Enterprise AI", None),
            ("00-grow-therapy-staff-cloud-infra-security", "Grow Therapy",
@@ -36,7 +36,7 @@ def seed(root):
 
 
 def post(ws, pid, company, title, passed=True):
-    import _v2data as d
+    import _data as d
     d.append_jsonl(ws / "data" / "postings.jsonl", {"id": pid, "company": company, "title": title, "location": "Remote",
                                                     "url": f"https://x.example/{pid}", "text": "role text"})
     d.append_jsonl(ws / "data" / "candidates.jsonl", {"posting_id": pid, "passed": passed, "keyword_overlap": 0.5,
@@ -44,7 +44,7 @@ def post(ws, pid, company, title, passed=True):
 
 
 def queue(ws):
-    import _v2data as d
+    import _data as d
     return d.read_json(ws / "data" / "queue.json", {"jobs": []})["jobs"]
 
 
@@ -122,7 +122,7 @@ class Link(unittest.TestCase):
         self.assertIn("no résumé PDF in 15-affirm", str(cm.exception))
 
     def test_sheet_refuses_a_folder_for_another_role(self):
-        import _v2data as d
+        import _data as d
         import apply
         import jobqueue
         jobqueue.set_state(self.ws, "greenhouse:affirm:1", "approved", via_hub=True)
@@ -169,7 +169,7 @@ class Round2(unittest.TestCase):
 
     def test_old_mail_never_moves_a_job_queued_later(self):
         # An acknowledgement for an application made outside Ascend must not land on a folder added later.
-        import _v2data as d
+        import _data as d
         dd = self.ws / "data"
         d.append_jsonl(dd / "mail.jsonl", {"msg_id": "nv", "from": "nvidia@myworkday.com",
                                            "subject": "Thank you for your interest in NVIDIA", "date": "2026-09-24T21:11:02Z",
@@ -186,7 +186,7 @@ class Round2(unittest.TestCase):
     def test_mail_matched_on_arrival_still_needs_a_sent_application_or_the_title(self):
         # Round 3: an acknowledgement for a role applied to elsewhere matched a scored, never-sent posting when it
         # was classified, then moved that job's new folder to applied and blocked its sheet.
-        import _v2data as d
+        import _data as d
         import jobqueue
         dd = self.ws / "data"
         post(self.ws, "ashby:linear:1", "Linear", "Senior / Staff Security Engineer")
@@ -204,7 +204,7 @@ class Round2(unittest.TestCase):
         self.assertEqual(state(self.ws, "16-linear-senior-staff-security-engineer").get("status", "queued"), "queued")
 
     def test_mail_naming_the_role_still_moves_a_job_not_yet_sent(self):
-        import _v2data as d
+        import _data as d
         import jobqueue
         dd = self.ws / "data"
         post(self.ws, "ashby:linear:1", "Linear", "Senior / Staff Security Engineer")
@@ -221,7 +221,7 @@ class Round2(unittest.TestCase):
         self.assertEqual(state(self.ws, "16-linear-senior-staff-security-engineer").get("status"), "applied")
 
     def test_unmatched_mail_stops_retrying_after_thirty_days(self):
-        import _v2data as d
+        import _data as d
         dd = self.ws / "data"
         d.append_jsonl(dd / "mail.jsonl", {"msg_id": "old", "from": "no-reply@ashbyhq.com",
                                            "subject": "Thanks for applying to Nobodyco", "date": "2026-01-01T00:00:00Z",
@@ -253,7 +253,7 @@ class Round2(unittest.TestCase):
         self.assertEqual(classify.classify_message(msg)["category"], "other")
 
     def test_recruiter_mail_about_a_known_job_is_not_a_new_lead(self):
-        import _v2data as d
+        import _data as d
         import alerts
         import jobqueue
         jobqueue.sync_folders(self.ws)
@@ -283,7 +283,7 @@ class Round2(unittest.TestCase):
         self.assertEqual(h["state"], "inbound-filtered", h["reasons"])
 
     def test_hub_counts_only_mail_still_waiting_for_a_job(self):
-        import _v2data as d
+        import _data as d
         import hub
         dd = self.ws / "data"
         d.append_jsonl(dd / "mail.jsonl", {"msg_id": "g", "from": "recruiter@growtherapy.com",
@@ -297,7 +297,7 @@ class Round2(unittest.TestCase):
 
 class Names(unittest.TestCase):
     def test_the_boards_current_name_wins_over_the_stored_slug(self):
-        import _v2data as d
+        import _data as d
         import jobqueue
         with tempfile.TemporaryDirectory() as td:
             ws = seed(td)
@@ -375,7 +375,7 @@ class ScoreFile(unittest.TestCase):
 
 class Privacy(unittest.TestCase):
     def test_data_is_readable_by_the_user_only(self):
-        import _v2data as d
+        import _data as d
         with tempfile.TemporaryDirectory() as td:
             ws = Path(td) / "workspace" / "tester"
             dd = d.data_dir(ws)
@@ -412,7 +412,7 @@ class Mail(unittest.TestCase):
         self.assertIsNone(classify.match_job(msg, jobs))
 
     def test_unmatched_mail_matches_once_the_folder_is_known(self):
-        import _v2data as d
+        import _data as d
         dd = self.ws / "data"
         d.append_jsonl(dd / "mail.jsonl", {"msg_id": "m1", "from": "recruiter@growtherapy.com",
                                            "subject": "Grow Therapy: Availability Request",
@@ -430,7 +430,7 @@ class Mail(unittest.TestCase):
         self.assertEqual(json.loads(run("pipeline.py", "ingest", str(self.ws), "--json").stdout)["unmatched"], 0)
 
     def test_unmatched_event_is_retried(self):
-        import _v2data as d
+        import _data as d
         dd = self.ws / "data"
         d.append_jsonl(dd / "mail.jsonl", {"msg_id": "m2", "from": "talent@neweco.example",
                                            "subject": "Neweco: Availability Request", "body_excerpt": "",

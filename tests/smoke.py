@@ -161,7 +161,7 @@ def test_gitignore():
     must_ignore = ["workspace/jane/master-resume.md", "workspace/jane/jobs/01-acme/resume.md",
                    "workspace/jane/inputs/linkedin-export/Connections.csv", "workspace/jane/start-here.html",
                    "examples/realperson/master-resume.md", "examples/realperson/inputs/Connections.csv",
-                   "Resume.pdf", "cover-letter.md", "ui/.port", "images/uncleared_stock.jpg",
+                   "Resume.pdf", "cover-letter.md", "ui/.port", "assets/uncleared_stock.jpg",
                    # the LaTeX path writes a .tex next to the PDF: it is a full résumé in
                    # plain text, so it has to be as ignored as the PDF it compiles to.
                    "workspace/jane/jobs/01-acme/Jane-Doe-Resume-Acme.tex",
@@ -171,7 +171,7 @@ def test_gitignore():
                   # the LaTeX template is a SYSTEM file: the .tex privacy patterns must not eat it
                   "templates/resume-latex.template.tex", "tools/render_resume.py",
                   "examples/sample-run/master-resume.md", "examples/sample-run/start-here.html",
-                  "images/ascend-texture.jpg", "images/ascend-texture2.jpg"]
+                  "assets/ascend-texture.jpg", "assets/ascend-texture2.jpg"]
     for p in must_ignore: check(f"ignored: {p}", ignored(p))
     for p in must_track:  check(f"tracked: {p}", not ignored(p))
 
@@ -185,7 +185,7 @@ def test_crossrefs():
              list((REPO / ".claude/skills").glob("*/SKILL.md")) +
              list((REPO / "reference").glob("*.md")) +
              [REPO / "templates/job-folder/_TEMPLATE.md",
-              REPO / "CLAUDE.md", REPO / "README.md", REPO / "WORKFLOW.md"])
+              REPO / "CLAUDE.md", REPO / "README.md", REPO / "docs/workflow.md"])
     ref = re.compile(r'(?:\.\./)*(?:prompts|templates|reference|docs|ui|assets|tools|\.claude)/'
                      r'[A-Za-z0-9_./-]+\.(?:md|html|css|svg|py|sh|json|tex)')
     # Paths the repo deliberately does not ship: the gitignored per-user permission override.
@@ -1147,16 +1147,12 @@ def test_industry_research():
     check("shipped reference is not gitignored", not ignored)
     check("state.py knows phase 26", '"26"' in (REPO / "tools/state.py").read_text(encoding="utf-8"))
 
-# ── 4l. Versioned unit suites (stdlib unittest) ──────────────────────────────
-def test_v2_units():
-    # Versioned modules carry their own focused unittest files; smoke runs them so CI covers them
-    # without a second workflow step, and a red unit test fails the same gate as a red v1 check.
-    #
-    # The glob was `test_v2_*.py`, which silently excluded every later suite: a new tests/test_v3_*
-    # file ran green locally under `python3 -m unittest` and was never executed by the gate. Matching
-    # `test_v[0-9]*_*.py` means a new version's suite is picked up by existing, not by remembering.
-    print("versioned units")
-    for f in sorted((REPO / "tests").glob("test_v[0-9]*_*.py")):
+# ── 4l. Unit suites (stdlib unittest) ──────────────────────────────────────
+def test_units():
+    # Each module's focused unittest file runs here, so CI covers it without a second workflow
+    # step. The glob takes every tests/test_*.py, so a new suite is gated the day it is added.
+    print("unit suites")
+    for f in sorted((REPO / "tests").glob("test_*.py")):
         r = subprocess.run([sys.executable, "-m", "unittest", str(f.relative_to(REPO))],
                            cwd=REPO, capture_output=True, text=True)
         tail = (r.stderr or r.stdout).strip().splitlines()[-1:] or [""]
@@ -1166,7 +1162,7 @@ if __name__ == "__main__":
     for t in (test_server, test_html_json, test_html_script_tags, test_gitignore, test_crossrefs, test_phase_order,
               test_op_parity, test_skills, test_resume_builder, test_latex_render, test_bash_allowlist,
               test_honesty, test_linter, test_council_gates, test_pipeline, test_registry,
-              test_grade_run, test_paths_and_state, test_scripts, test_industry_research, test_v2_units):
+              test_grade_run, test_paths_and_state, test_scripts, test_industry_research, test_units):
         try: t()
         except Exception as e:
             check(f"{t.__name__} raised", False, repr(e))

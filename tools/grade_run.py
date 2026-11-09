@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """grade_run.py — the v1.0 run rubric, executable (stdlib only).
 
-`docs/ROADMAP.md` gates the 1.0 tag on real end-to-end runs graded against a four-part rubric:
+`docs/roadmap.md` gates the 1.0 tag on real end-to-end runs graded against a four-part rubric:
 honesty, grounding, completeness, privacy. That rubric was prose, so grading it meant a human
 re-reading a whole workspace and deciding — which is exactly how the 2026-07-01 run got signed off
 as passing an honesty check that (as the 2026-08-20 council found) could not actually have run.

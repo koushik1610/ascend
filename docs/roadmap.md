@@ -16,7 +16,7 @@ model: **no fabrication, no auto-apply, no scraping, no real-time interview copi
 |---|---|---|
 | **0.1.0** | The pipeline | Intake → LinkedIn analysis (HTML + 10 next steps) → master résumé → 15+ job search → per-job folders → interview packet → `start-here.html` navigator; on-demand export/maintenance/deep-prep; resumability (`.ascend-state.json`); privacy model; a fictional worked example; honest verified/unverified job-link framing. |
 | **0.2.0** | Simpler + outcome-targeted | **Tiered job folders** (CORE apply pack now, deep prep on demand) so a first run is ~25–30 files, not ~100; résumé audit folded into the master résumé; default order 1→3→4→6→5→7. Navigator **weekly action loop + funnel scoreboard**, **referral-first hard gate**, mock-interview drill. Modern README + hand-authored SVG banner. |
-| **0.3.0** | P1 first cut (research-driven) | **Explainable Fit Score 0–100** (P1 #3), **Warm-Network Mapper** from your `Connections.csv` (#1), **Application Answer Sheet** (#8), **Daily Briefing + ghost-detector follow-ups** (#9 + #12). `docs/ROADMAP.md` itself. |
+| **0.3.0** | P1 first cut (research-driven) | **Explainable Fit Score 0–100** (P1 #3), **Warm-Network Mapper** from your `Connections.csv` (#1), **Application Answer Sheet** (#8), **Daily Briefing + ghost-detector follow-ups** (#9 + #12). `docs/roadmap.md` itself. |
 | **0.4.0** | Graphical console | **`/ascendui`**: a local Jarvis-style browser wizard (Python-stdlib server, native folder picker, live progress, optional daily-brief cron that auto-detects claude/gemini/codex). |
 | **0.5.0** | Rebrand · builder · hardening | The **S.P.I.D.E.R. → Ascend** rebrand; the **résumé builder** (live preview, JSON Resume, headless auto-PDF via `ui/server.py --render`) wired into Phases 3/5 + `build-resume`; server CSRF/DNS-rebind hardening; **SEC-CRIT-1/2 + HIGH-3 fixed**; Bash boundary converted to **allow-list-only**; sample run regenerated; smoke harness + CI; beta fences; the relationship/interactivity ops (crm/mine/drill/degenericize/negotiate/aggregate/export-docx, beta). |
 | **0.6.0** | Résumé quality | Typography floors locked into the builder (Calibri 10pt/12–14pt/0.5in/1.15); plain-text skills; the **anti-AI-tell language rules** (`.claude/banned-words.md` + writing-rules section). From the first real run on live data. |
@@ -31,7 +31,7 @@ model: **no fabrication, no auto-apply, no scraping, no real-time interview copi
 > is on `main` unreleased). What stands between here and **v1.0** is real-data validation done
 > honestly: the 2026-07-01 run earned **partial** credit (see the sign-off log), and the repo-pure
 > cold-start run (b) + interrupt-resume run (c) are the remaining gate. The **2026-06-28 readiness
-> council** ([`V1-READINESS.md`](V1-READINESS.md)) set the bar; the **2026-07-02 release council**
+> council** ([`v1-readiness.md`](history/v1-readiness.md)) set the bar; the **2026-07-02 release council**
 > re-graded progress against it. The runs are the work.
 
 **Definition of Done (gate the 1.0 tag on ALL):**

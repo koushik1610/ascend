@@ -16,6 +16,8 @@ import re
 import sys
 from datetime import date, datetime, timedelta
 
+from _cli import opt as _opt
+
 CATEGORIES = ["acknowledgement", "rejection", "info-request", "assessment", "interview-invite",
               "status-update", "recruiter-inbound", "job-alert", "other"]
 
@@ -313,7 +315,7 @@ def event_for(msg, jobs, now):
 
 
 def cmd_run(ws, as_json):
-    import _v2data as d
+    import _data as d
     from _paths import PathOutsideWorkspace
     try:
         dd = d.data_dir(ws)
@@ -356,14 +358,14 @@ def latest_events(events):
 
 
 def pending(ws):
-    import _v2data as d
+    import _data as d
     events = d.read_jsonl(d.data_dir(ws) / "events.jsonl")
     return [e["msg_id"] for e in latest_events(events) if e.get("needs_llm")]
 
 
 def resolve(ws, msg_id, category, due=None):
     """Record the model's category for one message the rules could not place."""
-    import _v2data as d
+    import _data as d
     if category not in CATEGORIES:
         raise ValueError(f"unknown category {category!r}; one of {', '.join(CATEGORIES)}")
     dd = d.data_dir(ws)
@@ -383,8 +385,6 @@ def resolve(ws, msg_id, category, due=None):
     return ev
 
 
-def _opt(args, name, default=""):
-    return args[args.index(name) + 1] if name in args and args.index(name) + 1 < len(args) else default
 
 
 def main(argv):

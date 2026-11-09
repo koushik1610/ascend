@@ -1,6 +1,6 @@
 """Ascend 2.0 M4: engine A Gmail sync against a fake Google server. No real account is ever touched.
 
-Run: python3 -m unittest tests/test_v2_gmail.py -v
+Run: python3 -m unittest tests/test_gmail.py -v
 """
 
 import base64
@@ -20,7 +20,7 @@ from urllib.parse import parse_qs, urlparse
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "tools"))
 sys.path.insert(0, str(REPO / "tests"))
-from test_v2_pipeline import make_ws  # noqa: E402
+from test_pipeline import make_ws  # noqa: E402
 
 
 def b64(s):
@@ -191,7 +191,7 @@ class Sync(unittest.TestCase):
         g.put_refresh("tester", "rt-1")
 
     def mail(self):
-        import _v2data as d
+        import _data as d
         return d.read_jsonl(self.ws / "data" / "mail.jsonl")
 
     def test_not_connected_exits_4(self):
@@ -298,7 +298,7 @@ class Sync(unittest.TestCase):
         self.fake.add(gmsg("c1", "Thanks for applying to Acme", "no-reply@ashbyhq.com", "We received your application."))
         r = self.run_tool("sync", str(self.ws), "--then-classify")
         self.assertEqual(r.returncode, 0, r.stderr)
-        import _v2data as d
+        import _data as d
         self.assertEqual(d.read_jsonl(self.ws / "data" / "events.jsonl")[0]["category"], "acknowledgement")
         self.assertTrue((self.ws / "hub.html").is_file())
 

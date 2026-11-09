@@ -21,7 +21,7 @@ from pathlib import Path
 
 TOOLS = Path(__file__).resolve().parent
 sys.path.insert(0, str(TOOLS))
-import _v2data as d  # noqa: E402
+import _data as d  # noqa: E402
 import pipeline  # noqa: E402
 from _paths import PathOutsideWorkspace, resolve_out  # noqa: E402
 

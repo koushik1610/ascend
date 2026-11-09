@@ -1,7 +1,7 @@
 # Ascend 2.0 readiness
 
 **As of:** 2026-10-18. **Status:** beta. Built module by module on branch `ascend-v2` (spec
-`docs/superpowers/specs/2026-10-16-ascend-v2-design.md`, plan `docs/superpowers/plans/2026-10-16-ascend-v2.md`).
+`docs/history/v2-design.md`, plan `docs/history/v2-plan.md`).
 
 Each module was checked twice: unit tests on synthetic fixtures (no real data in the repo), and a run
 against one real user's workspace, kept in gitignored `workspace/`. Only counts from those runs are
@@ -27,7 +27,7 @@ written down anywhere.
 ## Still beta, and why
 
 - **Engine A's live Google sign-in** has run only against a fake Google server. It needs the user's own
-  OAuth client (`docs/GMAIL-SETUP.md`), which only the user can create.
+  OAuth client (`docs/gmail-setup.md`), which only the user can create.
 - **Agent-submit and fully automatic are not in this release.** The council review of PR #15 split them out
   to the `ascend-v2-agent-modes` branch. They come back as their own PR after assisted mode passes its
   one-week gate and the callback number in spec criterion 6 exists, with the agent-path findings in

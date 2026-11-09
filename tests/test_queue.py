@@ -1,6 +1,6 @@
 """Ascend 2.0 M7: usage metering, the scored queue, run planning, and the served hub's write channel.
 
-Run: python3 -m unittest tests/test_v2_queue.py -v
+Run: python3 -m unittest tests/test_queue.py -v
 """
 
 import http.client
@@ -18,11 +18,11 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "tools"))
 sys.path.insert(0, str(REPO / "tests"))
-from test_v2_pipeline import make_ws  # noqa: E402
+from test_pipeline import make_ws  # noqa: E402
 
 
 def seed_candidates(ws):
-    import _v2data as d
+    import _data as d
     dd = ws / "data"
     posts = [("greenhouse:a:1", "Acme", "Staff Security Engineer", 0.4, True),
              ("greenhouse:b:2", "Bravo", "Principal Security Engineer", 0.8, True),
@@ -62,7 +62,7 @@ class Usage(unittest.TestCase):
         self.td.cleanup()
 
     def test_record_converts_characters_and_flags_estimate(self):
-        import _v2data as d
+        import _data as d
         import usage
         usage.record(self.ws, "score", chars_in=4001, chars_out=800, engine="A", mode="assisted")
         row = d.read_jsonl(self.ws / "data" / "usage.jsonl")[0]
@@ -78,7 +78,7 @@ class Usage(unittest.TestCase):
         self.assertEqual(usage.STAGE_DEFAULT["score"], 600)
 
     def test_the_first_reads_backfill_is_not_the_daily_base(self):
-        import _v2data as d
+        import _data as d
         import usage
         for day in ("2026-10-01", "2026-10-02", "2026-10-03"):
             d.append_jsonl(self.ws / "data" / "usage.jsonl", {"stage": "mail", "input_tokens": 3000, "output_tokens": 500,
@@ -113,7 +113,7 @@ class Usage(unittest.TestCase):
         self.assertEqual(e["stages"], {"score": "measured", "tailor": "default", "base": "default"})
 
     def test_the_daily_base_is_measured_from_recorded_days(self):
-        import _v2data as d
+        import _data as d
         import usage
         for day in ("2026-10-01", "2026-10-02", "2026-10-03"):
             d.append_jsonl(self.ws / "data" / "usage.jsonl", {"stage": "mail", "input_tokens": 9000, "output_tokens": 1000,
@@ -138,13 +138,13 @@ class Queue(unittest.TestCase):
         self.assertLessEqual(len(c[0]["text"]), 1500)
 
     def test_closed_postings_are_not_candidates(self):
-        import _v2data as d
+        import _data as d
         import jobqueue as qt
         d.write_json_atomic(self.ws / "data" / "postings-state.json", {"greenhouse:b:2": {"closed": True}})
         self.assertNotIn("greenhouse:b:2", [x["posting_id"] for x in qt.candidates(self.ws)])
 
     def test_score_adds_then_updates(self):
-        import _v2data as d
+        import _data as d
         import jobqueue as qt
         qt.score(self.ws, "greenhouse:b:2", 82, "AWS baselines match", ["Kubernetes in production"])
         qt.score(self.ws, "greenhouse:b:2", 85, "rescored", [])
@@ -160,7 +160,7 @@ class Queue(unittest.TestCase):
         self.assertEqual(qt.role_text("No markers here."), "No markers here.")
 
     def test_candidates_skip_a_role_already_queued_under_another_id(self):
-        import _v2data as d
+        import _data as d
         import jobqueue as qt
         q = d.read_json(self.ws / "data" / "queue.json", {})
         q["jobs"].append({"posting_id": "https://boards.example/bravo/2", "company": "Bravo, Inc.",
@@ -169,7 +169,7 @@ class Queue(unittest.TestCase):
         self.assertEqual([x["posting_id"] for x in qt.candidates(self.ws)], ["greenhouse:a:1"])
 
     def test_board_slug_company_matches_the_proper_name(self):
-        import _v2data as d
+        import _data as d
         import jobqueue as qt
         q = d.read_json(self.ws / "data" / "queue.json", {})
         q["jobs"].append({"posting_id": "https://x.example/a", "company": "acmehq", "title": "Staff Security Engineer",
@@ -181,7 +181,7 @@ class Queue(unittest.TestCase):
         self.assertFalse(qt.same_company("Meta", "Metabase"))
 
     def test_set_state(self):
-        import _v2data as d
+        import _data as d
         import jobqueue as qt
         qt.set_state(self.ws, "greenhouse:d:4", "approved", via_hub=True)
         self.assertEqual(d.read_json(self.ws / "data" / "queue.json", {})["jobs"][0]["state"], "approved")
@@ -202,7 +202,7 @@ class Queue(unittest.TestCase):
             qt.set_state(self.ws, "greenhouse:d:4", "approved", via_hub=True)
 
     def test_cli_cannot_approve_or_mark_applied(self):
-        import _v2data as d
+        import _data as d
         for state in ("approved", "applied", "applied?", "applying"):
             r = subprocess.run([sys.executable, str(REPO / "tools/jobqueue.py"), "set-state", str(self.ws),
                                 "greenhouse:d:4", state], capture_output=True, text=True)
@@ -216,7 +216,7 @@ class Queue(unittest.TestCase):
 
 def ready_ws(ws):
     """The three files a v2 run needs before it can do anything useful."""
-    import _v2data as d
+    import _data as d
     (ws / "master-resume.md").write_text("# Master\n", encoding="utf-8")
     d.write_json_atomic(ws / "data" / "sources.json", {"boards": [{"ats": "lever", "slug": "acme"}], "filters": {}})
     d.write_json_atomic(ws / "data" / "profile.json", {"name": "Sam Okafor", "email": "sam@mailbox.test"})
@@ -229,7 +229,7 @@ class Plan(unittest.TestCase):
         self.ws = ready_ws(make_ws(self.td.name, []))
 
     def test_template_placeholders_are_not_a_setup(self):
-        import _v2data as d
+        import _data as d
         import run
         ws = ready_ws(make_ws(self.td.name + "/tpl", []))
         d.write_json_atomic(ws / "data" / "profile.json", {"name": "Jordan Rivera", "email": "jordan.rivera@example.com"})
@@ -266,7 +266,7 @@ class Plan(unittest.TestCase):
             self.assertIn("not in this release", " ".join(out["problems"]))
 
     def test_assisted_warns_about_tokens_and_ok_saves_defaults(self):
-        import _v2data as d
+        import _data as d
         import run
         out = run.plan(self.ws, "B", "assisted")
         self.assertTrue(out["ok"], out)
@@ -393,7 +393,7 @@ class Server(unittest.TestCase):
         self.assertEqual(status, 404)
 
     def test_i_submitted_it_logs_the_send(self):
-        import _v2data as d
+        import _data as d
         q = d.read_json(self.ws / "data" / "queue.json", {})
         q["jobs"].append({"posting_id": "greenhouse:e:5", "company": "Echo", "title": "Staff Engineer", "state": "approved"})
         d.write_json_atomic(self.ws / "data" / "queue.json", q)
@@ -419,7 +419,7 @@ class Server(unittest.TestCase):
         status, body, _ = self.req("POST", "/api/queue", {"slug": self.SLUG, "posting_id": "greenhouse:d:4",
                                                           "action": "approved"}, token=self.token)
         self.assertEqual(status, 200, body)
-        import _v2data as d
+        import _data as d
         self.assertEqual(d.read_json(self.ws / "data" / "queue.json", {})["jobs"][0]["state"], "approved")
         status, _, _ = self.req("POST", "/api/queue", {"slug": self.SLUG, "posting_id": "greenhouse:d:4",
                                                        "action": "teleported"}, token=self.token)

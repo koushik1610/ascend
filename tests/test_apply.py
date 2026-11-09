@@ -1,4 +1,4 @@
-"""Ascend 2.0 M8: applying. Run: python3 -m unittest tests/test_v2_apply.py -v"""
+"""Ascend 2.0 M8: applying. Run: python3 -m unittest tests/test_apply.py -v"""
 
 import json
 import subprocess
@@ -10,7 +10,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "tools"))
 sys.path.insert(0, str(REPO / "tests"))
-from test_v2_pipeline import make_ws  # noqa: E402
+from test_pipeline import make_ws  # noqa: E402
 
 LINT = [sys.executable, str(REPO / "tools/lint_artifacts.py")]
 MASTER = "# Master\n\n## Bullets\n- **PR1** [x] (src: A1): Own the baseline.\n- **Y4** [x] (src: C2): Designed enforcement.\n"
@@ -61,7 +61,7 @@ PROFILE = {"name": "Jordan Rivera", "email": "jordan@example.com", "phone": "555
 
 
 def apply_ws(root, state="approved", fit=82, status=None, cfg=None):
-    import _v2data as d
+    import _data as d
     ws = job_ws(root, cfg=cfg, status=status)
     d.write_json_atomic(ws / "data" / "profile.json", PROFILE)
     d.write_json_atomic(ws / "data" / "queue.json", {"jobs": [{
@@ -88,7 +88,7 @@ class Sheet(unittest.TestCase):
         self.assertTrue((ws / "data" / "apply-sheets").is_dir())
 
     def test_a_link_off_the_known_application_systems_is_flagged(self):
-        import _v2data as d
+        import _data as d
         import apply
         ws = apply_ws(self.td.name)
         self.assertIsNone(apply.sheet(ws, "greenhouse:acme:1")["link_note"])
@@ -113,7 +113,7 @@ class Sheet(unittest.TestCase):
             apply.sheet(apply_ws(self.td.name, state="matched"), "greenhouse:acme:1")
 
     def test_sensitive_answers_are_always_asked_never_filled(self):
-        import _v2data as d
+        import _data as d
         import apply
         ws = apply_ws(self.td.name)
         d.write_json_atomic(ws / "data" / "profile.json", dict(PROFILE, salary_expectation="200k", sponsorship="no"))
@@ -130,7 +130,7 @@ class Sheet(unittest.TestCase):
         self.assertIn("DUPLICATE", str(c.exception))
 
     def test_sheet_checks_the_posting_id_even_with_a_folder(self):
-        import _v2data as d
+        import _data as d
         import apply
         ws = apply_ws(self.td.name)
         q = d.read_json(ws / "data" / "queue.json", {})
@@ -197,7 +197,7 @@ class Record(unittest.TestCase):
         self.td.cleanup()
 
     def test_record_submitted_moves_queue_and_folder(self):
-        import _v2data as d
+        import _data as d
         import apply
         import pipeline
         ws = apply_ws(self.td.name)
@@ -206,7 +206,7 @@ class Record(unittest.TestCase):
         self.assertEqual(pipeline.parse_state(ws / "jobs/05-acme-staff/application-log.md")["status"], "applied")
 
     def test_record_needs_an_approved_job_and_counts_a_send_once(self):
-        import _v2data as d
+        import _data as d
         import apply
         with self.assertRaises(apply.Refused):
             apply.record(apply_ws(self.td.name + "/m", state="matched"), "greenhouse:acme:1", "submitted")
@@ -217,7 +217,7 @@ class Record(unittest.TestCase):
 
     def test_two_clicks_at_once_record_one_send(self):
         import threading
-        import _v2data as d
+        import _data as d
         import apply
         ws = apply_ws(self.td.name)
         ts = [threading.Thread(target=lambda: self._try(apply, ws)) for _ in range(6)]

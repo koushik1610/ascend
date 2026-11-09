@@ -21,7 +21,8 @@ from pathlib import Path
 
 TOOLS = Path(__file__).resolve().parent
 sys.path.insert(0, str(TOOLS))
-import _v2data as d  # noqa: E402
+import _data as d  # noqa: E402
+from _cli import opt as _opt  # noqa: E402
 
 CHARS_PER_TOKEN = 4
 # Finding + mail, before any application. Engine C from the from-scratch run (2026-10-17: ~3.5K for a day of
@@ -97,8 +98,6 @@ def summary(ws):
     return out
 
 
-def _opt(args, name, default=None):
-    return args[args.index(name) + 1] if name in args and args.index(name) + 1 < len(args) else default
 
 
 def main(argv):

@@ -8,7 +8,7 @@
   python3 tools/gmail_sync.py add WS --file workspace/<name>/data/connector-rows.json [--complete]
                                                          # --complete only after reading every result page
 
-Setup is in docs/GMAIL-SETUP.md: you create a Desktop OAuth client in your own Google Cloud project and
+Setup is in docs/gmail-setup.md: you create a Desktop OAuth client in your own Google Cloud project and
 save its JSON as workspace/<name>/gmail-client.json. Nobody else's app ever touches your mail.
 
 What it keeps: sender, subject, date, labels and the first 2,000 characters of the body, in
@@ -44,7 +44,7 @@ from urllib.request import Request, urlopen
 
 TOOLS = Path(__file__).resolve().parent
 sys.path.insert(0, str(TOOLS))
-import _v2data as d  # noqa: E402
+import _data as d  # noqa: E402
 import _untrusted  # noqa: E402
 from _paths import PathOutsideWorkspace, resolve_out  # noqa: E402
 
@@ -251,7 +251,7 @@ def _post_form(url, form):
 def _client(ws):
     p = Path(ws) / "gmail-client.json"
     if not p.is_file():
-        raise NotConnected(f"no OAuth client at {p}. See docs/GMAIL-SETUP.md")
+        raise NotConnected(f"no OAuth client at {p}. See docs/gmail-setup.md")
     c = json.loads(p.read_text(encoding="utf-8"))
     c = c.get("installed", c)        # Google's download wraps the fields in "installed"
     return c["client_id"], c.get("client_secret", "")

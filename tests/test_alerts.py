@@ -1,4 +1,4 @@
-"""Ascend 2.0 M6: job-alert emails and recruiter inbound. Run: python3 -m unittest tests/test_v2_alerts.py -v"""
+"""Ascend 2.0 M6: job-alert emails and recruiter inbound. Run: python3 -m unittest tests/test_alerts.py -v"""
 
 import sys
 import tempfile
@@ -8,7 +8,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "tools"))
 sys.path.insert(0, str(REPO / "tests"))
-from test_v2_pipeline import make_ws  # noqa: E402
+from test_pipeline import make_ws  # noqa: E402
 
 FILTERS = {"title_include": [r"\bsecurity\b"], "seniority": [r"\b(staff|principal|architect|manager)\b"],
            "remote_only": True, "locations": ["remote", "united states", "us"], "comp_floor": 200000}
@@ -96,7 +96,7 @@ class Inbound(unittest.TestCase):
 
 class Run(unittest.TestCase):
     def setUp(self):
-        import _v2data as d
+        import _data as d
         self.td = tempfile.TemporaryDirectory()
         self.ws = make_ws(self.td.name, [])
         dd = self.ws / "data"
@@ -112,7 +112,7 @@ class Run(unittest.TestCase):
         self.td.cleanup()
 
     def test_run_is_incremental_and_never_overwrites(self):
-        import _v2data as d
+        import _data as d
         import alerts
         out = alerts.run(self.ws)
         self.assertEqual(out, {"alert_leads": 4, "inbound": 1, "inbound_matching": 0})
@@ -125,7 +125,7 @@ class Run(unittest.TestCase):
         self.assertEqual(alerts.run(self.ws), {"alert_leads": 0, "inbound": 0, "inbound_matching": 0})
 
     def test_alert_leads_go_through_the_prefilter(self):
-        import _v2data as d
+        import _data as d
         import alerts
         import prefilter
         alerts.run(self.ws)
