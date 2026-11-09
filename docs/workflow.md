@@ -1,9 +1,9 @@
-# WORKFLOW.md: how people actually use Ascend
+# How people use Ascend
 
 This is the **journey index**: who the user is, what they start with, and the path they take for
 each way of using Ascend. It complements the mechanics. It does not restate them. The canonical
-**run order, phases, and state machine live in [`prompts/00-orchestrator.md`](prompts/00-orchestrator.md)**;
-the canonical **op list lives in [`.claude/commands/ascend.md`](.claude/commands/ascend.md)**. When a
+**run order, phases, and state machine live in [`prompts/00-orchestrator.md`](../prompts/00-orchestrator.md)**;
+the canonical **op list lives in [`.claude/commands/ascend.md`](../.claude/commands/ascend.md)**. When a
 journey below says "runs the pipeline," that prompt is the source of truth for *how*.
 
 Each journey is written as: **the user → what they start with → the trigger → the path → what they
@@ -67,7 +67,7 @@ The shape: **one setup**, then you live in the **loop** and react to **opportuni
 - **Ends with:** `linkedin-analysis.html`, `master-resume.md`, a 15+ job `job-queue.md` (each link
   marked verified/unverified), a thin `interview-packet/`, CORE apply packs for the **top 3–5 jobs you
   commit to**, and `start-here.html`: **open this first**. ~25–30 files, not ~100.
-- **Implemented by:** [`prompts/00-orchestrator.md`](prompts/00-orchestrator.md) → phases 01, 03, 04, 06, 05, 07.
+- **Implemented by:** [`prompts/00-orchestrator.md`](../prompts/00-orchestrator.md) → phases 01, 03, 04, 06, 05, 07.
 
 ### J2: The cheap sampler *(try before the long run)*
 > **As** a skeptic who won't spend 3 hours on an unproven tool, **I want** a cheap first taste, **so
@@ -93,7 +93,7 @@ The shape: **one setup**, then you live in the **loop** and react to **opportuni
   while the console shows a live feed.
 - **Ends with:** the same outputs as J1, with an "Open my dashboard" button that lights up when
   `start-here.html` exists.
-- **Implemented by:** [`.claude/commands/ascendui.md`](.claude/commands/ascendui.md) + [`ui/`](ui/) →
+- **Implemented by:** [`.claude/commands/ascendui.md`](../.claude/commands/ascendui.md) + [`ui/`](../ui) →
   the orchestrator in UI mode.
 
 ### J4: Resume an interrupted run
@@ -112,11 +112,11 @@ The shape: **one setup**, then you live in the **loop** and react to **opportuni
 > get to the point of typing `/ascend` at all.
 
 - **Starts with:** a LinkedIn export and the willingness to follow a guide.
-- **Trigger:** read [`docs/SETUP.md`](docs/SETUP.md) (or run `/ascendui`, which sidesteps the terminal
+- **Trigger:** read [`docs/setup.md`](setup.md) (or run `/ascendui`, which sidesteps the terminal
   after launch).
 - **Path:** install/open Claude Code → clone → point at your files → then J1 or J3.
 - **Ends with:** a working setup, handed off to J1/J3.
-- **Implemented by:** [`docs/SETUP.md`](docs/SETUP.md) (+ J3 for the graphical path).
+- **Implemented by:** [`docs/setup.md`](setup.md) (+ J3 for the graphical path).
 
 ---
 
@@ -134,8 +134,8 @@ interviews: the documents are just ammunition; *applications sent and referrals 
 - **Path:** reads your queue, network map, and dashboard targets → drafts today's 3 actions + a
   ghost-detector pass that surfaces stale applications needing a follow-up nudge.
 - **Ends with:** `daily-briefing.md`: today's actions and drafted follow-ups, ready to send.
-- **Implemented by:** [`prompts/13-daily-briefing.md`](prompts/13-daily-briefing.md). Scheduled path:
-  [`ui/run-daily-brief.sh`](ui/run-daily-brief.sh). If a scheduled run doesn't complete, just say
+- **Implemented by:** [`prompts/13-daily-briefing.md`](../prompts/13-daily-briefing.md). Scheduled path:
+  [`ui/run-daily-brief.sh`](../ui/run-daily-brief.sh). If a scheduled run doesn't complete, just say
   *"Ascend today"* for the same brief.
 
 ### J7: Weekly maintenance
@@ -146,7 +146,7 @@ interviews: the documents are just ammunition; *applications sent and referrals 
 - **Path:** re-runs the search and diffs it (new / closed roles), lists follow-ups due, refreshes comp
   research, and digests retro patterns from your `application-log.md` files.
 - **Ends with:** an updated queue + a maintenance digest of what changed and what's due.
-- **Implemented by:** [`prompts/09-maintenance.md`](prompts/09-maintenance.md).
+- **Implemented by:** [`prompts/09-maintenance.md`](../prompts/09-maintenance.md).
 
 ### J8: Network refresh
 > **As** someone who'd rather get referred than cold-apply, **I want** to know who I already know at
@@ -158,7 +158,7 @@ interviews: the documents are just ammunition; *applications sent and referrals 
   contacts).
 - **Ends with:** `network-map.md`: best warm paths per company, which J6's outreach and apply packs
   pull from. (Best run *before* apply packs so outreach has named targets.)
-- **Implemented by:** [`prompts/11-network-map.md`](prompts/11-network-map.md).
+- **Implemented by:** [`prompts/11-network-map.md`](../prompts/11-network-map.md).
 
 ---
 
@@ -174,7 +174,7 @@ Each reacts to a real event and updates the dashboard.
 - **Path:** fetches and verifies the posting → appends one entry to `job-queue.md` (with link status)
   → builds its **CORE apply pack** (resume · outreach · application-log). Doesn't rebuild the queue.
 - **Ends with:** `jobs/<NN-company-role>/` ready to work.
-- **Implemented by:** [`prompts/05-job-folders.md`](prompts/05-job-folders.md).
+- **Implemented by:** [`prompts/05-job-folders.md`](../prompts/05-job-folders.md).
 - **Related:** *"Rebuild job NN"* / `/ascend job rebuild <NN>` regenerates a folder (JD changed, master
   improved) while preserving its `application-log.md` status.
 
@@ -187,7 +187,7 @@ Each reacts to a real event and updates the dashboard.
 - **Trigger:** *"Ascend prep 03"* / `/ascend prep <NN>`.
 - **Path:** builds the deep interview-prep pack for that job, then offers a mock-interview drill.
 - **Ends with:** the job folder's deep-prep pack (5 files, led by `prep-doc.md`) + an optional mock.
-- **Implemented by:** [`prompts/10-deep-prep.md`](prompts/10-deep-prep.md).
+- **Implemented by:** [`prompts/10-deep-prep.md`](../prompts/10-deep-prep.md).
 
 ### J11: Score a JD before investing
 > **As** someone weighing a posting, **I want** an honest fit score with no files built, **so that** I
@@ -211,11 +211,11 @@ Each reacts to a real event and updates the dashboard.
   it on Overleaf. With no engine installed it falls back to the HTML builder rendered headless via
   the trusted server, and then to pressing "Save as PDF" once. Then eyeball it.
 - **Ends with:** a submittable one-page PDF, plus the `resume.json` and the portable `.tex`.
-- **Implemented by:** [`prompts/08-export-pdf.md`](prompts/08-export-pdf.md) +
-  [`tools/render_resume.py`](tools/render_resume.py) +
-  [`templates/resume-latex.template.tex`](templates/resume-latex.template.tex), with
-  [`templates/resume-builder.template.html`](templates/resume-builder.template.html) +
-  [`ui/server.py`](ui/server.py) `--render` as the fallback.
+- **Implemented by:** [`prompts/08-export-pdf.md`](../prompts/08-export-pdf.md) +
+  [`tools/render_resume.py`](../tools/render_resume.py) +
+  [`templates/resume-latex.template.tex`](../templates/resume-latex.template.tex), with
+  [`templates/resume-builder.template.html`](../templates/resume-builder.template.html) +
+  [`ui/server.py`](../ui/server.py) `--render` as the fallback.
 
 ### J12b: Build a résumé from scratch (ad-hoc)
 > **As** someone who just wants a clean résumé without running the whole pipeline, **I want** a visual
@@ -223,12 +223,12 @@ Each reacts to a real event and updates the dashboard.
 
 - **Precondition:** none (works standalone, no workspace required).
 - **Trigger:** *"Ascend build-resume"* / `/ascend build-resume`, or just open
-  [`templates/resume-builder.template.html`](templates/resume-builder.template.html) in a browser, or
+  [`templates/resume-builder.template.html`](../templates/resume-builder.template.html) in a browser, or
   visit `/resume-builder` while the console runs.
 - **Path:** fill the form (or Import a `resume.json`), watch the live preview with a one-page boundary
   warning, then Create PDF / Export JSON.
 - **Ends with:** a one-page ATS-safe PDF and a reusable `resume.json`.
-- **Implemented by:** [`templates/resume-builder.template.html`](templates/resume-builder.template.html).
+- **Implemented by:** [`templates/resume-builder.template.html`](../templates/resume-builder.template.html).
 
 ### Also on demand: the answer sheet
 > **As** someone slogging through application questionnaires, **I want** reusable honest answers, **so
@@ -238,7 +238,7 @@ Each reacts to a real event and updates the dashboard.
 - **Ends with:** `answer-bank.md` (reusable core) + per-job `answer-sheet.md` for postings with custom
   screeners. Conviction/"why us" answers come out as **honest outlines you finish in your voice**, never
   finished prose.
-- **Implemented by:** [`prompts/12-answer-sheet.md`](prompts/12-answer-sheet.md).
+- **Implemented by:** [`prompts/12-answer-sheet.md`](../prompts/12-answer-sheet.md).
 
 
 ### J14: The weekly review *(the 15-minute habit)*
@@ -246,37 +246,37 @@ Each reacts to a real event and updates the dashboard.
 - **Path:** counts what you did, captures outcomes with `tools/pipeline.py`, shows the funnel in your own
   numbers, checks the lead floor, and ends on exactly one decision.
 - **Ends with:** `reviews/week-NN.md`.
-- **Implemented by:** [`prompts/20-weekly-review.md`](prompts/20-weekly-review.md).
+- **Implemented by:** [`prompts/20-weekly-review.md`](../prompts/20-weekly-review.md).
 
 ### J15: Close out a rejection
 - **Trigger:** `/ascend rejected <NN>` when a "no" lands.
 - **Path:** logs the stage it died at, extracts the one learnable thing if there is one, and activates a
   named replacement target so the pipeline does not shrink.
-- **Implemented by:** [`prompts/21-rejection-protocol.md`](prompts/21-rejection-protocol.md).
+- **Implemented by:** [`prompts/21-rejection-protocol.md`](../prompts/21-rejection-protocol.md).
 
 ### J16: Widen the search honestly
 - **Trigger:** `/ascend titles` when the queue runs thin.
 - **Path:** surfaces adjacent titles on three labelled axes (lateral, stretch, pivot), each citing master
   entries and naming its gap, and folds the confirmed ones into targeting.
-- **Implemented by:** [`prompts/22-adjacent-titles.md`](prompts/22-adjacent-titles.md).
+- **Implemented by:** [`prompts/22-adjacent-titles.md`](../prompts/22-adjacent-titles.md).
 
 ### J17: Decide between offers
 - **Trigger:** `/ascend offers` once two processes finish (Phase 19 negotiates one number; this decides).
 - **Path:** compares offers component by component, reads the letter, and works the deadline.
 - **Ends with:** `offers/decision-<date>.md`.
-- **Implemented by:** [`prompts/23-offer-compare.md`](prompts/23-offer-compare.md).
+- **Implemented by:** [`prompts/23-offer-compare.md`](../prompts/23-offer-compare.md).
 
 ### J18: Build the work sample that decides the loop
 - **Trigger:** `/ascend work-sample [NN]`.
 - **Path:** one portfolio piece or take-home plan, built properly once and re-angled per job.
 - **Ends with:** `work-sample.md`.
-- **Implemented by:** [`prompts/24-work-sample.md`](prompts/24-work-sample.md).
+- **Implemented by:** [`prompts/24-work-sample.md`](../prompts/24-work-sample.md).
 
 ### J19: Keep a reference bench
 - **Trigger:** `/ascend references`, early, so an offer-stage request is a lookup.
 - **Path:** a consent-tracked list of referees plus the brief that shapes each call.
 - **Ends with:** `references.md`.
-- **Implemented by:** [`prompts/25-references.md`](prompts/25-references.md).
+- **Implemented by:** [`prompts/25-references.md`](../prompts/25-references.md).
 
 ### J20: Learn how your target level writes
 - **Trigger:** automatic as Phase 26 of every run (after intake, before the master résumé), or
@@ -287,8 +287,8 @@ Each reacts to a real event and updates the dashboard.
   the user's evidence against it in `industry-fit.md`.
 - **Ends with:** `industryresearch/<industry>/<domain>/industry-language.md` (shared) and
   `workspace/<name>/industry-fit.md` (personal).
-- **Implemented by:** [`prompts/26-industry-language.md`](prompts/26-industry-language.md) and
-  [`tools/industry_research.py`](tools/industry_research.py).
+- **Implemented by:** [`prompts/26-industry-language.md`](../prompts/26-industry-language.md) and
+  [`tools/industry_research.py`](../tools/industry_research.py).
 
 
 ### J20b: Set up Ascend 2.0 (once)
@@ -310,13 +310,13 @@ Each reacts to a real event and updates the dashboard.
 - **Trigger:** `/ascend run-v2`.
 - **Path:** `tools/run.py plan` (token estimate, prerequisite check) → Phase 27 scores the survivors with
   reasons and gaps → the user approves or rejects in the served hub.
-- **Implemented by:** [`prompts/29-run-v2.md`](prompts/29-run-v2.md), [`prompts/27-score-queue.md`](prompts/27-score-queue.md).
+- **Implemented by:** [`prompts/29-run-v2.md`](../prompts/29-run-v2.md), [`prompts/27-score-queue.md`](../prompts/27-score-queue.md).
 
 ### J23: Apply
 - **Trigger:** an approved job; `/ascend apply`.
 - **Path:** the user approves in the hub → `tools/apply.py sheet` gate → the user submits in their own
   browser → **I submitted it** (the hub calls `apply.record`, which accepts only an approved job).
-- **Implemented by:** [`prompts/28-apply.md`](prompts/28-apply.md).
+- **Implemented by:** [`prompts/28-apply.md`](../prompts/28-apply.md).
 
 ### J24: Track replies
 - **Trigger:** new mail.
@@ -329,7 +329,7 @@ Each reacts to a real event and updates the dashboard.
 - **Path:** the problem the posting is hiring for, one or two proof stories by master or story ID, an
   honest line on a dealbreaker gap, and a why-here paragraph the user writes. Lint-gated.
 - **Ends with:** `jobs/<NN>/cover-letter.md`.
-- **Implemented by:** [`prompts/30-cover-letter.md`](prompts/30-cover-letter.md).
+- **Implemented by:** [`prompts/30-cover-letter.md`](../prompts/30-cover-letter.md).
 
 ### J26: Debrief a real interview
 - **Trigger:** `/ascend debrief <NN>`, the same day as the round.
@@ -337,7 +337,7 @@ Each reacts to a real event and updates the dashboard.
   drill rubric and recorded as `real` in `tools/drills.py`; questions and ranked concerns fed back into
   the job's prep, and the story map updated so no story leads twice.
 - **Ends with:** `jobs/<NN>/debriefs/<date>-<round>.md` and new rows in `data/drills.jsonl`.
-- **Implemented by:** [`prompts/31-interview-debrief.md`](prompts/31-interview-debrief.md) and [`tools/drills.py`](tools/drills.py).
+- **Implemented by:** [`prompts/31-interview-debrief.md`](../prompts/31-interview-debrief.md) and [`tools/drills.py`](../tools/drills.py).
 
 ---
 
@@ -352,15 +352,15 @@ Each reacts to a real event and updates the dashboard.
   in. Each person's data, resumes, and dashboards live only in their own folder.
 - **Ends with:** independent workspaces. **To wipe a person:** delete their `workspace/<name>/` folder.
 - **Implemented by:** the **Person-agnostic** + **Privacy** binding rules in
-  [`CLAUDE.md`](CLAUDE.md) / the orchestrator.
+  [`CLAUDE.md`](../CLAUDE.md) / the orchestrator.
 
 ---
 
 ## Invariants that hold across every journey
 
 These aren't a journey: they're the promises Ascend keeps no matter which path you're on. Full rules:
-[`reference/number-and-honesty-policy.md`](reference/number-and-honesty-policy.md),
-[`reference/untrusted-content-policy.md`](reference/untrusted-content-policy.md).
+[`reference/number-and-honesty-policy.md`](../reference/number-and-honesty-policy.md),
+[`reference/untrusted-content-policy.md`](../reference/untrusted-content-policy.md).
 
 - **Never fabricates.** Every claim traces to your LinkedIn export, your resume, or an answer you gave.
   A missing number is a thing to measure, not invent; a missing skill is an honest gap, not a bluff.

@@ -1,4 +1,4 @@
-"""Ascend 2.0 M3: the hub dashboard. Run: python3 -m unittest tests/test_v2_hub.py -v"""
+"""Ascend 2.0 M3: the hub dashboard. Run: python3 -m unittest tests/test_hub.py -v"""
 
 import json
 import subprocess
@@ -10,7 +10,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "tools"))
 sys.path.insert(0, str(REPO / "tests"))
-from test_v2_pipeline import make_ws  # noqa: E402
+from test_pipeline import make_ws  # noqa: E402
 
 TODAY = "2026-10-16"
 
@@ -22,7 +22,7 @@ def ledger(ws, rows):
 
 
 def seed(root):
-    import _v2data as d
+    import _data as d
     ws = make_ws(root, [
         ("01-acme-staff", "Acme Robotics", "Staff Security Engineer", "applied"),
         ("02-northwind-principal", "Northwind", "Principal Cloud Security Engineer", "screen"),
@@ -69,7 +69,7 @@ class Compute(unittest.TestCase):
         self.assertEqual((out["inbox"], out["pinned"], out["tokens"]), ([], [], None))
 
     def test_gmail_status_tells_the_user_when_tracking_stopped(self):
-        import _v2data as d
+        import _data as d
         import hub
         ws = make_ws(self.td.name, [])
         d.write_json_atomic(ws / ".ascend-state.json", {"run_defaults": {"engine": "A", "mode": "assisted"}})
@@ -82,7 +82,7 @@ class Compute(unittest.TestCase):
         self.assertIn('id="gmailStatus"', hub.render(ws, today=TODAY))
 
     def test_connector_engines_warn_when_mail_has_not_been_read(self):
-        import _v2data as d
+        import _data as d
         import hub
         ws = make_ws(self.td.name, [])
         d.write_json_atomic(ws / ".ascend-state.json", {"run_defaults": {"engine": "C", "mode": "assisted"}})
@@ -119,7 +119,7 @@ class Compute(unittest.TestCase):
         self.assertIn("positive", out["warning"])
 
     def test_rejections_are_replies_but_not_progress(self):
-        import _v2data as d
+        import _data as d
         import hub
         ws = make_ws(self.td.name, [(f"{i:02d}-co{i}", f"Co{i}", "Engineer", "applied") for i in range(12)])
         ledger(ws, [(f"{i:02d}-co{i}", "2026-08-01", "queued", "applied", "log", "-") for i in range(12)])
@@ -134,7 +134,7 @@ class Compute(unittest.TestCase):
         self.assertIsNone(out["warning"])          # 8% positive is above the 5% floor
 
     def test_all_rejections_still_warns(self):
-        import _v2data as d
+        import _data as d
         import hub
         ws = make_ws(self.td.name, [(f"{i:02d}-co{i}", f"Co{i}", "Engineer", "applied") for i in range(12)])
         ledger(ws, [(f"{i:02d}-co{i}", "2026-08-01", "queued", "applied", "log", "-") for i in range(12)])
@@ -146,7 +146,7 @@ class Compute(unittest.TestCase):
         self.assertIn("positive", out["warning"])
 
     def v2_ws(self, sends, interviews):
-        import _v2data as d
+        import _data as d
         ws = make_ws(self.td.name, [(f"{i:02d}-co{i}", f"Co{i}", "Engineer", "applied") for i in range(sends)])
         d.write_json_atomic(ws / "data" / "queue.json", {"jobs": [
             {"posting_id": f"gh:co{i}:{i}", "company": f"Co{i}", "title": "Engineer", "nn": f"{i:02d}", "state": "applied"}
@@ -166,7 +166,7 @@ class Compute(unittest.TestCase):
         self.assertIn("12 of 50", g["note"])
 
     def test_callback_gate_measures_the_first_fifty_v2_sends_only(self):
-        import _v2data as d
+        import _data as d
         import hub
         ws = self.v2_ws(55, 2)
         ledger(ws, [("99-v1-only", "2026-08-01", "queued", "screen", "log", "-")])     # a v1 interview never counts
@@ -200,7 +200,7 @@ class Compute(unittest.TestCase):
         self.assertEqual(hub.compute(ws, today=TODAY)["pinned"], [])
 
     def test_week_counts_jobs_not_emails(self):
-        import _v2data as d
+        import _data as d
         import hub
         ws = seed(self.td.name)
         for i, day in enumerate(["2026-10-14", "2026-10-15"]):
@@ -210,7 +210,7 @@ class Compute(unittest.TestCase):
         self.assertEqual(hub.compute(ws, today=TODAY)["week"]["interviews"], 1)
 
     def test_inbox_takes_subject_and_sender_from_mail(self):
-        import _v2data as d
+        import _data as d
         import hub
         ws = make_ws(self.td.name, [])
         d.append_jsonl(ws / "data" / "mail.jsonl", {"msg_id": "z1", "from": "talent@co.example",
@@ -221,7 +221,7 @@ class Compute(unittest.TestCase):
         self.assertEqual((row["subject"], row["from"]), ("Interview invitation", "talent@co.example"))
 
     def test_screened_uses_latest_verdict_per_posting(self):
-        import _v2data as d
+        import _data as d
         import hub
         ws = make_ws(self.td.name, [])
         for row in [{"posting_id": "p1", "passed": True, "filters_hash": "old"},
@@ -232,7 +232,7 @@ class Compute(unittest.TestCase):
         self.assertEqual(funnel["screened"], 1)
 
     def test_queue_puts_open_decisions_first_by_fit(self):
-        import _v2data as d
+        import _data as d
         import hub
         ws = seed(self.td.name)
         q = d.read_json(ws / "data" / "queue.json", {})
@@ -243,7 +243,7 @@ class Compute(unittest.TestCase):
         self.assertEqual([r["company"] for r in rows[:3]], ["Zeta", "Litware", "Eta"])
 
     def test_queue_decision_shows_over_an_untouched_folder(self):
-        import _v2data as d
+        import _data as d
         import hub
         ws = seed(self.td.name)
         q = d.read_json(ws / "data" / "queue.json", {})
@@ -253,7 +253,7 @@ class Compute(unittest.TestCase):
         self.assertEqual((rows["03"], rows["01"]), ("approved", "applied"))
 
     def test_dead_boards_and_unmatched_mail_are_on_the_page(self):
-        import _v2data as d
+        import _data as d
         import hub
         ws = seed(self.td.name)
         d.write_json_atomic(ws / "data" / "board-health.json", {"checked": TODAY, "boards": 3,
@@ -267,7 +267,7 @@ class Compute(unittest.TestCase):
         self.assertIn("1 email", h["mail"])
 
     def test_matched_leaves_out_filtered_recruiter_mail(self):
-        import _v2data as d
+        import _data as d
         import hub
         ws = seed(self.td.name)
         d.update_json(ws / "data" / "queue.json", {"jobs": []}, lambda q: q["jobs"].append(
@@ -282,7 +282,7 @@ class Compute(unittest.TestCase):
                          [("03", "queued", 71), ("01", "applied", 84), ("02", "screen", 79)])
 
     def test_tokens_by_stage(self):
-        import _v2data as d
+        import _data as d
         import hub
         ws = seed(self.td.name)
         for row in [{"stage": "score", "input_tokens": 1000, "output_tokens": 200},
@@ -311,7 +311,7 @@ class Build(unittest.TestCase):
         self.assertNotIn("__hub_data__", html)
 
     def test_hostile_subject_cannot_close_the_script(self):
-        import _v2data as d
+        import _data as d
         import hub
         d.append_jsonl(self.ws / "data" / "events.jsonl",
                        {"msg_id": "x1", "category": "other", "match": None, "date": "2026-10-16T09:00:00Z",

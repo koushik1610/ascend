@@ -1,6 +1,6 @@
 """Ascend 2.0 M5: finder (five public ATS APIs) and prefilter, against a fake ATS server.
 
-Run: python3 -m unittest tests/test_v2_finder.py -v
+Run: python3 -m unittest tests/test_finder.py -v
 """
 
 import json
@@ -17,7 +17,7 @@ from urllib.parse import urlparse
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "tools"))
 sys.path.insert(0, str(REPO / "tests"))
-from test_v2_pipeline import make_ws  # noqa: E402
+from test_pipeline import make_ws  # noqa: E402
 
 
 def gh_job(i, title, loc="Remote - US", html="<p>Own <b>AWS</b> IAM guardrails</p>"):
@@ -85,11 +85,11 @@ class Base(unittest.TestCase):
         self.td.cleanup()
 
     def sources(self, boards, **filters):
-        import _v2data as d
+        import _data as d
         d.write_json_atomic(self.ws / "data" / "sources.json", {"boards": boards, "filters": filters})
 
     def postings(self):
-        import _v2data as d
+        import _data as d
         return d.read_jsonl(self.ws / "data" / "postings.jsonl")
 
 
@@ -175,7 +175,7 @@ class Adapters(Base):
 
 class Run(Base):
     def test_dedupe_last_seen_and_closing(self):
-        import _v2data as d
+        import _data as d
         import finder
         self.sources([{"ats": "greenhouse", "slug": "acme", "company": "Acme"},
                       {"ats": "greenhouse", "slug": "flaky", "company": "Flaky"}])
@@ -195,7 +195,7 @@ class Run(Base):
         self.assertFalse(state["greenhouse:flaky:9"]["closed"])
 
     def test_a_board_whose_jobs_all_fail_to_read_is_not_emptied(self):
-        import _v2data as d
+        import _data as d
         import finder
         self.sources([{"ats": "greenhouse", "slug": "acme", "company": "Acme"}])
         self.fake.boards["/v1/boards/acme/jobs"] = {"jobs": [gh_job(1, "Staff Security Engineer")]}
@@ -206,7 +206,7 @@ class Run(Base):
         self.assertFalse(d.read_json(self.ws / "data" / "postings-state.json", {})["greenhouse:acme:1"]["closed"])
 
     def test_an_odd_answer_never_closes_a_board_or_stops_the_run(self):
-        import _v2data as d
+        import _data as d
         import finder
         self.sources([{"ats": "greenhouse", "slug": "acme", "company": "Acme"},
                       {"ats": "greenhouse", "slug": "weird", "company": "Weird"}])
@@ -221,7 +221,7 @@ class Run(Base):
         self.assertFalse(state["greenhouse:weird:5"]["closed"])
 
     def test_board_health_names_the_ats_and_counts_empty_boards(self):
-        import _v2data as d
+        import _data as d
         import finder
         self.fake.boards["/v1/boards/acme/jobs"] = {"jobs": [gh_job(1, "Staff Security Engineer")]}
         self.fake.boards["/v1/boards/quiet/jobs"] = {"jobs": []}
@@ -324,12 +324,12 @@ class Evaluate(unittest.TestCase):
 
 class PrefilterRun(Base):
     def seed_postings(self):
-        import _v2data as d
+        import _data as d
         for p in [posting(), posting(id="greenhouse:acme:2", title="Software Engineer")]:
             d.append_jsonl(self.ws / "data" / "postings.jsonl", p)
 
     def test_incremental_and_refilter_on_change(self):
-        import _v2data as d
+        import _data as d
         import prefilter
         self.sources([], **FILTERS)
         self.seed_postings()
@@ -340,7 +340,7 @@ class PrefilterRun(Base):
         self.assertEqual(len(d.read_jsonl(self.ws / "data" / "candidates.jsonl")), 4)
 
     def test_same_role_in_several_locations_counts_once(self):
-        import _v2data as d
+        import _data as d
         import prefilter
         self.sources([], **FILTERS)
         for i, loc in enumerate(["Remote - US", "Remote - United States", "Remote, USA"]):
@@ -361,7 +361,7 @@ class PrefilterRun(Base):
             prefilter.RULES_VERSION -= 1
 
     def test_closed_postings_fail(self):
-        import _v2data as d
+        import _data as d
         import prefilter
         self.sources([], **FILTERS)
         self.seed_postings()

@@ -1,6 +1,6 @@
 """Ascend 2.0 M2: ingest classified mail into the ledger, and the duplicate-apply guard.
 
-Run: python3 -m unittest tests/test_v2_pipeline.py -v
+Run: python3 -m unittest tests/test_pipeline.py -v
 """
 
 import json
@@ -41,7 +41,7 @@ def make_ws(root, jobs, applied_on=APPLIED_ON):
 
 
 def add_events(ws, events):
-    import _v2data as d
+    import _data as d
     for e in events:
         d.append_jsonl(ws / "data" / "events.jsonl", e)
 
@@ -109,7 +109,7 @@ class Ingest(unittest.TestCase):
         self.assertEqual((st["status"], st["next_followup_due"]), ("responded", "2026-10-12"))
 
     def test_posting_id_resolves_through_queue(self):
-        import _v2data as d
+        import _data as d
         d.write_json_atomic(self.ws / "data" / "queue.json",
                             {"jobs": [{"posting_id": "gh:northwind:2", "company": "Northwind", "nn": "02"}]})
         add_events(self.ws, [ev("a6", "interview-invite", "gh:northwind:2")])
@@ -144,7 +144,7 @@ class Ingest(unittest.TestCase):
 
 class Guard(unittest.TestCase):
     def setUp(self):
-        import _v2data as d
+        import _data as d
         self.td = tempfile.TemporaryDirectory()
         self.ws = make_ws(self.td.name, [
             ("01-acme-staff", "Acme Robotics", "Staff Security Engineer", "applied"),
@@ -203,7 +203,7 @@ class Guard(unittest.TestCase):
         self.assertIn("usage: guard", r.stderr)
 
     def test_unknown_application_date_says_so(self):
-        import _v2data as d
+        import _data as d
         ws = make_ws(self.td.name + "/b", [("05-grove-staff", "Grove Health", "Staff Engineer", None)])
         log = ws / "jobs/05-grove-staff/application-log.md"
         log.write_text(log.read_text() + "\n```ascend-state\nstatus: screen\n```\n")

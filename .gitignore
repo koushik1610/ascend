@@ -109,8 +109,11 @@ __pycache__/
 ui/.port
 
 # --- Brand images: only commit art you have the rights to ----------------------
-# images/ is ignored by default so stock/copyrighted/unverified art can't be
+# assets/ is ignored by default so stock/copyrighted/unverified art can't be
 # published by accident. Allow-list each cleared (licensed or original) file.
-images/*
-!images/ascend-texture.jpg
-!images/ascend-texture2.jpg
+assets/*
+!assets/ascend-banner.png
+!assets/preview-linkedin.png
+!assets/preview-navigator.png
+!assets/ascend-texture.jpg
+!assets/ascend-texture2.jpg

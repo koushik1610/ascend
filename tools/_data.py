@@ -1,6 +1,6 @@
-"""_v2data.py: the Ascend 2.0 data contract's file I/O (stdlib only).
+"""_data.py: the Ascend 2.0 data contract's file I/O (stdlib only).
 
-NOT A COMMAND. Importable helper; it must never get a `Bash(python3 tools/_v2data.py*)` allow-list
+NOT A COMMAND. Importable helper; it must never get a `Bash(python3 tools/_data.py*)` allow-list
 entry (the leading underscore marks it, as with `_paths.py`).
 
 Every v2 stage reads and writes files under workspace/<name>/data/ (spec §5). JSON Lines files are

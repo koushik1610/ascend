@@ -362,7 +362,7 @@ def _job_for_match(ws, match, queue):
 
 def cmd_ingest(ws, args):
     sys.path.insert(0, str(Path(__file__).resolve().parent))
-    import _v2data as d
+    import _data as d
     data = ws / "data"
     from classify import _title_in, latest_events, match_detail
     import jobqueue
@@ -491,7 +491,7 @@ def _same_company_key(a, b):
 def _applied_records(ws):
     """(posting_id, company_key, title_key, applied_on) for everything already sent."""
     sys.path.insert(0, str(Path(__file__).resolve().parent))
-    import _v2data as d
+    import _data as d
     recs = []
     for j in d.read_json(ws / "data" / "queue.json", {}).get("jobs", []):
         if j.get("state") in BLOCKING:

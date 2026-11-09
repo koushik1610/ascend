@@ -25,6 +25,8 @@ import sys
 from datetime import date
 from pathlib import Path
 
+from _cli import opt as _opt
+
 ROOT = Path(__file__).resolve().parent.parent / "industryresearch"
 FILE = "industry-language.md"
 BUILT = re.compile(r"^\*\*Built:\*\*\s*(\d{4}-\d{2}-\d{2})\s*$", re.M)
@@ -63,12 +65,6 @@ def status(industry, domain, today):
     return ("FRESH" if (b.year, b.month) == (today.year, today.month) else "STALE"), p, b
 
 
-def _opt(args, name):
-    if name in args:
-        i = args.index(name)
-        if i + 1 < len(args):
-            return args[i + 1]
-    return None
 
 
 def main(argv):

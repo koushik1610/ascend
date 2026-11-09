@@ -8,7 +8,7 @@
 
 **Tech Stack:** Python 3 stdlib only (urllib, json, unittest), existing `ui/server.py`, `tools/pipeline.py`, `tools/_paths.py`, Claude Code prompts, Claude in Chrome for agent apply.
 
-**Spec:** `docs/superpowers/specs/2026-10-16-ascend-v2-design.md`
+**Spec:** `docs/history/v2-design.md`
 
 ## Global Constraints
 
@@ -38,7 +38,7 @@ Each module merges into `ascend-v2` only when smoke and the grader are green. Ea
 
 | # | Module | Useful on its own because | Depends on |
 |---|---|---|---|
-| **M1** | **Mail classifier + data contract I/O** (`_v2data.py`, `classify.py`, synthetic mailbox) | Any `mail.jsonl` (written today by a Claude session with the Gmail connector, engine C) becomes categorized events with due dates, at zero tokens for rule-covered mail | none |
+| **M1** | **Mail classifier + data contract I/O** (`_data.py`, `classify.py`, synthetic mailbox) | Any `mail.jsonl` (written today by a Claude session with the Gmail connector, engine C) becomes categorized events with due dates, at zero tokens for rule-covered mail | none |
 | M2 | Ledger ingest + duplicate-apply guard (`pipeline.py ingest`, `pipeline.py guard`) | Gmail events update each job's status and the funnel without hand logging | M1 |
 | M3 | Hub Dashboard + Inbox tabs (server read endpoints, template) | The funnel, reply rates and pinned info requests are visible in the browser | M1, M2 |
 | M4 | Engine A Gmail sync (`gmail_sync.py`, OAuth loopback, Keychain, history cursor) | Mail arrives with no Claude session and no tokens | M1 |
@@ -54,11 +54,11 @@ Each module merges into `ascend-v2` only when smoke and the grader are green. Ea
 ## M1: Mail classifier and data contract I/O
 
 **Files:**
-- Create: `tools/_v2data.py` (data-dir resolution, JSONL append/read, atomic JSON write. Importable helper, no allow-list entry)
+- Create: `tools/_data.py` (data-dir resolution, JSONL append/read, atomic JSON write. Importable helper, no allow-list entry)
 - Create: `tools/classify.py` (rules, job matching, due dates, `run` and `one` commands)
-- Create: `tests/fixtures/v2/mailbox.jsonl` (synthetic labeled mail)
-- Create: `tests/fixtures/v2/queue.json` (synthetic queued jobs)
-- Create: `tests/test_v2_tracker.py` (unittest)
+- Create: `tests/fixtures/mailbox.jsonl` (synthetic labeled mail)
+- Create: `tests/fixtures/queue.json` (synthetic queued jobs)
+- Create: `tests/test_tracker.py` (unittest)
 - Modify: `tests/smoke.py` (run the v2 unittest file)
 - Modify: `.claude/settings.json` (allow `Bash(python3 tools/classify.py*)`)
 - Modify: `CHANGELOG.md`
@@ -66,9 +66,9 @@ Each module merges into `ascend-v2` only when smoke and the grader are green. Ea
 ### Task M1.1: Data contract I/O helpers
 
 **Interfaces:**
-- Produces: `_v2data.data_dir(ws: str|Path) -> Path` (creates `ws/data`), `append_jsonl(path, rec: dict) -> None`, `read_jsonl(path) -> list[dict]` (missing file → `[]`, skips blank and corrupt lines), `write_json_atomic(path, obj) -> None`, `read_json(path, default)`.
+- Produces: `_data.data_dir(ws: str|Path) -> Path` (creates `ws/data`), `append_jsonl(path, rec: dict) -> None`, `read_jsonl(path) -> list[dict]` (missing file → `[]`, skips blank and corrupt lines), `write_json_atomic(path, obj) -> None`, `read_json(path, default)`.
 
-- [x] **Step 1: Write the failing tests** in `tests/test_v2_tracker.py`
+- [x] **Step 1: Write the failing tests** in `tests/test_tracker.py`
 
 ```python
 import json, sys, tempfile, unittest
@@ -82,25 +82,25 @@ class DataIO(unittest.TestCase):
     def tearDown(self):
         self.td.cleanup()
     def test_append_and_read_roundtrip(self):
-        import _v2data as d
+        import _data as d
         p = d.data_dir(self.ws) / "events.jsonl"
         d.append_jsonl(p, {"a": 1}); d.append_jsonl(p, {"a": 2})
         self.assertEqual([r["a"] for r in d.read_jsonl(p)], [1, 2])
     def test_read_missing_and_corrupt(self):
-        import _v2data as d
+        import _data as d
         p = d.data_dir(self.ws) / "x.jsonl"
         self.assertEqual(d.read_jsonl(p), [])
         p.write_text('{"ok": 1}\n{broken\n\n{"ok": 2}\n', encoding="utf-8")
         self.assertEqual([r["ok"] for r in d.read_jsonl(p)], [1, 2])
     def test_atomic_json(self):
-        import _v2data as d
+        import _data as d
         p = d.data_dir(self.ws) / "q.json"
         d.write_json_atomic(p, {"jobs": [1]})
         self.assertEqual(d.read_json(p, {}), {"jobs": [1]})
         self.assertEqual(d.read_json(p.with_name("none.json"), {"d": 1}), {"d": 1})
         self.assertFalse(list(p.parent.glob("*.tmp")))
     def test_refuses_outside_allowed_roots(self):
-        import _v2data as d
+        import _data as d
         with self.assertRaises(Exception):
             d.append_jsonl(Path("/etc/ascend-should-not-write.jsonl"), {"x": 1})
 
@@ -110,13 +110,13 @@ if __name__ == "__main__":
 
 - [x] **Step 2: Run to verify failure**
 
-Run: `python3 -m unittest tests/test_v2_tracker.py -v`
-Expected: FAIL with `ModuleNotFoundError: No module named '_v2data'`
+Run: `python3 -m unittest tests/test_tracker.py -v`
+Expected: FAIL with `ModuleNotFoundError: No module named '_data'`
 
-- [x] **Step 3: Implement `tools/_v2data.py`**
+- [x] **Step 3: Implement `tools/_data.py`**
 
 ```python
-"""_v2data.py: the Ascend 2.0 data contract's file I/O (stdlib only).
+"""_data.py: the Ascend 2.0 data contract's file I/O (stdlib only).
 
 NOT A COMMAND. Importable helper; never give it an allow-list entry.
 
@@ -184,13 +184,13 @@ def read_json(path, default):
 
 - [x] **Step 4: Run to verify pass**
 
-Run: `python3 -m unittest tests/test_v2_tracker.py -v`
+Run: `python3 -m unittest tests/test_tracker.py -v`
 Expected: 4 tests OK
 
 - [x] **Step 5: Commit**
 
 ```bash
-git add tools/_v2data.py tests/test_v2_tracker.py
+git add tools/_data.py tests/test_tracker.py
 git commit -m "feat(v2): data contract I/O helpers"
 ```
 
@@ -202,16 +202,16 @@ git commit -m "feat(v2): data contract I/O helpers"
 
 Rule order (first match wins): job-alert sender → rejection → assessment → interview-invite (skipped when the only interview wording is conditional, inside an acknowledgement) → info-request → acknowledgement → status-update → recruiter-inbound (non-ATS sender only) → other. `needs_llm` is true only for `other` mail that still looks job-related (ATS sender domain or hiring vocabulary), so personal mail, receipts and newsletters never cost tokens.
 
-- [x] **Step 1: Create the fixture `tests/fixtures/v2/mailbox.jsonl`.** 36 synthetic messages (fictional companies, `.example` domains), one JSON object per line with `msg_id`, `from`, `subject`, `date`, `body_excerpt` and the expected `_expect` category, covering every category at least three times plus the Review Focus cases.
+- [x] **Step 1: Create the fixture `tests/fixtures/mailbox.jsonl`.** 36 synthetic messages (fictional companies, `.example` domains), one JSON object per line with `msg_id`, `from`, `subject`, `date`, `body_excerpt` and the expected `_expect` category, covering every category at least three times plus the Review Focus cases.
 
-- [x] **Step 2: Write the failing tests** (append to `tests/test_v2_tracker.py`)
+- [x] **Step 2: Write the failing tests** (append to `tests/test_tracker.py`)
 
 ```python
-FIX = REPO / "tests/fixtures/v2"
+FIX = REPO / "tests/fixtures"
 
 class Classifier(unittest.TestCase):
     def load(self):
-        import _v2data as d
+        import _data as d
         return d.read_jsonl(FIX / "mailbox.jsonl")
     def test_every_category_covered_by_fixture(self):
         import classify
@@ -245,7 +245,7 @@ class Classifier(unittest.TestCase):
 
 - [x] **Step 3: Run to verify failure**
 
-Run: `python3 -m unittest tests/test_v2_tracker.py -v`
+Run: `python3 -m unittest tests/test_tracker.py -v`
 Expected: FAIL with `ModuleNotFoundError: No module named 'classify'`
 
 - [x] **Step 4: Implement the rules in `tools/classify.py`.** Reference implementation: `CATEGORIES`, `ATS_DOMAINS`, `ALERT_SENDERS`, the ordered `RULES` table, `CONDITIONAL` (interview wording inside an if/should/once/when clause does not count) and `classify_message()` in `tools/classify.py` at commit `4928cf3`.
@@ -303,7 +303,7 @@ class Matching(unittest.TestCase):
 import subprocess
 class RunCommand(unittest.TestCase):
     def test_run_is_incremental(self):
-        import _v2data as d
+        import _data as d
         with tempfile.TemporaryDirectory() as td:
             ws = Path(td) / "ws"; dd = d.data_dir(ws)
             for m in d.read_jsonl(FIX / "mailbox.jsonl"):
@@ -328,8 +328,8 @@ class RunCommand(unittest.TestCase):
 - [x] **Step 2: Run to verify failure.**
 - [x] **Step 3: Implement `main()` with `run` and `one`** in `tools/classify.py`.
 - [x] **Step 4: Run to verify pass.**
-- [x] **Step 5: Wire it in.** Add `"Bash(python3 tools/classify.py*)"` to `.claude/settings.json` allow list after the `industry_research.py` entry. Add to `tests/smoke.py` a `test_v2_units()` that runs `python3 -m unittest tests/test_v2_tracker.py` and checks exit 0, registered in the test tuple. Add a CHANGELOG entry under Unreleased: "Ascend 2.0, M1: mail classifier".
-- [x] **Step 6: Full gate.** `python3 tests/smoke.py` → all passed. `python3 tools/grade_run.py examples/sample-run` → PASS. `python3 tools/lint_artifacts.py CHANGELOG.md docs/superpowers/specs/2026-10-16-ascend-v2-design.md docs/superpowers/plans/2026-10-16-ascend-v2.md` → no dash or vocabulary findings in new text.
+- [x] **Step 5: Wire it in.** Add `"Bash(python3 tools/classify.py*)"` to `.claude/settings.json` allow list after the `industry_research.py` entry. Add to `tests/smoke.py` a `test_units()` that runs `python3 -m unittest tests/test_tracker.py` and checks exit 0, registered in the test tuple. Add a CHANGELOG entry under Unreleased: "Ascend 2.0, M1: mail classifier".
+- [x] **Step 6: Full gate.** `python3 tests/smoke.py` → all passed. `python3 tools/grade_run.py examples/sample-run` → PASS. `python3 tools/lint_artifacts.py CHANGELOG.md docs/history/v2-design.md docs/history/v2-plan.md` → no dash or vocabulary findings in new text.
 - [x] **Step 7: Commit** `feat(v2): classify.py run, incremental, wired into smoke`.
 
 **M1 status:** complete. 27 unit tests, fixture 36 of 36 correct, smoke green, grader PASS.
@@ -342,7 +342,7 @@ Ruling for M2 onward: each module's tasks give exact interfaces and every test b
 
 **Files:**
 - Modify: `tools/pipeline.py` (extract `transition()`, add `ingest` and `guard`)
-- Create: `tests/test_v2_pipeline.py`
+- Create: `tests/test_pipeline.py`
 - Modify: `CHANGELOG.md`
 
 ### Task M2.1: `transition()` refactor and `ingest`
@@ -353,7 +353,7 @@ Ruling for M2 onward: each module's tasks give exact interfaces and every test b
 
 Category to status: acknowledgement → applied (only from queued), info-request and assessment → responded (sets `next_followup_due` to the event's due date), interview-invite → screen, rejection → rejected. Status-update, recruiter-inbound, job-alert and other change nothing. A job never moves backwards, except into rejected. Offer, rejected and move-on are terminal for ingest.
 
-Tests (`tests/test_v2_pipeline.py`, class `Ingest`): acknowledgement moves queued → applied with `applied_on` = event date. Rejection after screen → rejected. Interview invite on an applied job → screen. Acknowledgement on a screen-stage job changes nothing (no backwards move). Assessment sets next_followup_due to the due date. A posting_id match resolves to the job folder through queue.json. Unmatched and status-update events are counted, not applied. Re-running ingest applies nothing new (idempotent). Ledger rows carry `source=gmail`. `log` still behaves as before (existing smoke covers it).
+Tests (`tests/test_pipeline.py`, class `Ingest`): acknowledgement moves queued → applied with `applied_on` = event date. Rejection after screen → rejected. Interview invite on an applied job → screen. Acknowledgement on a screen-stage job changes nothing (no backwards move). Assessment sets next_followup_due to the due date. A posting_id match resolves to the job folder through queue.json. Unmatched and status-update events are counted, not applied. Re-running ingest applies nothing new (idempotent). Ledger rows carry `source=gmail`. `log` still behaves as before (existing smoke covers it).
 
 ### Task M2.2: `guard`
 
@@ -385,7 +385,7 @@ Ruling: the hub is generated, not fetched. `tools/hub.py build WS` computes ever
 **Files:**
 - Create: `tools/hub.py` (`compute(ws) -> dict`, `build(ws) -> Path`, CLI `build WS [--json]`)
 - Create: `templates/hub.template.html` (Dashboard, Queue, Inbox tabs, one inline script, strict CSP)
-- Create: `tests/test_v2_hub.py`
+- Create: `tests/test_hub.py`
 - Modify: `.claude/settings.json` (allow `Bash(python3 tools/hub.py*)`), `CHANGELOG.md`
 
 ### Task M3.1: `compute()`
@@ -394,7 +394,7 @@ Ruling: the hub is generated, not fetched. `tools/hub.py build WS` computes ever
 - Consumes: `data/postings.jsonl`, `data/candidates.jsonl`, `data/queue.json`, `data/events.jsonl`, `data/status-log.tsv` (via `pipeline.read_ledger`), job folder states (via `pipeline.parse_state`), `data/usage.jsonl`. Every input may be missing.
 - Produces: `hub.compute(ws, today=None) -> dict` with keys `as_of`, `funnel` (list of `{stage, count}` in order found, screened, matched, applied, replied, interviewing, offer), `week` (`applied`, `replies`, `interviews` in the last 7 days), `rates` (`reply`, `ghost`, both `None` below 10 applications), `warning` (string or `None`), `inbox` (events newest first, each with `category`, `subject`, `from`, `date`, `job`, `due`, `gmail_url`), `pinned` (info requests and assessments not yet past their job's next stage), `queue` (jobs with `nn`, `company`, `title`, `status`, `fit`), `tokens` (`by_stage` totals and `total`, or `None`).
 
-Tests (`tests/test_v2_hub.py`, class `Compute`): empty workspace yields zeros and no crash; funnel counts from a seeded workspace; replies count only replies after an application; rates are `None` below 10 applications and numbers at 10 or more; ghosted = applied 30+ days ago with no later reply; warning appears when the reply rate is below 5% at 10+ applications; inbox newest first with job names resolved from NN; pinned holds the info request with its due date and drops it once the job has moved past responded; tokens summed by stage from usage.jsonl.
+Tests (`tests/test_hub.py`, class `Compute`): empty workspace yields zeros and no crash; funnel counts from a seeded workspace; replies count only replies after an application; rates are `None` below 10 applications and numbers at 10 or more; ghosted = applied 30+ days ago with no later reply; warning appears when the reply rate is below 5% at 10+ applications; inbox newest first with job names resolved from NN; pinned holds the info request with its due date and drops it once the job has moved past responded; tokens summed by stage from usage.jsonl.
 
 ### Task M3.2: `build()` and the template
 
@@ -411,8 +411,8 @@ Tests (class `Build`): the file is written with the data embedded as JSON; a sub
 
 **Files:**
 - Create: `tools/gmail_sync.py` (`connect`, `sync`, `status`; stdlib `urllib` only)
-- Create: `tests/test_v2_gmail.py` (a fake Google server on 127.0.0.1 stands in for the token, profile, history and messages endpoints)
-- Create: `docs/GMAIL-SETUP.md` (creating the user's own OAuth client, once)
+- Create: `tests/test_gmail.py` (a fake Google server on 127.0.0.1 stands in for the token, profile, history and messages endpoints)
+- Create: `docs/gmail-setup.md` (creating the user's own OAuth client, once)
 - Modify: `.claude/settings.json` (allow `Bash(python3 tools/gmail_sync.py*)`), `.gitignore` check (client file stays under workspace/), `CHANGELOG.md`
 
 **Interfaces:**
@@ -420,11 +420,11 @@ Tests (class `Build`): the file is written with the data embedded as JSON; a sub
 - CLI: `python3 tools/gmail_sync.py connect WS`, `sync WS [--days N] [--then-classify]`, `status WS`. Exit 0 ok, 2 usage or path, 4 not connected or token revoked (prints the reconnect command).
 - Endpoint bases are overridable for tests only via `ASCEND_GOOGLE_OAUTH_BASE` and `ASCEND_GMAIL_API_BASE`.
 
-**Tests (`tests/test_v2_gmail.py`):** auth URL carries read-only scope, S256 challenge, state and a 127.0.0.1 redirect; the challenge is the S256 of the verifier; callback with the wrong state raises; callback with `error=access_denied` raises; first sync uses a date query, writes one row per message, skips SENT and DRAFT, trims excerpts to 2,000 characters, prefers text/plain and strips HTML otherwise, and stores the history ID; a second sync reads only history and adds only the new message; an expired history cursor (404) falls back to the date query without duplicates; no stored token exits 4; a revoked token (`invalid_grant`) exits 4, deletes the stored token, and marks sync-state disconnected; the file token store is created 0600 and never inside the workspace data folder; `--then-classify` runs classify, ingest and the hub build.
+**Tests (`tests/test_gmail.py`):** auth URL carries read-only scope, S256 challenge, state and a 127.0.0.1 redirect; the challenge is the S256 of the verifier; callback with the wrong state raises; callback with `error=access_denied` raises; first sync uses a date query, writes one row per message, skips SENT and DRAFT, trims excerpts to 2,000 characters, prefers text/plain and strips HTML otherwise, and stores the history ID; a second sync reads only history and adds only the new message; an expired history cursor (404) falls back to the date query without duplicates; no stored token exits 4; a revoked token (`invalid_grant`) exits 4, deletes the stored token, and marks sync-state disconnected; the file token store is created 0600 and never inside the workspace data folder; `--then-classify` runs classify, ingest and the hub build.
 
-**Real-profile check:** blocked until the user creates an OAuth client (docs/GMAIL-SETUP.md). Until then real mail comes in through engine C, already exercised in M1 and M2.
+**Real-profile check:** blocked until the user creates an OAuth client (docs/gmail-setup.md). Until then real mail comes in through engine C, already exercised in M1 and M2.
 
-**M4 status:** complete against the fake Google server (11 tests). The live sign-in waits on the user creating an OAuth client per `docs/GMAIL-SETUP.md`; creating credentials is the user's step, not the agent's.
+**M4 status:** complete against the fake Google server (11 tests). The live sign-in waits on the user creating an OAuth client per `docs/gmail-setup.md`; creating credentials is the user's step, not the agent's.
 
 ---
 
@@ -434,7 +434,7 @@ Tests (class `Build`): the file is written with the data embedded as JSON; a sub
 - Create: `tools/finder.py` (adapters for Greenhouse, Ashby, Lever, Workable, SmartRecruiters; `run WS [--json]`)
 - Create: `tools/prefilter.py` (`run WS [--json]`)
 - Create: `templates/sources.example.json` (board list + filters; the intake writes `workspace/<name>/data/sources.json` from it)
-- Create: `tests/test_v2_finder.py` (fake ATS server for all five APIs)
+- Create: `tests/test_finder.py` (fake ATS server for all five APIs)
 - Modify: `.claude/settings.json`, `CHANGELOG.md`
 
 **Interfaces:**
@@ -455,7 +455,7 @@ Tests (class `Build`): the file is written with the data embedded as JSON; a sub
 
 **Files:**
 - Create: `tools/alerts.py` (`run WS [--json]`)
-- Create: `tests/test_v2_alerts.py`
+- Create: `tests/test_alerts.py`
 - Modify: `.claude/settings.json`, `CHANGELOG.md`
 
 **Interfaces:**
@@ -481,7 +481,7 @@ Rulings: (1) Hub actions need a write channel, so `ui/server.py` serves `GET /hu
 - Create: `tools/run.py` (`plan` with prerequisite checks and token warnings, `steps`, saved defaults)
 - Create: `prompts/27-score-queue.md`
 - Modify: `ui/server.py` (`GET /hub`, `POST /api/queue`), `templates/hub.template.html` (Queue actions, run banner), `tools/hub.py` (run settings and estimate in the data), `.claude/settings.json`, `CHANGELOG.md`
-- Create: `tests/test_v2_queue.py`
+- Create: `tests/test_queue.py`
 
 **Interfaces:**
 - `usage.record(ws, stage, chars_in, chars_out, run_id=None, engine=None, mode=None, items=1)` appends `{stage, input_tokens, output_tokens, estimated: true, ...}` with tokens = ceil(chars / 4). `usage.estimate(ws, engine, mode, jobs) -> {"per_job": int, "daily": int, "basis": "measured"|"default"}`: measured averages from usage.jsonl when the stage has 3 or more records, else the spec's defaults (A 85K/day base, B 700K, C 140K; per application assisted 7.5K, agent 55K, automatic 55K).
@@ -489,7 +489,7 @@ Rulings: (1) Hub actions need a write channel, so `ui/server.py` serves `GET /hu
 - `run.plan(ws, engine, mode, jobs=20) -> {"ok": bool, "problems": [str], "estimate": {...}, "warning": str}`: engine A needs `gmail-client.json` and a stored token, automatic mode needs `confirm="I understand"`; saves `run_defaults` to `.ascend-state.json` when ok. `run.steps(engine) -> list[str]` (the ordered commands, Claude stages marked).
 - Server: `GET /hub?slug=S` → 200 HTML with token and `connect-src 'self'`; `POST /api/queue` `{slug, posting_id, action}` → 200 `{ok}`; bad token 403, bad action 400.
 
-**Tests (`tests/test_v2_queue.py`):** usage record converts characters to tokens and flags estimated; estimate uses defaults with no history and measured averages with 3+ records; candidates exclude queued postings, sort by overlap and trim text; score adds then updates without duplicating; set-state rejects unknown states; plan refuses engine A without a client or token, refuses automatic without the typed confirmation, carries a token warning for every mode, and saves defaults when ok; steps for A start with the Gmail sync and mark Claude stages; server `/hub` injects the token and CSP `connect-src 'self'`; `POST /api/queue` approves with a token and is refused without one.
+**Tests (`tests/test_queue.py`):** usage record converts characters to tokens and flags estimated; estimate uses defaults with no history and measured averages with 3+ records; candidates exclude queued postings, sort by overlap and trim text; score adds then updates without duplicating; set-state rejects unknown states; plan refuses engine A without a client or token, refuses automatic without the typed confirmation, carries a token warning for every mode, and saves defaults when ok; steps for A start with the Gmail sync and mark Claude stages; server `/hub` injects the token and CSP `connect-src 'self'`; `POST /api/queue` approves with a token and is refused without one.
 
 **Real-profile check:** score the top 10 real survivors through Phase 27 (this session acting as the Claude stage), record usage, approve two in the served hub via the browser, confirm the state change lands in queue.json.
 
@@ -502,8 +502,8 @@ Rulings: (1) Hub actions need a write channel, so `ui/server.py` serves `GET /hu
 **Files:**
 - Create: `tools/apply.py` (`sheet`, `next`, `allowed`, `record`, `pause`, `resume`, `status`)
 - Create: `prompts/28-apply.md` (the agent procedure for agent-submit and automatic, with stop rules)
-- Create: `tests/fixtures/v2/fake-apply/` (a local application form: plain, CAPTCHA, unknown question, work-authorization question, file upload) and `tools/fakeform.py serve` (records what was submitted, never sends anything anywhere)
-- Create: `tests/test_v2_apply.py`
+- Create: `tests/fixtures/fake-apply/` (a local application form: plain, CAPTCHA, unknown question, work-authorization question, file upload) and `tools/fakeform.py serve` (records what was submitted, never sends anything anywhere)
+- Create: `tests/test_apply.py`
 - Modify: `tools/jobqueue.py` (marking applied also moves a v1 job folder through `pipeline.transition`), `ui/server.py` (`POST /api/apply` returns the apply sheet; `POST /api/apply-control` pauses and resumes), `templates/hub.template.html` (Apply and "I submitted it" buttons, pause switch), `CLAUDE.md` and `reference/untrusted-content-policy.md` (the scoped exception), `.claude/settings.json`, `CHANGELOG.md`
 
 **Interfaces:**
@@ -529,7 +529,7 @@ Ruling: rows that Claude produces (engine B everywhere, engine C for Gmail, Link
 **Files:**
 - Modify: `tools/finder.py` (`add WS --json ROWS`), `tools/gmail_sync.py` (`add WS --json ROWS`)
 - Create: `prompts/29-run-v2.md` (the v2 run driver: plan, then each engine's steps, engine B's web search, engine C's connector read, the `linkedin_search` op)
-- Create: `tests/test_v2_engines.py`
+- Create: `tests/test_engines.py`
 - Modify: `CHANGELOG.md`
 
 **Interfaces:**
@@ -550,9 +550,9 @@ Ruling: rows that Claude produces (engine B everywhere, engine C for Gmail, Link
 - Create: `tools/_cron.py` (the crontab install logic moved out of `ui/server.py`, shared by the daily brief and the v2 sync; `ASCEND_CRONTAB_FILE` points it at a file for tests)
 - Create: `tools/daily.py` (the scheduled, zero-token v2 sync: Gmail sync and classify when engine A is connected, ingest, finder, prefilter, alerts, hub build; each stage isolated; `data/run-log.jsonl`)
 - Create: `tools/schedule.py` (`install WS --at HH:MM`, `remove WS`, `show WS`)
-- Create: `tests/test_v2_release.py`
-- Create: `docs/V2-READINESS.md` (what was proven on real data, what is still beta and why)
-- Modify: `ui/server.py` (daily brief uses `_cron`), `ops.json` (ops `run-v2`, `apply`, `linkedin-search`, `hub`, `schedule`), `tools/state.py` (phases 27, 28, 29), `.claude/commands/ascend.md`, `prompts/00-orchestrator.md`, `README.md`, `WORKFLOW.md`, `CHANGELOG.md`, `.claude/settings.json`
+- Create: `tests/test_release.py`
+- Create: `docs/history/v2-readiness.md` (what was proven on real data, what is still beta and why)
+- Modify: `ui/server.py` (daily brief uses `_cron`), `ops.json` (ops `run-v2`, `apply`, `linkedin-search`, `hub`, `schedule`), `tools/state.py` (phases 27, 28, 29), `.claude/commands/ascend.md`, `prompts/00-orchestrator.md`, `README.md`, `docs/workflow.md`, `CHANGELOG.md`, `.claude/settings.json`
 
 **Interfaces:**
 - `_cron.install(tag, line, backup_dir) -> dict` (same contract as today: refuses to overwrite an unreadable crontab, keeps a backup, replaces only its own tagged line), `_cron.remove(tag)`, `_cron.read()`.

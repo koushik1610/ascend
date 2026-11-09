@@ -8,13 +8,35 @@ versioning is [SemVer](https://semver.org/).
 
 ## [Unreleased]
 _Working toward v1.0. Real-run gate: **1 of 2–3 runs signed off** (2026-07-01, with-résumé/tech,
-see `docs/ROADMAP.md` → sign-off log); cases (b) no-résumé/non-tech and (c) resume-after-interruption
+see `docs/roadmap.md` → sign-off log); cases (b) no-résumé/non-tech and (c) resume-after-interruption
 remain, plus a green CI run on the remote + a demo GIF._
+
+### At a glance: the work since 0.6.0
+
+| Update | What it added | Details |
+|---|---|---|
+| **Ascend 2.0** (Oct 2026, beta) | Find, apply, track: a daily zero-token sync of public job boards and Gmail, scoring, an apply sheet you submit from, and the hub dashboard. Three engines (A deterministic, B agent, C connector) | [docs/automation.md](docs/automation.md), [design](docs/history/v2-design.md), [plan](docs/history/v2-plan.md), [readiness](docs/history/v2-readiness.md) |
+| **Feature update 3** (Nov 2026) | Hidden text removed from postings and mail before the model sees it, posting dates used for freshness, a PDF text-layer check, a language gate, and recurring gaps counted across the queue | [history/feature-update-3.md](docs/history/feature-update-3.md) |
+| **Feature update 4** (Nov 2026) | Keywords must be backed by a bullet, seniority scored in both directions, a cover-letter op, anchored five-dimension interview scoring, a drill ledger (`tools/drills.py`), and a same-day interview debrief | [history/feature-update-4.md](docs/history/feature-update-4.md) |
+
+### Changed: 2026-11-08 repository reorganization and a shorter README
+- **README** rewritten: what Ascend does, then one table of the run's steps, the commands, the
+  safeguards, status and privacy. The daily find-apply-track detail moved to `docs/automation.md`, and
+  version history lives here.
+- **Version numbers left the file names.** `tests/test_v2_*.py` and `test_v3_untrusted.py` became
+  `tests/test_<module>.py`, `tests/fixtures/v2/` became `tests/fixtures/`, and `tools/_v2data.py` became
+  `tools/_data.py`. Smoke now runs every `tests/test_*.py`.
+- **Docs split into current and history.** `docs/` holds setup, gmail-setup, workflow (moved from the
+  root `WORKFLOW.md`), automation and roadmap, all lowercase. Past plans, readiness reports and reviews
+  moved to `docs/history/`, and the empty `docs/superpowers/` tree is gone.
+- **One image folder.** `images/` merged into `assets/`. The console serves art from `/assets/`, and
+  `.gitignore` allow-lists each cleared file there.
+- **DRY:** six tools each defined their own `_opt` argv helper. They now share `tools/_cli.py`.
 
 ### Fixed + Added: 2026-11-05 features comparison update 3 — de-smuggling, arrival time, the text layer
 A feature comparison against other open-source career-operations modules, then a council review
 (coding/systems · AI-agent-security · technical recruiter) of the integrated flow. Full analysis in
-`docs/ASCEND-3.0-PLAN.md`. **The two most valuable changes were not on the candidate list**, and one
+`docs/history/feature-update-3.md`. **The two most valuable changes were not on the candidate list**, and one
 candidate turned out to be 70% built already and pointed at the wrong artifact.
 
 - **The ingest path laundered hidden content, and this was verified rather than theorised.**
@@ -79,7 +101,7 @@ candidate turned out to be 70% built already and pointed at the wrong artifact.
   **three or more** scored roles, in the weekly review. Deliberately not a heatmap, tier list or study
   plan with hour estimates — an hour estimate is a fabricated number, and a gap plan is the most
   comfortable-feeling work in a job search: it looks like progress and displaces applying.
-- **Two test-harness defects.** `tests/test_v2_apply.py` had been **red since 2026-10-31**: a
+- **Two test-harness defects.** `tests/test_apply.py` had been **red since 2026-10-31**: a
   hardcoded `applied_on: 2026-09-01` fell outside `pipeline.GUARD_DAYS = 60`, a time bomb unrelated
   to any code change. Dated relative to today. And the unit-suite glob matched only `test_v2_*.py`,
   so any later suite would have run green locally and never been gated; it now matches
@@ -158,7 +180,7 @@ one rejection, and the user chose to split the PR:
 
 ### Added: Ascend 2.0 (beta), M10 scheduling and release (branch `ascend-v2`)
 **Ascend 2.0 finds jobs every day, prepares the applications you approve, and tracks replies from your inbox.**
-It is beta: see `docs/V2-READINESS.md` for what has run on real data and what has not.
+It is beta: see `docs/history/v2-readiness.md` for what has run on real data and what has not.
 - **`tools/daily.py`** runs the zero-token sync (Gmail when engine A is connected, classify, ingest,
   finder, prefilter, alerts, hub), each stage isolated, one row per run in `data/run-log.jsonl`.
   **`tools/schedule.py install WS --at HH:MM`** schedules it.
@@ -251,7 +273,7 @@ It is beta: see `docs/V2-READINESS.md` for what has run on real data and what ha
   build, so a scheduled sync costs zero tokens end to end.
 - Exit 4 means not connected or access revoked; a revoked token is deleted and the hub shows Gmail as
   disconnected.
-- Tested against a fake Google server (11 tests). Setup guide: `docs/GMAIL-SETUP.md`.
+- Tested against a fake Google server (11 tests). Setup guide: `docs/gmail-setup.md`.
 
 ### Added: Ascend 2.0, M3 hub dashboard (branch `ascend-v2`)
 - **`tools/hub.py build WS`** writes `workspace/<name>/hub.html`: Dashboard (this week's
@@ -276,18 +298,18 @@ It is beta: see `docs/V2-READINESS.md` for what has run on real data and what ha
   bulk-sender detection, careers-subdomain senders, and matches only mail about an application.
 
 ### Added: Ascend 2.0, M1 mail classifier (branch `ascend-v2`)
-First module of Ascend 2.0 (spec `docs/superpowers/specs/2026-10-16-ascend-v2-design.md`, plan
-`docs/superpowers/plans/2026-10-16-ascend-v2.md`).
+First module of Ascend 2.0 (spec `docs/history/v2-design.md`, plan
+`docs/history/v2-plan.md`).
 - **`tools/classify.py run WS`** sorts `workspace/<name>/data/mail.jsonl` into acknowledgement,
   rejection, info request, assessment, interview invite, status update, recruiter inbound, job alert
   or other, by rule and at zero tokens. It matches each message to a queued job (including Workday
   senders like `company@myworkday.com`), sets due dates on info requests and assessments, and is safe
   to re-run. Only mail that still looks job-related after every rule misses goes to
   `classify-pending.jsonl` for a model pass. Receipts, newsletters and personal mail never do.
-- **`tools/_v2data.py`**, the v2 data contract's file I/O: append-only JSON Lines, atomic JSON, all
+- **`tools/_data.py`**, the v2 data contract's file I/O: append-only JSON Lines, atomic JSON, all
   writes confined by `_paths.resolve_out`.
-- 36-message synthetic mailbox (`tests/fixtures/v2/`), 36 of 36 classified correctly.
-  `tests/test_v2_tracker.py` (27 tests) runs inside `tests/smoke.py`.
+- 36-message synthetic mailbox (`tests/fixtures/`), 36 of 36 classified correctly.
+  `tests/test_tracker.py` (27 tests) runs inside `tests/smoke.py`.
 
 ### Added: Phase 26, industry language research (`/ascend industry`)
 Résumés were phrased from the user's own drafts plus generic rules, which reproduces the user's
@@ -309,7 +331,7 @@ existing voice, including the parts that undersell the level they are targeting.
 - **One scoped shared write.** `Write`/`Edit(industryresearch/**)` and the new tool are allow-listed;
   the shared file carries no personal data by rule, and smoke checks it.
 - Registered in `ops.json`, `tools/state.py` (phase 26), the console's phase list, `ascend.md`,
-  `ascendui.md`, `CLAUDE.md`, `README.md` and `WORKFLOW.md` (J20). WORKFLOW's run order also had
+  `ascendui.md`, `CLAUDE.md`, `README.md` and `docs/workflow.md` (J20). WORKFLOW's run order also had
   drifted to omit Phase 11; fixed in passing.
 
 ### Fixed: 2026-10-15 post-merge cohesion review (PRs #9 to #12)
@@ -323,7 +345,7 @@ the sample. These gaps were between the PRs, where no single PR's tests looked.
 - **`grade_run.py` failed every run kept outside the repo.** A workspace not under `workspace/` fell
   into the committed-fixture branch and failed "labelled fictional". A real run in a private folder
   now passes privacy correctly, because nothing outside the repo can be committed from it.
-- **WORKFLOW.md stopped at J13** while phases 20 to 25 shipped. J14 to J19 now cover the weekly review,
+- **docs/workflow.md stopped at J13** while phases 20 to 25 shipped. J14 to J19 now cover the weekly review,
   rejection protocol, adjacent titles, offers, work sample and references.
 
 Open question, not changed here: #10 makes the headline carry the posting's exact title. The honesty
@@ -598,12 +620,12 @@ covered, several parts more rigorously. Four things were genuinely missing.
 - **Phase 4's two-pass rewrite left contradictions behind**: the goal line still promised "at least
   15", the rubric table said four dimensions at 0–25 while the sentence above it said five at 0–20,
   and five other files still advertised a 15-job queue. All reconciled.
-- **The comparative analysis is now `docs/COMPARATIVE-ANALYSIS.md`**, with the two peer projects
+- **The comparative analysis is now `docs/history/comparative-analysis.md`**, with the two peer projects
   referred to as Peer A and Peer B throughout. The findings stand on their own merits; this document
   exists to record what Ascend decided, not to grade anyone else's project.
 
 ### Added: 2026-08-21 the run rubric, executable (`tools/grade_run.py`)
-- **`docs/ROADMAP.md` gates the 1.0 tag on runs graded for honesty, grounding, completeness and
+- **`docs/roadmap.md` gates the 1.0 tag on runs graded for honesty, grounding, completeness and
   privacy — and that rubric was prose.** Grading it meant a human re-reading a whole workspace and
   deciding, which is how the 2026-07-01 run was signed off as passing an honesty check that (per the
   2026-08-20 council) could not actually have run. `grade_run.py` makes it mechanical: every
@@ -668,7 +690,7 @@ keep them cheap to maintain.
 A three-lens review (software architecture · agent systems · technical recruiting) against two
 open-source career-operations systems found that several of Ascend's own gates were green while not
 gating. Every item below has a reproducer in `tests/smoke.py →
-test_council_gates` that failed before the fix. Analysis: `docs/COMPARATIVE-ANALYSIS.md`.
+test_council_gates` that failed before the fix. Analysis: `docs/history/comparative-analysis.md`.
 
 - **The honesty linter passed fabrication and failed honest writing.** An uncommented `DELTA LOG`
   opened a skip region that only closed on `---` or a heading, so it swallowed the rest of the file:
@@ -743,7 +765,7 @@ test_council_gates` that failed before the fix. Analysis: `docs/COMPARATIVE-ANAL
   is what keeps twenty applications from making twenty slightly different claims about the same work.
   Rewriting already has a home in Phase 3, where the master is built or amended under the
   bullet-quality gate. Full review and duplication audit:
-  [`docs/PIPELINE-REVIEW-2026-08-10.md`](docs/PIPELINE-REVIEW-2026-08-10.md).
+  [`docs/history/pipeline-review-2026-08-10.md`](docs/history/pipeline-review-2026-08-10.md).
 
 ### Fixed: 2026-07-12 usability & console-hardening council pass (multi-persona review of `/ascendui`)
 - **The "Ascend is working" screen can no longer hang silently.** It tracks how long it's been since
@@ -767,7 +789,7 @@ test_council_gates` that failed before the fix. Analysis: `docs/COMPARATIVE-ANAL
   instead of reading as fully covered by "the committed permission set."
 - **Local-date fix.** The console's captured `asOf` date used `toISOString()` (UTC), so an evening run
   west of UTC could stamp `intake.md` with tomorrow's date. Now uses the local calendar date.
-- **Docs:** `docs/SETUP.md` (the non-coder guide) now mentions `/ascendui` exists. `README.md`'s
+- **Docs:** `docs/setup.md` (the non-coder guide) now mentions `/ascendui` exists. `README.md`'s
   "how it works" and "Known limitations" sections no longer imply the Bash allow-list also scopes
   `WebFetch`, and call out the two items above.
 
@@ -808,7 +830,7 @@ test_council_gates` that failed before the fix. Analysis: `docs/COMPARATIVE-ANAL
   smoke tests added.
 - **ROADMAP version drift**: "v0.5.0 is cut now" + a lineage table ending at 0.4.0 contradicted the
   v0.6.0 badge/tag/CHANGELOG: reconciled; 0.5.0/0.6.0 lineage rows added; P1-4/P1-5 marked post-1.0.
-- **`WORKFLOW.md` ended with leaked AI-tool-output tags** on the README's headline journeys link,
+- **`docs/workflow.md` ended with leaked AI-tool-output tags** on the README's headline journeys link,
   removed, plus a smoke check that no committed markdown carries tool-tag residue.
 - **CI least-privilege + supply chain**: `permissions: contents: read` added; the three actions
   SHA-pinned (tags are mutable).
@@ -970,7 +992,7 @@ on-demand ops are **beta**.
   denied the rest of the RCE interpreters / package managers / exfil tools (`deno`/`bun`/`ruby`/`perl`/
   `php`/`osascript`/`python3 -c`/`npm`/`npx`/`pip`/`nc`/`ssh`/`scp`/`sftp`/`telnet`), broadened the secret
   deny-list. The unattended daily-brief restates the quarantine inline. New `tests/smoke.py` checks guard
-  all three. Full write-up in `docs/ROADMAP.md → Council review → Security review`.
+  all three. Full write-up in `docs/roadmap.md → Council review → Security review`.
 - **Honesty:** added a **Project status** + **Known limitations** section and marked beta the surfaces
   that haven't been run end-to-end on real data (`/ascendui`, the cron daily-brief, and the newer
   on-demand ops). Softened "validated JSON" wording (the generator checks it parses; there's no
@@ -1002,7 +1024,7 @@ A graphical front end so starting Ascend is point-and-click, not typing.
 - The console is optional sugar: the text `/ascend` flow does the same thing in chat.
 
 ## [0.3.0] (2026-06-14)
-First cut of the market-research roadmap (`docs/ROADMAP.md`, built from a 5-surface council on how
+First cut of the market-research roadmap (`docs/roadmap.md`, built from a 5-surface council on how
 people actually use AI for job hunting). Adds the highest-leverage, honesty-aligned P1 features, all
 on-demand, keeping the default run lean.
 
@@ -1019,7 +1041,7 @@ on-demand, keeping the default run lean.
 - **Daily Briefing** (`prompts/13-daily-briefing.md`, `/ascend today`), a ~20-min action loop, plus a
   **ghost-detector + follow-up engine**: per-application aging timers that draft the follow-up (or call
   "move on" and replace the target). (P1 #9 + #12)
-- `docs/ROADMAP.md`: the full P1/P2 backlog with sources and a "deliberately not building" list.
+- `docs/roadmap.md`: the full P1/P2 backlog with sources and a "deliberately not building" list.
 
 ### Changed
 - Application-log template now tracks `applied_on` / `last_contact_on` / `next_followup_due` so the
@@ -1067,7 +1089,7 @@ First public version. A reusable, Claude Code-driven job-search pipeline.
   `export`, `maintenance` operations via the `/ascend` command.
 - **Privacy model:** everything personal under gitignored `workspace/`; PII banners on both dashboards;
   a fictional worked example under `examples/sample-run/`.
-- **Docs:** comprehensive `README` (quickstart + contributing folded in), non-technical `docs/SETUP.md`,
+- **Docs:** comprehensive `README` (quickstart + contributing folded in), non-technical `docs/setup.md`,
   `.github/` issue & PR templates.
 
 ### Fixed

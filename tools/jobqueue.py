@@ -26,7 +26,7 @@ from pathlib import Path
 
 TOOLS = Path(__file__).resolve().parent
 sys.path.insert(0, str(TOOLS))
-import _v2data as d  # noqa: E402
+import _data as d  # noqa: E402
 import _untrusted  # noqa: E402
 from finder import ROLE_START, role_text  # noqa: E402,F401
 
@@ -45,6 +45,7 @@ def _queue(ws):
 
 
 from classify import SLUG_SUFFIXES  # noqa: E402,F401  (pipeline._same_company_key reads it from here)
+from _cli import opt as _opt  # noqa: E402
 
 
 def same_company(a, b):
@@ -353,8 +354,6 @@ def recurring_gaps(ws, floor=3):
     return {"scored_jobs": scored, "floor": floor, "recurring": rows}
 
 
-def _opt(args, name, default=None):
-    return args[args.index(name) + 1] if name in args and args.index(name) + 1 < len(args) else default
 
 
 def main(argv):

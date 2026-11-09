@@ -166,7 +166,7 @@ Every stage is idempotent and resumable. One stage failing does not block others
 
 ## 10. Delivery
 
-Built one module at a time on `ascend-v2`, each module merged only when v1 smoke stays green, per the implementation plan in `docs/superpowers/plans/2026-10-16-ascend-v2.md`. Every module is useful on its own: the tracker works before the applier exists, and the finder works before the tracker.
+Built one module at a time on `ascend-v2`, each module merged only when v1 smoke stays green, per the implementation plan in `docs/history/v2-plan.md`. Every module is useful on its own: the tracker works before the applier exists, and the finder works before the tracker.
 
 ---
 
@@ -196,5 +196,5 @@ chose to split the PR. These amendments override the sections above.
   boards and filters are edited in `data/sources.json`. Also not built: the 48-hour "applied?" follow-up
   (moot without agent modes), a per-run token cap, board backoff and retry, an automatic fallback from
   engine A to C, and launchd. The scheduler uses cron, which skips a run while the Mac sleeps.
-  `docs/V2-READINESS.md` keeps this list current.
+  `docs/history/v2-readiness.md` keeps this list current.
 

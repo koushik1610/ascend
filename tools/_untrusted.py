@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""_untrusted.py — de-smuggle untrusted text before anything reads it (stdlib only).
+r"""_untrusted.py — de-smuggle untrusted text before anything reads it (stdlib only).
 
 NOT an allow-listed command, deliberately. Like `_paths.py`, the leading underscore marks it as a
 module the tools import, never a `python3 tools/<x>.py` form. Two reasons:

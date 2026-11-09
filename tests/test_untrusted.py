@@ -1,6 +1,6 @@
 """Ascend 3.0: de-smuggling untrusted text, the board posting date, and the PDF text layer.
 
-Run: python3 -m unittest tests/test_v3_untrusted.py -v
+Run: python3 -m unittest tests/test_untrusted.py -v
 
 Every test here is a reproducer for something that was verified broken first, not a guard against a
 hypothetical. The three groups:

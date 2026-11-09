@@ -20,7 +20,7 @@ from pathlib import Path
 
 TOOLS = Path(__file__).resolve().parent
 sys.path.insert(0, str(TOOLS))
-import _v2data as d  # noqa: E402
+import _data as d  # noqa: E402
 
 
 RETENTION_DAYS = 180
@@ -100,7 +100,7 @@ def run(ws):
         if engine != "A":
             return f"skipped: engine {engine} reads Gmail in a Claude session"
         if not (ws / "gmail-client.json").is_file():
-            raise RuntimeError("engine A has no Gmail client: see docs/GMAIL-SETUP.md")
+            raise RuntimeError("engine A has no Gmail client: see docs/gmail-setup.md")
         if not runplan._has_token(ws):
             raise RuntimeError(f"Gmail is signed out, so replies are not being tracked. "
                                f"Run: python3 tools/gmail_sync.py connect {ws}")

@@ -99,7 +99,7 @@ superseded it dropped the capability.
 | 4 | **PDF text-layer verification** — the ToUnicode extractor moved out of `tests/smoke.py` into the tool, so it runs on the user's own résumé; plus `--verify-text <pdf>` for the Overleaf path | `render_resume.py` |
 | 5 | **Language gate** — declared-only, routed through the existing required/preferred/mentioned classifier | `00-orchestrator.md`, `profile-brief.template.md`, `04-job-search.md` |
 | 6 | **`jobqueue.py gaps`** — a counter over gaps already stored, reported at ≥3 occurrences | `jobqueue.py`, `20-weekly-review.md` |
-| 7 | **Pre-existing red test fixed** — a hardcoded `applied_on` fell outside `GUARD_DAYS=60` on 2026-10-31 and had been red since | `tests/test_v2_pipeline.py` |
+| 7 | **Pre-existing red test fixed** — a hardcoded `applied_on` fell outside `GUARD_DAYS=60` on 2026-10-31 and had been red since | `tests/test_pipeline.py` |
 | 8 | **Unit-suite glob widened** to `test_v[0-9]*_*.py`; it matched only `test_v2_*`, so any later suite would have run green locally and never been gated | `tests/smoke.py` |
 
 ### Design decisions worth recording
@@ -186,7 +186,7 @@ need maintenance, and unofficial aggregator APIs break more often and more quiet
 
 ## 6. Verification
 
-- `python3 tests/smoke.py` → all pass, including the newly-globbed `test_v3_untrusted.py` (23 tests)
+- `python3 tests/smoke.py` → all pass, including the newly-globbed `test_untrusted.py` (23 tests)
 - `python3 tools/grade_run.py examples/sample-run` → `GRADE: PASS`
 - `python3 tools/lint_artifacts.py examples/sample-run` → 7 files, 0 findings, CLEAN
 - Every new gate was reverted to its broken state and **observed to fail** before being called done:

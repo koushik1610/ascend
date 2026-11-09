@@ -2,7 +2,7 @@
 
 Full LLM council, 10 personas across 3 groups (engineering/systems/delivery · security/privacy/compliance ·
 product/market/skeptics), anonymous peer-vote, priority verdict. This report supersedes the optimistic
-"one checkbox away" framing in [`ROADMAP.md` → Path to v1.0](ROADMAP.md); reconcile that section against this.
+"one checkbox away" framing in [`roadmap.md` → Path to v1.0](../roadmap.md); reconcile that section against this.
 
 ## Verdict: do not tag v1.0 yet
 

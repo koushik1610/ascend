@@ -26,9 +26,10 @@ from urllib.parse import urlparse
 
 TOOLS = Path(__file__).resolve().parent
 sys.path.insert(0, str(TOOLS))
-import _v2data as d  # noqa: E402
+import _data as d  # noqa: E402
 import jobqueue  # noqa: E402
 import pipeline  # noqa: E402
+from _cli import opt as _opt  # noqa: E402
 
 PROFILE_FIELDS = ["name", "email", "phone", "location", "linkedin", "website", "github",
                   "work_authorization", "sponsorship", "salary_expectation", "start_date"]
@@ -160,8 +161,6 @@ def record(ws, posting_id, result="submitted"):
     return entry
 
 
-def _opt(args, name, default=None):
-    return args[args.index(name) + 1] if name in args and args.index(name) + 1 < len(args) else default
 
 
 def main(argv):

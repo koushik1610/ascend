@@ -79,7 +79,7 @@ Worth stating plainly, because the gap list below is long and one-directional.
 
 ## 3. What Ascend is missing
 
-Grouped by layer, most structural first. "Roadmap" notes where `docs/ROADMAP.md` already has the item.
+Grouped by layer, most structural first. "Roadmap" notes where `docs/roadmap.md` already has the item.
 
 ### A. The state layer (the root gap)
 
@@ -188,7 +188,7 @@ overwrites Section G with no audit trail. Both are avoidable if we adopt the ide
   argument *for them*, given forks and plugins depend on those paths. Ascend has no such
   installed base and leanness is one of its few real advantages. Keep `tools/` organized.
 - **Kimi Webbridge / browser form typing.** Fragile by the extension's own admission, and
-  `docs/ROADMAP.md` already rules out browser autofill injection on positioning grounds. Take G1–G6,
+  `docs/roadmap.md` already rules out browser autofill injection on positioning grounds. Take G1–G6,
   leave the typing. The user pastes; the user submits; we learn.
 - **DOM-walking LinkedIn scraping.** Same reason. Take G7's URL-builder tier only.
 - **Hardcoded model names in prompts.** Peer A's `_shared.md` spend-tier table names specific
@@ -294,7 +294,7 @@ depends on Tier 0's data contract.
 
 ## Sequencing against the scope freeze
 
-`docs/ROADMAP.md` records a scope freeze as of 2026-07-02: until real runs (b) and (c) are signed
+`docs/roadmap.md` records a scope freeze as of 2026-07-02: until real runs (b) and (c) are signed
 off, only defect fixes those runs surface may ship. Nothing in this document overrides that.
 
 Read the tiers accordingly:

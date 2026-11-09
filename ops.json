@@ -3,13 +3,13 @@
     "THE OP + PHASE REGISTRY — the single source of truth for what Ascend can do.",
     "",
     "Why this file exists: every op used to be enumerated by hand in five places",
-    "(.claude/commands/ascend.md, prompts/00-orchestrator.md, README.md, WORKFLOW.md, and a",
+    "(.claude/commands/ascend.md, prompts/00-orchestrator.md, README.md, docs/workflow.md, and a",
     "hardcoded list in tests/smoke.py). Three of those were test-enforced, so adding one op meant",
     "five edits and a red CI run to find the one you missed. tests/smoke.py now DERIVES its parity",
     "and run-order checks from this file, so a new op is one row here plus the surfaces it names.",
     "",
     "status: 'stable' = exercised on real data. 'beta' = built and code-checked, not yet proven on a",
-    "real run (see docs/V1-READINESS.md). Be honest here; the README's maturity claim reads from it."
+    "real run (see docs/history/v1-readiness.md). Be honest here; the README's maturity claim reads from it."
   ],
   "run_order": ["1", "26", "3", "4", "11", "6", "5", "7"],
   "phases": {
