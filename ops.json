@@ -66,7 +66,11 @@
     {"op": "hub",           "status": "beta", "new": true,
      "what": "The live dashboard: funnel, queue with approve and apply, classified inbox, token spend"},
     {"op": "schedule",      "status": "beta", "new": true,
-     "what": "Run the zero-token sync (Gmail, boards, filters, hub) every day"}
+     "what": "Run the zero-token sync (Gmail, boards, filters, hub) every day"},
+    {"op": "cover-letter",  "status": "beta",
+     "what": "A short letter that says what the résumé can't: the problem, the proof, your own why"},
+    {"op": "debrief",       "status": "beta",
+     "what": "Capture a real interview the same day: questions asked, stories used, scores, fed back into prep"}
   ],
   "skills": {
     "_comment": [
@@ -88,6 +92,8 @@
     "ascend-offer-compare":       "prompts/23-offer-compare.md",
     "ascend-work-sample":         "prompts/24-work-sample.md",
     "ascend-references":          "prompts/25-references.md",
+    "ascend-cover-letter":        "prompts/30-cover-letter.md",
+    "ascend-interview-debrief":   "prompts/31-interview-debrief.md",
     "ascend-salary":              "prompts/19-salary-studio.md",
     "ascend-mock-interview":      "prompts/17-interview-me.md",
     "ascend-rejection":           "prompts/21-rejection-protocol.md"

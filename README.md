@@ -283,6 +283,8 @@ reading nothing.
 | "Ascend offers" *(beta)* | Compare offers component by component, read the letter, work the timeline |
 | "Ascend work-sample" *(beta)* | The portfolio piece or take-home that decides the loop: build one, re-angle per job |
 | "Ascend references" *(beta)* | A consent-tracked reference bench, plus the brief that changes the call |
+| "Ascend cover-letter 03" *(beta)* | A short letter that says what the résumé can't, with your own why |
+| "Ascend debrief 03" *(beta)* | Capture a real interview the same day and feed it back into prep |
 
 Who uses each command, when, and with what preconditions lives in
 [`WORKFLOW.md`](WORKFLOW.md).
@@ -290,7 +292,7 @@ Who uses each command, when, and with what preconditions lives in
 
 ### You can also just ask
 
-The fifteen files under [`.claude/skills/`](.claude/skills) make the common tasks reachable without
+The seventeen files under [`.claude/skills/`](.claude/skills) make the common tasks reachable without
 knowing a command. Say *"is my résumé ATS friendly"*, *"should I apply to this"*, *"is 120k good"*,
 *"I got two offers"*, *"they asked for references"*, *"they ghosted me"*, and Claude Code loads the
 matching skill, which hands it the canonical phase prompt and the shared rules in

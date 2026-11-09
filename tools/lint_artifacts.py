@@ -23,6 +23,9 @@ Checks:
               the sibling resume.md Delta Log's 'JD title (verbatim):' line
   coverage    (per-job resume.json) every term on the Delta Log's 'JD keywords (verbatim):' line
               appears on the page, unless it is listed on the 'True gaps:' line
+  evidence    (per-job resume.json) every such term that is on the page is used by at least one
+              experience or project bullet, not only by Skills, the summary or the headline,
+              unless the Delta Log lists it on a 'Skills-only:' line (a recorded choice)
 
 Skipped automatically: fenced code blocks, HTML comments, DELTA LOG blocks, MASTER GAP notes,
 FICTIONAL SAMPLE banners — those are meta, not sendable prose.
@@ -496,14 +499,59 @@ def lint_keyword_coverage(data, fname, resume_md_text):
                  "search coverage cannot be checked")]
     gaps = {t.lower() for t in _term_list(TRUE_GAPS.search(block))}
     page = " ".join(str(v) for v in _strings(data)).lower()
-    missing = [t for t in wanted if t.lower() not in gaps
-               and not re.search(r"(?<![a-z0-9])" + re.escape(t.lower()) + r"(?:s|es)?(?![a-z0-9])", page)]
+    missing = [t for t in wanted if t.lower() not in gaps and not _has_term(page, t)]
     if missing:
         return [(fname, 1, "coverage",
                  "JD keywords not on the page verbatim: " + ", ".join(repr(t) for t in missing)
                  + ". A recruiter searching for them will not find this résumé. Select a master bullet "
                  "that uses the term, add it to Skills if the evidence exists, or list it under "
                  "'True gaps:'")]
+    return []
+
+
+SKILLS_ONLY = re.compile(r"^[\s-]*Skills-only[^:\n]*:\s*(.+?)\s*$", re.I | re.M)
+
+
+def _has_term(text, term):
+    """The term as a whole word or phrase, a plain plural allowed. `text` is already lower-cased."""
+    return re.search(r"(?<![a-z0-9])" + re.escape(term.lower()) + r"(?:s|es)?(?![a-z0-9])", text) is not None
+
+
+def _bullet_text(data):
+    """What a screener can ask about: experience and project bullets, never Skills or the summary."""
+    parts = []
+    for section in ("work", "projects", "volunteer"):
+        for entry in data.get(section) or []:
+            if isinstance(entry, dict):
+                for key in ("highlights", "description", "summary"):
+                    parts.extend(str(v) for v in _strings(entry.get(key)))
+    return " ".join(parts).lower()
+
+
+def lint_keyword_evidence(data, fname, resume_md_text):
+    """A must-have keyword on the page must be backed by a bullet, not only listed.
+
+    `coverage` passes a term found anywhere, so a keyword that sits only in the Skills line passes.
+    That satisfies a Boolean search and fails the screen, where "tell me about your Kubernetes work"
+    has no bullet behind it. A term the user keeps in Skills on purpose goes on the Delta Log's
+    'Skills-only:' line, which turns the gap into a recorded choice the deep-prep pack can read.
+    Terms that are not on the page at all are `coverage`'s finding, not this one.
+    """
+    block = delta_block(resume_md_text) or ""
+    wanted = _term_list(JD_KEYWORDS.search(block))
+    if not wanted:
+        return []                                   # coverage already reports the missing line
+    exempt = {t.lower() for t in _term_list(TRUE_GAPS.search(block))}
+    exempt |= {t.lower() for t in _term_list(SKILLS_ONLY.search(block))}
+    page = " ".join(str(v) for v in _strings(data)).lower()
+    bullets = _bullet_text(data)
+    thin = [t for t in wanted if t.lower() not in exempt and _has_term(page, t) and not _has_term(bullets, t)]
+    if thin:
+        return [(fname, 1, "evidence",
+                 "JD keywords with no bullet behind them (Skills, summary or headline only): "
+                 + ", ".join(repr(t) for t in thin)
+                 + ". The screen will ask about them. Select a master bullet that uses the term, or "
+                 "list it on the Delta Log's 'Skills-only:' line to record that you chose this")]
     return []
 
 
@@ -621,6 +669,7 @@ def main(argv):
                     md_text = md.read_text(encoding="utf-8")
                     all_findings += lint_title_match(data, str(f), md_text)
                     all_findings += lint_keyword_coverage(data, str(f), md_text)
+                    all_findings += lint_keyword_evidence(data, str(f), md_text)
         if f.name == "resume.md" and f.parent.parent.name == "jobs":
             mp = Path(master_path) if master_path else find_master(f)
             all_findings += lint_provenance(text, str(f),

@@ -26,6 +26,7 @@
       "Bash(python3 tools/apply.py*)",
       "Bash(python3 tools/jobqueue.py*)",
       "Bash(python3 tools/usage.py*)",
+      "Bash(python3 tools/drills.py*)",
       "Bash(python3 tools/finder.py*)",
       "Bash(mkdir -p workspace/*)",
       "Bash(mkdir workspace/*)",

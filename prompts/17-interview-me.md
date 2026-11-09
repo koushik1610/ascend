@@ -27,17 +27,24 @@ loop. On request: *"interview me,"* `/ascend drill [NN]` (a queued job) or `/asc
    there), or a mixed mock. Pick length (e.g., 5 or 10 questions).
 2. **Ask ONE question, then stop and wait** for the user's answer. Don't answer for them; don't preview
    the next question.
-3. **Score the answer** against a compact rubric and give feedback before the next question:
-   - **Structure** — STAR (behavioral) or problem→approach→tradeoffs→result (technical/design). Did it
-     land a clear result?
-   - **Specificity** — concrete nouns, a real metric (public/sanitized), the user's actual role vs. "we."
-   - **Evidence** — which `S#`/`D#`/`E#` it draws on; flag any claim not backed by their materials.
-   - **Brevity & signal** — got to the point; senior-appropriate.
-   Give a 1–5 per dimension, the single highest-leverage fix, and a tightened model opening line they can
-   reuse (built from *their* real story, not invented).
+3. **Score the answer** on the five anchored dimensions in `../reference/interview-prep-framework.md`
+   §6 (substance, structure, relevance, credibility, differentiation, 1–5 each) before the next
+   question. Name which `S#`/`D#`/`E#` it drew on, and apply §6's caps: an unbacked claim caps
+   credibility at 2, a fabricated detail stops the answer. Give the single highest-leverage fix and a
+   tightened opening line built from *their* real story, not an invented one.
+   **Record it** so the next drill can see this one. Write the row to
+   `workspace/<name>/interview-packet/drill-row.json` (the Write tool, never `echo`), then:
+   ```
+   python3 tools/drills.py record workspace/<name> --from workspace/<name>/interview-packet/drill-row.json
+   ```
+   The row is `{"job": "<NN|general>", "source": "mock", "question": "...", "story": "<S#|D#|E#|none>",
+   "scores": {"substance": N, "structure": N, "relevance": N, "credibility": N, "differentiation": N}}`.
+   Question text never goes on the command line.
 4. **Adapt difficulty** to how they're doing; throw one curveball/values-screen if they're cruising.
 
 ## After the set
+- Run `python3 tools/drills.py summary workspace/<name>` and report from it: the per-dimension
+  trend, the weakest dimension, and the stories it counts as over-used or never told.
 - Summarize patterns: recurring strengths, the 2–3 fixes that would move the most loops, and which stories
   are over/under-used.
 - **Update the prep pack:** push new predicted questions or refined opening lines back into the job's
@@ -49,5 +56,5 @@ loop. On request: *"interview me,"* `/ascend drill [NN]` (a queued job) or `/asc
 - The real loop shape was respected (no phantom coding round).
 
 ## Checkpoint
-Report: questions drilled, average rubric scores, the top fixes, and an offer to run another set or update
+Report: questions drilled, the `drills.py summary` averages and trend, the top fixes, and an offer to run another set or update
 the deep-prep pack with what surfaced.
